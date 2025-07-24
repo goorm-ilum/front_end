@@ -2,18 +2,24 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import BasicLayout from './common/BasicLayout';
 
 import Home from './pages/Home';
+import Community from './pages/Community';
 import Commerce from './pages/Commerce';
+import CommerceDetail from './components/Commerce/CommerceDetail';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<BasicLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/commerce" element={<Commerce />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <div className="min-h-screen bg-gray-50">
+      <BrowserRouter>
+        <Routes>
+          <Route element={<BasicLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/commerce" element={<Commerce />} />
+            <Route path="/commerce/:id" element={<CommerceDetail />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </div>
   );
 }
 

@@ -6,7 +6,7 @@ const Header = () => {
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             {/* 왼쪽 */}
             <div className="flex items-center min-w-[120px]">
-            <Link to="/" className="text-2xl font-extrabold text-blue-600">GoormiRoom</Link>
+            <Link to="/" className="text-2xl font-extrabold text-blue-600">TalkTrip</Link>
             </div>
 
             {/* 가운데 */}
@@ -17,8 +17,7 @@ const Header = () => {
 
             {/* 오른쪽 */}
             <div className="flex items-center gap-2 min-w-[120px] justify-end">
-            <Link to="/login" className="text-gray-700 hover:text-blue-600">로그인</Link>
-            <Link to="/signup" className="bg-blue-600 text-white px-3 py-1 rounded-md">회원가입</Link>
+            <Link to="/login" className="bg-blue-600 text-white rounded px-4 py-1 hover:bg-blue-700 transition-colors">로그인</Link>
             </div>
         </div>
     </header>
