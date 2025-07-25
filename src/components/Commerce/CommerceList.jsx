@@ -75,7 +75,7 @@ const CommerceList = () => {
 
   // 페이지네이션 가안
   const [page, setPage] = useState(1);
-  const totalPages = 3;
+  const totalPages = 5;
 
   return (
     <section className="flex flex-col gap-6 items-stretch">

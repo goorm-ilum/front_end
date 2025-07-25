@@ -20,7 +20,39 @@ const dummyProducts = [
       description: '25년 경력의 일본 현지 투어 전문 업체. 믿을 수 있는 여행 파트너!'
     }
   },
-  // ... 다른 상품
+  {
+    id: '2',
+    title: '에버랜드 입장권',
+    thumbnail: 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=600&q=80',
+    price: 48000,
+    description: '에버랜드 자유이용권 티켓. 온 가족이 즐길 수 있는 테마파크!',
+    options: ['1일권', '2일권'],
+    dates: ['2024-06-15', '2024-06-16'],
+    reviews: [
+    ],
+    seller: {
+      name: '에버랜드 공식',
+      contact: 'info@everland.com',
+      description: '국내 최대 테마파크, 에버랜드 공식 판매처.'
+    }
+  },
+  {
+    id: '3',
+    title: '한강 유람선',
+    thumbnail: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=600&q=80',
+    price: 25000,
+    description: '한강에서 즐기는 유람선 체험. 서울의 야경을 만끽하세요.',
+    options: ['주간', '야간'],
+    dates: ['2024-06-20', '2024-06-21'],
+    reviews: [
+      { user: '이민수', rating: 4, comment: '야경이 정말 멋졌어요.' },
+    ],
+    seller: {
+      name: '한강크루즈',
+      contact: 'cruise@hangang.com',
+      description: '서울 대표 유람선 서비스, 한강크루즈.'
+    }
+  }
 ];
 
 const CommerceDetail = () => {
