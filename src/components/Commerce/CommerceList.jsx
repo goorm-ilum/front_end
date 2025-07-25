@@ -56,67 +56,58 @@ const dummyProducts = [
   },
 ];
 
-const continents = ['아시아', '유럽', '북아메리카', '남아메리카', '오세아니아', '아프리카'];
-const countries = ['대한민국', '일본', '프랑스', '미국']; // 예시
-const regions = ['서울', '부산', '도쿄', '파리', '뉴욕']; // 예시
-const sortOptions = [
-  { value: 'latest', label: '최신순' },
-  { value: 'price', label: '가격순' },
-  { value: 'popular', label: '인기순' },
-];
-
 const CommerceList = () => {
   const navigate = useNavigate();
-  const [continent, setContinent] = useState('');
-  const [country, setCountry] = useState('');
-  const [region, setRegion] = useState('');
-  const [date, setDate] = useState('');
-  const [sort, setSort] = useState('latest');
+  // 검색어 상태 추가
+  const [search, setSearch] = useState("");
+  const [date, setDate] = useState("");
+  const [sort, setSort] = useState("latest");
 
   // 페이지네이션 가안
   const [page, setPage] = useState(1);
   const totalPages = 5;
 
+  // 검색 필터링 (간단히 제목/설명에 검색어 포함 여부)
+  const filteredProducts = dummyProducts.filter(product =>
+    (!search || product.title.includes(search) || product.description.includes(search)) &&
+    (!date || product.dates.includes(date))
+  );
+
   return (
     <section className="flex flex-col gap-6 items-stretch">
       <h2 className="text-2xl font-bold mb-2 text-left">투어 상품 목록</h2>
       {/* 필터 영역 */}
-      <div className="flex flex-wrap gap-2 items-end mb-2">
-        <div>
-          <label className="block text-sm mb-1">대륙</label>
-          <select value={continent} onChange={e => setContinent(e.target.value)} className="p-2 border rounded">
-            <option value="">전체</option>
-            {continents.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+      <div className="flex flex-col gap-2 mb-4 w-full max-w-lg">
+        <div className="flex flex-col">
+          <label className="block text-sm mb-1">언제 이용하시나요?</label>
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            className="p-2 border rounded w-full"
+            placeholder="날짜 선택"
+          />
         </div>
-        <div>
-          <label className="block text-sm mb-1">국가</label>
-          <select value={country} onChange={e => setCountry(e.target.value)} className="p-2 border rounded">
-            <option value="">전체</option>
-            {countries.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+        <div className="flex flex-col mt-2">
+          <label className="block text-sm mb-1">어떤 상품을 찾고 계신가요?</label>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="어디로, 무엇을 찾으시나요?"
+            className="p-2 border rounded w-full"
+          />
         </div>
-        <div>
-          <label className="block text-sm mb-1">지역</label>
-          <select value={region} onChange={e => setRegion(e.target.value)} className="p-2 border rounded">
-            <option value="">전체</option>
-            {regions.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm mb-1">날짜</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="p-2 border rounded" />
-        </div>
-        <button className="ml-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">검색</button>
-        <div className="ml-auto">
-          <select value={sort} onChange={e => setSort(e.target.value)} className="p-2 border rounded">
-            {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-          </select>
-        </div>
+        <button
+          className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full"
+          style={{ minWidth: '80px' }}
+        >
+          조회
+        </button>
       </div>
       {/* 카드 리스트 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {dummyProducts.map(product => (
+        {filteredProducts.map(product => (
           <div
             key={product.id}
             className="border rounded-lg shadow hover:shadow-lg transition cursor-pointer flex flex-col"

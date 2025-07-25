@@ -11,7 +11,6 @@ const Header = () => {
 
             {/* 가운데 */}
             <nav className="flex-1 flex justify-center gap-8">
-            <Link to="/community" className="text-gray-700 hover:text-blue-600">리뷰/질문</Link>
             <Link to="/commerce" className="text-gray-700 hover:text-blue-600">투어/액티비티</Link>
             </nav>
 
