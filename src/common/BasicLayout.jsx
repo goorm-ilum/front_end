@@ -1,6 +1,7 @@
-import Header from "./Header";
-import Footer from "./Footer";
-import { Outlet, Link } from "react-router-dom";  
+import Header from './Header';
+import Footer from './Footer';
+import FloatingChatIcon from './FloatingChatIcon';
+import { Outlet, Link } from "react-router-dom"; 
 
 const isFullWidth = true;
 
@@ -25,8 +26,10 @@ const BasicLayout = () => {
       <div className="px-4">
         <div className="w-[1200px] mx-auto">
           <Footer />
+          <FloatingChatIcon />
         </div>
       </div>
+
     </div>
   );
 };

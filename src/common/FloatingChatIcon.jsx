@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
-const ChatIcon = () => {
+const FloatingChatIcon = () => {
   const [unreadCount, setUnreadCount] = useState(3); // 예시로 3개 설정
 
   // 실제로는 API에서 안 읽은 메시지 수를 가져와야 합니다
@@ -13,7 +13,7 @@ const ChatIcon = () => {
   return (
     <Link
       to="/chat"
-      className="text-gray-700 hover:text-blue-600 py-1 flex items-center transition-colors relative"
+      className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 z-50 relative"
       title="채팅 상담"
     >
       <svg
@@ -39,4 +39,4 @@ const ChatIcon = () => {
   );
 };
 
-export default ChatIcon; 
+export default FloatingChatIcon; 
