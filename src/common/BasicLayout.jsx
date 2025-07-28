@@ -1,6 +1,5 @@
 import Header from './Header';
 import Footer from './Footer';
-import AIAssistant from './AIAssistant';
 import { Outlet } from 'react-router-dom';
 
 // 이 값을 true로 하면 전체 폭, false로 하면 고정 폭(1200px)
@@ -15,7 +14,6 @@ const BasicLayout = () => {
           <Outlet />
         </div>
       </main>
-      <AIAssistant />
       <Footer />      
     </div>
   );
