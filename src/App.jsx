@@ -12,6 +12,7 @@ import AdminOrderList from './Admin/pages/AdminOrder/AdminOrderListPage';
 import AdminOrderDetail from './Admin/pages/AdminOrder/AdminOrderDetailPage';
 import AdminChatPage from './Admin/pages/AdminChat/AdminChatPage';
 import AdminProfilePage from './Admin/pages/AdminProfile/AdminProfilePage';
+import Chat from './User/pages/Chat';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path="/admin/chats/" element={<AdminChatPage />} />
             <Route path="/admin/profile" element={<AdminProfilePage />} />
             {/* 추가적인 관리자 페이지 라우트들... */}
+            <Route path="/chat" element={<Chat />} />
           </Route>
         </Routes>
       </BrowserRouter>
