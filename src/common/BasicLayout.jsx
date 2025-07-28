@@ -1,5 +1,6 @@
 import Header from './Header';
 import Footer from './Footer';
+import FloatingChatIcon from './FloatingChatIcon';
 import { Outlet } from 'react-router-dom';
 
 // 이 값을 true로 하면 전체 폭, false로 하면 고정 폭(1200px)
@@ -15,6 +16,7 @@ const BasicLayout = () => {
         </div>
       </main>
       <Footer />
+      <FloatingChatIcon />
     </div>
   );
 };

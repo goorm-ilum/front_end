@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import ChatIcon from './ChatIcon';
 
 const Header = () => {
   const location = useLocation();
@@ -58,6 +59,7 @@ const Header = () => {
                 투어/액티비티
               </Link>
               {/* 사용자용 추가 메뉴들... */}
+              <ChatIcon />
             </>
           )}
         </nav>
