@@ -14,7 +14,7 @@ const BasicLayout = () => {
           <Outlet />
         </div>
       </main>
-      <Footer />      
+      <Footer />
     </div>
   );
 };
