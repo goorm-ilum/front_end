@@ -58,6 +58,12 @@ const Header = () => {
               >
                 투어/액티비티
               </Link>
+              <Link
+                to="/mypage"
+                className="text-gray-700 hover:text-blue-600"
+              >
+                Mypage
+              </Link>
               {/* 사용자용 추가 메뉴들... */}
               <ChatIcon />
             </>
