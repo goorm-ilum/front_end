@@ -36,6 +36,7 @@ const AdminProductListPage = () => {
   // 페이징
   const [currentPage, setCurrentPage] = useState(1);
   const [pagedProducts, setPagedProducts] = useState([]);
+  const itemsPerPage = 10; // 페이지당 아이템 개수
 
   // 검색/필터/정렬 상태
   const [inputValue, setInputValue] = useState('');    // input 에 타이핑할 값
@@ -105,10 +106,10 @@ const AdminProductListPage = () => {
 
   // filteredSorted가 변경될 때마다 현재 페이지 아이템 업데이트
   useEffect(() => {
-    const startIndex = (currentPage - 1) * 10;
-    const endIndex = startIndex + 10;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
     setPagedProducts(filteredSorted.slice(startIndex, endIndex));
-  }, [filteredSorted, currentPage]);
+  }, [filteredSorted, currentPage, itemsPerPage]);
 
 
 
@@ -259,7 +260,7 @@ const AdminProductListPage = () => {
       {/* 페이징 UI */}
       <Pagination
         totalItems={filteredSorted.length}
-        itemsPerPage={10}
+        itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
         className="mt-4"

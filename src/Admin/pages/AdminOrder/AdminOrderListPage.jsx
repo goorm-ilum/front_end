@@ -36,6 +36,7 @@ const AdminOrderListPage = () => {
   // 페이징
   const [currentPage, setCurrentPage] = useState(1);
   const [pagedOrders, setPagedOrders] = useState([]);
+  const itemsPerPage = 10; // 페이지당 아이템 개수
 
   // 더미 로드
   useEffect(() => {
@@ -86,10 +87,10 @@ const AdminOrderListPage = () => {
 
   // processedOrders가 변경될 때마다 현재 페이지 아이템 업데이트
   useEffect(() => {
-    const startIndex = (currentPage - 1) * 10;
-    const endIndex = startIndex + 10;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
     setPagedOrders(processedOrders.slice(startIndex, endIndex));
-  }, [processedOrders, currentPage]);
+  }, [processedOrders, currentPage, itemsPerPage]);
 
   if (loading) {
     return <div className="p-6 text-center">로딩중…</div>;
@@ -195,7 +196,7 @@ const AdminOrderListPage = () => {
       {/* 페이징 */}
       <Pagination
         totalItems={processedOrders.length}
-        itemsPerPage={10}
+        itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
         className="mt-4"

@@ -257,6 +257,7 @@ const CommerceList = ({ showOnlyLiked = false, title = "투어 상품 목록" })
   // 페이지네이션 설정
   const [page, setPage] = useState(1);
   const [currentProducts, setCurrentProducts] = useState([]);
+  const itemsPerPage = 9; // 페이지당 아이템 개수
 
   // 검색 필터링 (간단히 제목/설명에 검색어 포함 여부)
   const filteredProducts = useMemo(() => {
@@ -283,10 +284,10 @@ const CommerceList = ({ showOnlyLiked = false, title = "투어 상품 목록" })
 
   // filteredProducts가 변경될 때마다 현재 페이지 아이템 업데이트
   useEffect(() => {
-    const startIndex = (page - 1) * 6; // itemsPerPage = 6
-    const endIndex = startIndex + 6;
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
     setCurrentProducts(filteredProducts.slice(startIndex, endIndex));
-  }, [filteredProducts, page]);
+  }, [filteredProducts, page, itemsPerPage]);
 
 
 
@@ -377,7 +378,7 @@ const CommerceList = ({ showOnlyLiked = false, title = "투어 상품 목록" })
       {/* 페이지네이션 */}
       <Pagination
         totalItems={totalItems}
-        itemsPerPage={9}
+        itemsPerPage={itemsPerPage}
         currentPage={page}
         onPageChange={setPage}
         className="mt-6"
