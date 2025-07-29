@@ -1,6 +1,6 @@
 // src/common/chat/ChatPage.jsx
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import ChatRoom from './ChatRoom';
 
 // 더미 채팅방 목록 (더 많은 데이터 추가)
@@ -24,8 +24,18 @@ const dummyRooms = [
 
 const ChatPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { roomId } = useParams();
   const [rooms, setRooms] = useState(dummyRooms);
+
+  // 현재 경로에 따라 채팅방 링크 결정
+  const getChatLink = (roomId) => {
+    if (location.pathname.startsWith('/admin')) {
+      return `/admin/chats/${roomId}`; // 관리자 페이지에서는 관리자 채팅
+    } else {
+      return `/chat/${roomId}`; // 사용자 페이지에서는 일반 채팅
+    }
+  };
 
   // 읽지 않은 채팅방 개수 계산
   const unreadCount = rooms.filter(room => !room.isRead).length;
@@ -51,7 +61,13 @@ const ChatPage = () => {
     // 실제 API 호출 → 목록에서 제거
     console.log('delete room', id);
     // 삭제 후, 다른 방 또는 목록으로 이동
-    if (id === roomId) navigate('/chat');
+    if (id === roomId) {
+      if (location.pathname.startsWith('/admin')) {
+        navigate('/admin/chats');
+      } else {
+        navigate('/chat');
+      }
+    }
   };
 
   return (
@@ -75,7 +91,7 @@ const ChatPage = () => {
                   ${room.id === roomId ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}
                   ${!room.isRead ? 'bg-yellow-50 border-l-2 border-l-yellow-400' : ''}`}
               >
-                <Link to={`/chat/${room.id}`} className="flex-1 min-w-0" onClick={() => handleRoomClick(room.id)}>
+                <Link to={getChatLink(room.id)} className="flex-1 min-w-0" onClick={() => handleRoomClick(room.id)}>
                   <div className={`font-medium truncate ${!room.isRead ? 'text-gray-900 font-semibold' : 'text-gray-700'}`}>
                     {room.title}
                     {!room.isRead && (

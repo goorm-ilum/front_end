@@ -1,6 +1,7 @@
 // src/pages/admin/products/AdminProductListPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import Pagination from '../../../common/Pagination';
 
 const AdminProductListPage = () => {
   // 1) 더미 데이터 생성 (11개)
@@ -34,7 +35,7 @@ const AdminProductListPage = () => {
 
   // 페이징
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [pagedProducts, setPagedProducts] = useState([]);
 
   // 검색/필터/정렬 상태
   const [inputValue, setInputValue] = useState('');    // input 에 타이핑할 값
@@ -102,12 +103,14 @@ const AdminProductListPage = () => {
     setCurrentPage(1);
   }, [searchTerm, filterStatus, sortKey, sortOrder]);
 
-  // 페이징 계산
-  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / itemsPerPage));
-  const pagedProducts = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredSorted.slice(start, start + itemsPerPage);
+  // filteredSorted가 변경될 때마다 현재 페이지 아이템 업데이트
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * 10;
+    const endIndex = startIndex + 10;
+    setPagedProducts(filteredSorted.slice(startIndex, endIndex));
   }, [filteredSorted, currentPage]);
+
+
 
   // 삭제 핸들러
   const handleDelete = id => {
@@ -226,8 +229,8 @@ const AdminProductListPage = () => {
                 </td>
                 <td className="px-4 py-2 text-sm text-gray-700 text-right">{p.stock}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">
-                  {p.tags.map(t => (
-                    <span key={t} className="inline-block bg-gray-100 text-gray-800 px-2 py-0.5 mr-1 mb-1 rounded-full text-xs">
+                  {p.tags.map((t, index) => (
+                    <span key={`${p.id}-${t}-${index}`} className="inline-block bg-gray-100 text-gray-800 px-2 py-0.5 mr-1 mb-1 rounded-full text-xs">
                       #{t}
                     </span>
                   ))}
@@ -254,23 +257,13 @@ const AdminProductListPage = () => {
       </div>
 
       {/* 페이징 UI */}
-      <div className="flex justify-end items-center space-x-2 mt-4">
-        <button
-          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          Prev
-        </button>
-        <span className="px-2">{currentPage} / {totalPages}</span>
-        <button
-          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
+      <Pagination
+        totalItems={filteredSorted.length}
+        itemsPerPage={10}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        className="mt-4"
+      />
     </div>
   );
 };

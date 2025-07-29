@@ -1,6 +1,7 @@
 // src/pages/admin/orders/AdminOrderListPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import Pagination from '../../../common/Pagination';
 
 const dummyOrders = [
   { id: 'ORD001', customer: '홍길동',    product: '노트북',          date: '2024-06-01', amount: 12000, payment: '카드',    status: '결제완료' },
@@ -34,7 +35,7 @@ const AdminOrderListPage = () => {
 
   // 페이징
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [pagedOrders, setPagedOrders] = useState([]);
 
   // 더미 로드
   useEffect(() => {
@@ -83,11 +84,11 @@ const AdminOrderListPage = () => {
     setCurrentPage(1);
   }, [searchTerm, paymentFilter, sortKey]);
 
-  // 페이징 계산
-  const totalPages = Math.max(1, Math.ceil(processedOrders.length / itemsPerPage));
-  const pagedOrders = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return processedOrders.slice(start, start + itemsPerPage);
+  // processedOrders가 변경될 때마다 현재 페이지 아이템 업데이트
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * 10;
+    const endIndex = startIndex + 10;
+    setPagedOrders(processedOrders.slice(startIndex, endIndex));
   }, [processedOrders, currentPage]);
 
   if (loading) {
@@ -192,23 +193,13 @@ const AdminOrderListPage = () => {
       </div>
 
       {/* 페이징 */}
-      <div className="flex justify-end items-center space-x-2 mt-4">
-        <button
-          onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-          disabled={currentPage === 1}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          Prev
-        </button>
-        <span className="px-2">{currentPage} / {totalPages}</span>
-        <button
-          onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
+      <Pagination
+        totalItems={processedOrders.length}
+        itemsPerPage={10}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        className="mt-4"
+      />
     </div>
   );
 };

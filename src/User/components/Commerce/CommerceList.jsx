@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Pagination from '../../../common/Pagination';
 
 const dummyProducts = [
@@ -256,21 +256,19 @@ const CommerceList = ({ showOnlyLiked = false, title = "투어 상품 목록" })
 
   // 페이지네이션 설정
   const [page, setPage] = useState(1);
-  const itemsPerPage = 9; // 페이지당 아이템 개수 (고정값)
-  const totalItems = products.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const [currentProducts, setCurrentProducts] = useState([]);
 
   // 검색 필터링 (간단히 제목/설명에 검색어 포함 여부)
-  const filteredProducts = products.filter(product =>
-    (!search || product.title.includes(search) || product.description.includes(search)) &&
-    (!date || product.dates.includes(date)) &&
-    (!showOnlyLiked || product.like)
-  );
+  const filteredProducts = useMemo(() => {
+    return products.filter(product =>
+      (!search || product.title.includes(search) || product.description.includes(search)) &&
+      (!date || product.dates.includes(date)) &&
+      (!showOnlyLiked || product.like)
+    );
+  }, [products, search, date, showOnlyLiked]);
 
-  // 페이지네이션 적용
-  const startIndex = (page - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentProducts = filteredProducts.slice(startIndex, endIndex);
+  // 전체 아이템 개수
+  const totalItems = filteredProducts.length;
 
   // 좋아요 토글 함수
   const toggleLike = (productId) => {
@@ -281,25 +279,21 @@ const CommerceList = ({ showOnlyLiked = false, title = "투어 상품 목록" })
     ));
   };
 
-  // 좋아요한 상품 개수
-  const likedCount = products.filter(product => product.like).length;
+
+
+  // filteredProducts가 변경될 때마다 현재 페이지 아이템 업데이트
+  useEffect(() => {
+    const startIndex = (page - 1) * 6; // itemsPerPage = 6
+    const endIndex = startIndex + 6;
+    setCurrentProducts(filteredProducts.slice(startIndex, endIndex));
+  }, [filteredProducts, page]);
+
+
 
   return (
     <section className="flex flex-col gap-6 items-stretch">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold mb-2 text-left">투어 상품 목록</h2>
-        {likedCount > 0 && (
-          <button
-            onClick={() => {
-              const likedItems = products.filter(product => product.like);
-              console.log('좋아요 목록:', likedItems);
-              alert(`좋아요한 상품 ${likedCount}개:\n${likedItems.map(item => item.title).join('\n')}`);
-            }}
-            className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
-          >
-            좋아요 목록 보기
-          </button>
-        )}
       </div>
       {/* 필터 영역 */}
       <div className="flex flex-col gap-2 mb-4 w-full max-w-lg">
@@ -382,8 +376,9 @@ const CommerceList = ({ showOnlyLiked = false, title = "투어 상품 목록" })
       </div>
       {/* 페이지네이션 */}
       <Pagination
+        totalItems={totalItems}
+        itemsPerPage={9}
         currentPage={page}
-        totalPages={totalPages}
         onPageChange={setPage}
         className="mt-6"
       />
