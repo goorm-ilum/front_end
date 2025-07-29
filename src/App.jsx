@@ -25,10 +25,8 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/commerce" element={<Commerce />} />
             <Route path="/commerce/:id" element={<CommerceDetail />} />
-            <Route path="/chat" element={<Chat />} />
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/chat/*" element={<ChatPage />} />
-            <Route path="/mypage" element={<Mypage />} />
 
             {/* 관리자 페이지 라우트들 */}
             <Route path="/admin" element={<AdminHome />} />
