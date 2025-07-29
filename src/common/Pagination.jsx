@@ -1,20 +1,36 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 
 const Pagination = ({ 
+  totalItems, // 전체 아이템 개수
+  itemsPerPage, // 페이지당 아이템 개수
   currentPage, 
-  totalPages, 
-  onPageChange, 
+  onPageChange,
+  onPageItemsChange, // 현재 페이지의 아이템들을 부모에게 전달하는 콜백
   showPageNumbers = true,
   showPrevNext = true,
   className = ""
 }) => {
-  // 페이지 번호 배열 생성 (최대 5개씩 보여주기)
+  // 페이지네이션 로직
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  // 현재 페이지의 시작/끝 인덱스 계산
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+
+  // 부모 컴포넌트에게 현재 페이지 인덱스 전달
+  React.useEffect(() => {
+    if (onPageItemsChange) {
+      onPageItemsChange({ startIndex, endIndex });
+    }
+  }, [startIndex, endIndex, onPageItemsChange]);
+
+  // 페이지 번호 배열 생성
   const getPageNumbers = () => {
     const pages = [];
     const maxVisible = 10;
     
     if (totalPages <= maxVisible) {
-      // 전체 페이지가 5개 이하면 모두 표시
+      // 전체 페이지가 maxVisible개 이하면 모두 표시
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
@@ -41,6 +57,11 @@ const Pagination = ({
   };
 
   const pageNumbers = getPageNumbers();
+
+  // 페이지가 없으면 렌더링하지 않음
+  if (totalPages <= 1) {
+    return null;
+  }
 
   return (
     <div className={`flex justify-center items-center gap-2 ${className}`}>

@@ -6,6 +6,9 @@ import Commerce from './User/pages/Commerce';
 import CommerceDetail from './User/components/Commerce/CommerceDetail';
 import ChatPage from './common/chat/ChatPage';
 import MyPage from './User/pages/Mypage';
+import CommerceBeforePayment from './User/components/Commerce/CommerceBeforePayment';
+import CommercePayment from './User/components/Commerce/CommercePayment';
+
 
 import AdminHome from './Admin/pages/AdminHome';
 import AdminProductList from './Admin/pages/AdminProduct/AdminProductListPage';
@@ -26,6 +29,8 @@ function App() {
             <Route path="/commerce" element={<Commerce />} />
             <Route path="/commerce/:id" element={<CommerceDetail />} />
             <Route path="/mypage" element={<MyPage />} />
+            <Route path="/commerce/:id/before-payment" element={<CommerceBeforePayment />} />
+            <Route path="/commerce/:id/payment" element={<CommercePayment />} />
             <Route path="/chat/*" element={<ChatPage />} />
 
             {/* 관리자 페이지 라우트들 */}
