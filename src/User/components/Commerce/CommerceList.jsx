@@ -10,6 +10,7 @@ const dummyProducts = [
     price: 28000,
     discountPrice: 22400,
     description: '서울의 주요 명소를 둘러보는 투어입니다. 전문 가이드와 함께 서울의 역사와 문화를 체험하세요.',
+    comment: '서울의 대표 명소들을 전문 가이드와 함께 둘러보는 프리미엄 시티 투어입니다. 경복궁, 남산타워, 홍대거리 등 서울의 핵심 관광지를 효율적으로 탐방하며, 한국의 역사와 현대 문화를 동시에 체험할 수 있습니다. 편안한 전용 차량과 친절한 가이드가 함께하여 최고의 서울 여행 경험을 제공합니다.',
     options: ['오전 출발', '오후 출발'],
     dates: ['2024-06-10', '2024-06-11', '2024-06-12'],
     like: false,
@@ -30,6 +31,7 @@ const dummyProducts = [
     price: 48000,
     discountPrice: 38400,
     description: '에버랜드 자유이용권 티켓. 온 가족이 즐길 수 있는 테마파크!',
+    comment: '국내 최대 규모의 테마파크 에버랜드에서 온 가족이 함께 즐길 수 있는 특별한 시간을 보내세요. 스릴 넘치는 롤러코스터부터 귀여운 동물들과의 만남까지, 모든 연령대가 즐길 수 있는 다양한 어트랙션과 쇼가 준비되어 있습니다. 특히 봄에는 벚꽃축제, 가을에는 할로윈축제 등 계절별 특별 이벤트도 함께 즐기실 수 있어요.',
     options: ['1일권', '2일권'],
     dates: ['2024-06-15', '2024-06-16'],
     like: true,
@@ -49,6 +51,7 @@ const dummyProducts = [
     price: 25000,
     discountPrice: null,
     description: '한강에서 즐기는 유람선 체험. 서울의 야경을 만끽하세요.',
+    comment: '서울의 아름다운 한강을 유람선에서 감상하는 특별한 경험을 선사합니다. 주간에는 한강의 푸른 물과 주변의 녹지, 야간에는 반짝이는 서울의 야경을 만끽할 수 있어요. 특히 저녁 시간대의 유람선은 로맨틱한 분위기로 연인들의 데이트 코스로도 인기가 높습니다. 선상에서 즐기는 음악 공연과 함께 특별한 추억을 만들어보세요.',
     options: ['주간', '야간'],
     dates: ['2024-06-20', '2024-06-21'],
     like: false,
@@ -68,6 +71,7 @@ const dummyProducts = [
     price: 15000,
     discountPrice: 12000,
     description: '부산의 대표 해수욕장, 해운대에서 즐기는 바다 체험.',
+    comment: '부산의 대표적인 해수욕장인 해운대에서 즐기는 특별한 바다 체험입니다. 백사장과 에메랄드빛 바다가 어우러진 아름다운 풍경을 감상하며, 다양한 해양 스포츠와 레저 활동을 즐기실 수 있습니다. 특히 일몰 시간대의 해운대는 로맨틱한 분위기로 연인들의 데이트 명소로도 유명합니다. 맛있는 해산물과 함께 완벽한 부산 여행을 완성해보세요.',
     options: ['일반', 'VIP'],
     dates: ['2024-07-01', '2024-07-02', '2024-07-03'],
     like: true,
@@ -88,6 +92,7 @@ const dummyProducts = [
     price: 35000,
     discountPrice: 28000,
     description: '제주도 자유여행을 위한 렌터카 서비스. 편리한 이동을 도와드립니다.',
+    comment: '제주도의 아름다운 자연과 문화를 자유롭게 탐방할 수 있는 렌터카 서비스입니다. 성산일출봉, 만장굴, 한라산 등 제주의 대표 관광지를 편리하게 둘러보며, 숨겨진 명소들도 자유롭게 방문할 수 있습니다. 다양한 차량 옵션과 합리적인 가격으로 제주도 여행을 더욱 특별하게 만들어드립니다. GPS 내비게이션과 24시간 긴급출동 서비스도 함께 제공됩니다.',
     options: ['경차', '중형차', '대형차'],
     dates: ['2024-07-10', '2024-07-11', '2024-07-12'],
     like: false,
@@ -282,8 +287,8 @@ const CommerceList = ({ showOnlyLiked = false, title = "투어 상품 목록" })
   return (
     <section className="flex flex-col gap-6 items-stretch">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold mb-2 text-left text-gray-900">{title}</h2>
-        {!showOnlyLiked && likedCount > 0 && (
+        <h2 className="text-2xl font-bold mb-2 text-left">투어 상품 목록</h2>
+        {likedCount > 0 && (
           <button
             onClick={() => {
               const likedItems = products.filter(product => product.like);

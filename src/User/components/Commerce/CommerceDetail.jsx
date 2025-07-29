@@ -8,6 +8,7 @@ const dummyProducts = [
     thumbnail: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
     price: 28000,
     discountPrice: 22000,
+    comment: '서울의 대표 명소들을 전문 가이드와 함께 둘러보는 프리미엄 시티 투어입니다. 경복궁, 남산타워, 홍대거리 등 서울의 핵심 관광지를 효율적으로 탐방하며, 한국의 역사와 현대 문화를 동시에 체험할 수 있습니다. 편안한 전용 차량과 친절한 가이드가 함께하여 최고의 서울 여행 경험을 제공합니다.',
     images: [
       'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1517154421773-0529f29ea451?auto=format&fit=crop&w=800&q=80',
@@ -36,6 +37,7 @@ const dummyProducts = [
     thumbnail: 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=600&q=80',
     price: 48000,
     discountPrice: 42000,
+    comment: '국내 최대 규모의 테마파크 에버랜드에서 온 가족이 함께 즐길 수 있는 특별한 시간을 보내세요. 스릴 넘치는 롤러코스터부터 귀여운 동물들과의 만남까지, 모든 연령대가 즐길 수 있는 다양한 어트랙션과 쇼가 준비되어 있습니다. 특히 봄에는 벚꽃축제, 가을에는 할로윈축제 등 계절별 특별 이벤트도 함께 즐기실 수 있어요.',
     images: [
       'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80',
@@ -60,6 +62,7 @@ const dummyProducts = [
     thumbnail: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=600&q=80',
     price: 25000,
     discountPrice: null,
+    comment: '서울의 아름다운 한강을 유람선에서 감상하는 특별한 경험을 선사합니다. 주간에는 한강의 푸른 물과 주변의 녹지, 야간에는 반짝이는 서울의 야경을 만끽할 수 있어요. 특히 저녁 시간대의 유람선은 로맨틱한 분위기로 연인들의 데이트 코스로도 인기가 높습니다. 선상에서 즐기는 음악 공연과 함께 특별한 추억을 만들어보세요.',
     images: [
       'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80',

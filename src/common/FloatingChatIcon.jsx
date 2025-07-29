@@ -1,20 +1,37 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
 const FloatingChatIcon = () => {
   const [unreadCount, setUnreadCount] = useState(3); // 예시로 3개 설정
+  const location = useLocation();
 
-  // 실제로는 API에서 안 읽은 메시지 수를 가져와야 합니다
+  // 현재 경로에 따라 채팅 링크 결정
+  const getChatLink = () => {
+    if (location.pathname.startsWith('/admin')) {
+      return '/admin/chats'; // 관리자 페이지에서는 관리자 채팅
+    } else {
+      return '/chat'; // 사용자 페이지에서는 일반 채팅
+    }
+  };
+
+  // 현재 경로에 따라 제목 결정
+  const getChatTitle = () => {
+    if (location.pathname.startsWith('/admin')) {
+      return '채팅 관리'; // 관리자용 제목
+    } else {
+      return '채팅 상담'; // 사용자용 제목
+    }
+  };
+
   useEffect(() => {
-    // 여기서 API 호출하여 안 읽은 메시지 수를 가져옵니다
-    // setUnreadCount(response.data.unreadCount);
+    // API 호출 로직 (주석 처리)
   }, []);
 
   return (
     <Link
-      to="/chat"
-      className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 z-50 relative"
-      title="채팅 상담"
+      to={getChatLink()}
+      className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 z-50"
+      title={getChatTitle()}
     >
       <svg
         className="w-6 h-6"
