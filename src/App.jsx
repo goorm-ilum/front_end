@@ -4,7 +4,6 @@ import BasicLayout from './common/BasicLayout';
 import Home from './User/pages/Home';
 import Commerce from './User/pages/Commerce';
 import CommerceDetail from './User/components/Commerce/CommerceDetail';
-import Chat from './User/pages/Chat';
 import Mypage from './User/pages/Mypage';
 
 import AdminHome from './Admin/pages/AdminHome';
@@ -12,7 +11,7 @@ import AdminProductList from './Admin/pages/AdminProduct/AdminProductListPage';
 import AdminProductForm from './Admin/pages/AdminProduct/AdminProductFormPage';
 import AdminOrderList from './Admin/pages/AdminOrder/AdminOrderListPage';
 import AdminOrderDetail from './Admin/pages/AdminOrder/AdminOrderDetailPage';
-import AdminChatPage from './Admin/pages/AdminChat/AdminChatPage';
+import ChatPage from './common/chat/ChatPage';
 import AdminProfilePage from './Admin/pages/AdminProfile/AdminProfilePage';
 
 
@@ -26,7 +25,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/commerce" element={<Commerce />} />
             <Route path="/commerce/:id" element={<CommerceDetail />} />
-            <Route path="/chat" element={<Chat />} />
+            <Route path="/chat/*" element={<ChatPage />} />
             <Route path="/mypage" element={<Mypage />} />
 
             {/* 관리자 페이지 라우트들 */}
@@ -36,7 +35,7 @@ function App() {
             <Route path="/admin/products/detail/:productId" element={<AdminProductForm />} />
             <Route path="/admin/orders" element={<AdminOrderList />} />  
             <Route path="/admin/orders/:orderId" element={<AdminOrderDetail />} />
-            <Route path="/admin/chats/" element={<AdminChatPage />} />
+            <Route path="/admin/chats/*" element={<ChatPage />} />
             <Route path="/admin/profile" element={<AdminProfilePage />} />
             
           </Route>
