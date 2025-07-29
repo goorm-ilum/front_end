@@ -20,6 +20,8 @@ const dummyProducts = [
     options: ['오전 출발', '오후 출발'],
     dates: ['2024-06-10', '2024-06-11', '2024-06-12'],
     like: false,
+    likeCount: 156,
+    location: '대한민국',
     hashtags: ['#어트랙션', '#힐링여행', '#도시투어', '#문화체험'],
     reviews: [
       { user: '홍길동', rating: 5, comment: '정말 재밌었어요!' },
@@ -47,6 +49,8 @@ const dummyProducts = [
     options: ['1일권', '2일권'],
     dates: ['2024-06-15', '2024-06-16'],
     like: false,
+    likeCount: 89,
+    location: '대한민국',
     hashtags: ['#테마파크', '#가족여행', '#어드벤처', '#엔터테인먼트'],
     reviews: [
     ],
@@ -72,6 +76,8 @@ const dummyProducts = [
     options: ['주간', '야간'],
     dates: ['2024-06-20', '2024-06-21'],
     like: false,
+    likeCount: 234,
+    location: '대한민국',
     hashtags: ['#크루즈', '#야경투어', '#로맨틱', '#힐링'],
     reviews: [
       { user: '이민수', rating: 4, comment: '야경이 정말 멋졌어요.' },
@@ -136,19 +142,7 @@ const CommerceDetail = () => {
 
       {/* 상품 정보 */}
       <div className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">{product.title}</h2>
-          <div className="mb-3">
-            {product.discountPrice ? (
-              <div>
-                <span className="text-gray-400 line-through text-lg">{product.price.toLocaleString()}원</span>
-                <div className="text-2xl text-red-600 font-semibold">{product.discountPrice.toLocaleString()}원~</div>
-              </div>
-            ) : (
-              <div className="text-2xl text-blue-600 font-semibold">{product.price.toLocaleString()}원~</div>
-            )}
-          </div>
-          
+        <div>       
           {/* 해시태그 */}
           {product.hashtags && product.hashtags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
@@ -162,6 +156,25 @@ const CommerceDetail = () => {
               ))}
             </div>
           )}
+          
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">{product.title}</h2>
+          <p className="text-sm text-gray-600 mb-3 leading-relaxed">{product.comment}</p>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">❤️ {product.likeCount}</span>
+          </div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">📍 {product.location}</span>
+          </div>
+          <div className="mb-3">
+            {product.discountPrice ? (
+              <div>
+                <span className="text-gray-400 line-through text-lg">{product.price.toLocaleString()}원</span>
+                <div className="text-2xl text-red-600 font-semibold">{product.discountPrice.toLocaleString()}원~</div>
+              </div>
+            ) : (
+              <div className="text-2xl text-blue-600 font-semibold">{product.price.toLocaleString()}원~</div>
+            )}
+          </div>
         </div>
         
         <div className="flex flex-col gap-4">
@@ -245,7 +258,12 @@ const CommerceDetail = () => {
           <div className="text-gray-600 text-sm">{product.seller.description}</div>
           <div className="text-gray-500 text-xs">문의: {product.seller.contact}</div>
         </div>
-        <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-fit">판매자에게 메시지 보내기</button>
+        <button 
+          onClick={() => navigate('/chat')}
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-fit"
+        >
+          판매자에게 메시지 보내기
+        </button>
       </div>
     </section>
   );

@@ -205,11 +205,7 @@ const AdminProductListPage = () => {
                 </td>
                 <td className="px-4 py-2 text-sm text-gray-700 text-right">{p.stock}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">
-                  {p.tags.map((t, index) => (
-                    <span key={`${p.id}-${t}-${index}`} className="inline-block bg-gray-100 text-gray-800 px-2 py-0.5 mr-1 mb-1 rounded-full text-xs">
-                      #{t}
-                    </span>
-                  ))}
+                  {p.startDate}
                 </td>
                 <td className="px-4 py-2 text-sm text-center space-x-2">
                   <Link to={`/admin/products/detail/${p.id}`} className="text-blue-600 hover:underline">
