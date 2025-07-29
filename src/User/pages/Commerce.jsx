@@ -1,15 +1,10 @@
-import { Routes, Route, Outlet } from 'react-router-dom';
-import CommerceList from '../components/Commerce/CommerceList';
-import CommerceDetail from '../components/Commerce/CommerceDetail';
-import CommercePayment from '../components/Commerce/CommercePayment';
+import { Outlet } from 'react-router-dom';
 
 const Commerce = () => {
   return (
-    <Routes>
-      <Route path="/" element={<CommerceList />} />
-      <Route path=":id" element={<CommerceDetail />} />
-      <Route path=":id/payment" element={<CommercePayment />} />
-    </Routes>
+    <div className="p-4">
+      <Outlet /> {/* 자식 라우트들이 여기 들어옴 */}
+    </div>
   );
 };
 

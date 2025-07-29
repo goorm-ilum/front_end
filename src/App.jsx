@@ -3,6 +3,7 @@ import BasicLayout from './common/BasicLayout';
 
 import Home from './User/pages/Home';
 import Commerce from './User/pages/Commerce';
+import CommerceList from './User/components/Commerce/CommerceList';
 import CommerceDetail from './User/components/Commerce/CommerceDetail';
 import ChatPage from './common/chat/ChatPage';
 import MyPage from './User/pages/Mypage';
@@ -24,13 +25,18 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<BasicLayout />}>
-            {/* 사용자 페이지 라우트들 */}
+
             <Route path="/" element={<Home />} />
-            <Route path="/commerce" element={<Commerce />} />
-            <Route path="/commerce/:id" element={<CommerceDetail />} />
+
+            {/* 사용자 페이지 라우트들 */}
+            <Route path="/commerce/*" element={<Commerce />}>
+              <Route index element={<CommerceList />} />
+              <Route path=":id" element={<CommerceDetail />} />
+              <Route path=":id/payment" element={<CommercePayment />} />
+              <Route path=":id/before-payment" element={<CommerceBeforePayment />} />
+            </Route>
+
             <Route path="/mypage" element={<MyPage />} />
-            <Route path="/commerce/:id/before-payment" element={<CommerceBeforePayment />} />
-            <Route path="/commerce/:id/payment" element={<CommercePayment />} />
             <Route path="/chat/*" element={<ChatPage />} />
 
             {/* 관리자 페이지 라우트들 */}

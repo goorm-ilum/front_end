@@ -243,6 +243,7 @@ const dummyProducts = [
 const CommerceList = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [showOnlyLiked, setShowOnlyLiked] = useState(false);
   
   // 검색어 상태 추가
   const [search, setSearch] = useState("");
@@ -274,12 +275,6 @@ const CommerceList = () => {
   const itemsPerPage = 9; // 페이지당 아이템 개수
 
   // 검색 필터링 (간단히 제목/설명에 검색어 포함 여부)
-<<<<<<< HEAD
-  const filteredProducts = products.filter(product =>
-    (!search || product.title.includes(search) || product.description.includes(search)) &&
-    (!date || product.dates.includes(date))
-  );
-=======
   const filteredProducts = useMemo(() => {
     return products.filter(product =>
       (!search || product.title.includes(search) || product.description.includes(search)) &&
@@ -287,7 +282,6 @@ const CommerceList = () => {
       (!showOnlyLiked || product.like)
     );
   }, [products, search, date, showOnlyLiked]);
->>>>>>> 8b063462aaea4d03ebc4e609727a0fa244764069
 
   // 전체 아이템 개수
   const totalItems = filteredProducts.length;
@@ -300,8 +294,6 @@ const CommerceList = () => {
         : product
     ));
   };
-
-
 
   // filteredProducts가 변경될 때마다 현재 페이지 아이템 업데이트
   useEffect(() => {
@@ -331,23 +323,7 @@ const CommerceList = () => {
       </div>
 
       <div className="flex justify-between items-center">
-<<<<<<< HEAD
-        <h2 className="text-2xl font-bold mb-2 text-left text-gray-900">투어 상품 목록</h2>
-        {likedCount > 0 && (
-          <button
-            onClick={() => {
-              const likedItems = products.filter(product => product.like);
-              console.log('좋아요 목록:', likedItems);
-              alert(`좋아요한 상품 ${likedCount}개:\n${likedItems.map(item => item.title).join('\n')}`);
-            }}
-            className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
-          >
-            좋아요 목록 보기
-          </button>
-        )}
-=======
         <h2 className="text-2xl font-bold mb-2 text-left">투어 상품 목록</h2>
->>>>>>> 8b063462aaea4d03ebc4e609727a0fa244764069
       </div>
       {/* 필터 영역 */}
       <div className="flex flex-col gap-2 mb-4 w-full max-w-lg">
