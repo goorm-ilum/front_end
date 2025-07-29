@@ -46,7 +46,24 @@ const MyInfo = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    
+    // 전화번호 자동 하이픈 추가
+    if (name === 'phone_num') {
+      const phoneNumber = value.replace(/[^0-9]/g, ''); // 숫자만 추출
+      let formattedPhone = '';
+      
+      if (phoneNumber.length <= 3) {
+        formattedPhone = phoneNumber;
+      } else if (phoneNumber.length <= 7) {
+        formattedPhone = phoneNumber.slice(0, 3) + '-' + phoneNumber.slice(3);
+      } else {
+        formattedPhone = phoneNumber.slice(0, 3) + '-' + phoneNumber.slice(3, 7) + '-' + phoneNumber.slice(7, 11);
+      }
+      
+      setForm(prev => ({ ...prev, [name]: formattedPhone }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleImageChange = (e) => {
@@ -98,21 +115,14 @@ const MyInfo = () => {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-4 text-gray-600 hover:text-gray-800"
-      >
-        ← 뒤로가기
-      </button>
-
       <h1 className="text-2xl font-semibold mb-6">내 정보 수정</h1>
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-6">
         {/* 상단: 이미지 + 이름/성별 */}
-        <div className="flex items-start gap-6">
+        <div className="flex items-start gap-8">
           {/* 프로필 이미지 미리보기 */}
           <div className="flex flex-col items-center">
-            <div className="w-24 h-24 rounded-full overflow-hidden border">
+            <div className="relative w-32 h-32 rounded-full overflow-hidden border">
               {previewUrl ? (
                 <img
                   src={previewUrl}
@@ -124,17 +134,22 @@ const MyInfo = () => {
                   이미지 없음
                 </div>
               )}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <label className="cursor-pointer bg-black bg-opacity-50 hover:bg-opacity-70 text-white px-3 py-1 rounded-full text-xs transition-all duration-200">
+                  사진 변경
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="mt-2 text-sm"
-            />
           </div>
 
           {/* 이름 + 성별 */}
-          <div className="flex-1 grid grid-cols-2 gap-4">
+          <div className="w-80 space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">이름</label>
               <input
@@ -146,19 +161,43 @@ const MyInfo = () => {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">성별</label>
-              <select
-                name="gender"
-                value={form.gender}
-                onChange={handleChange}
-                className="w-full border px-3 py-2 rounded"
-              >
-                <option value="">선택</option>
-                <option value="M">남성</option>
-                <option value="F">여성</option>
-                <option value="U">선택안함</option>
-              </select>
+              <div className="flex gap-4 mt-1">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="M"
+                    checked={form.gender === 'M'}
+                    onChange={handleChange}
+                    className="mr-2"
+                  />
+                  남성
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="F"
+                    checked={form.gender === 'F'}
+                    onChange={handleChange}
+                    className="mr-2"
+                  />
+                  여성
+                </label>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* 닉네임 */}
+        <div className="flex items-center gap-4">
+          <label className="w-24 text-sm font-medium">닉네임</label>
+          <input
+            name="nickname"
+            value={form.nickname}
+            readOnly
+            className="flex-1 bg-gray-100 border px-3 py-2 rounded"
+          />
         </div>
 
         {/* 이메일 */}
@@ -170,18 +209,6 @@ const MyInfo = () => {
             value={form.account_email}
             readOnly
             className="flex-1 bg-gray-100 border px-3 py-2 rounded"
-          />
-        </div>
-
-        {/* 전화번호 */}
-        <div className="flex items-center gap-4">
-          <label className="w-24 text-sm font-medium">전화번호</label>
-          <input
-            name="phone_num"
-            type="tel"
-            value={form.phone_num}
-            onChange={handleChange}
-            className="flex-1 border px-3 py-2 rounded"
           />
         </div>
 
@@ -197,12 +224,13 @@ const MyInfo = () => {
           />
         </div>
 
-        {/* 닉네임 */}
+        {/* 전화번호 */}
         <div className="flex items-center gap-4">
-          <label className="w-24 text-sm font-medium">닉네임</label>
+          <label className="w-24 text-sm font-medium">전화번호</label>
           <input
-            name="nickname"
-            value={form.nickname}
+            name="phone_num"
+            type="tel"
+            value={form.phone_num}
             onChange={handleChange}
             className="flex-1 border px-3 py-2 rounded"
           />
@@ -219,6 +247,16 @@ const MyInfo = () => {
           </button>
         </div>
       </form>
+
+      {/* 뒤로가기 버튼 */}
+      <div className="mt-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-gray-600 hover:text-gray-800"
+        >
+          ← 뒤로가기
+        </button>
+      </div>
     </div>
   );
 };

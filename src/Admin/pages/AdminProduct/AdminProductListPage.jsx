@@ -22,7 +22,6 @@ const AdminProductListPage = () => {
         startDate,                                         
         endDate,                                           
         stock: id * 3,                                    
-        tags: [`태그${(id % 3) + 1}`, `태그${(id % 5) + 1}`],
         isVisible: id % 2 === 0                          
       };
     });
@@ -59,20 +58,13 @@ const AdminProductListPage = () => {
   const filteredSorted = useMemo(() => {
     let arr = [...products];
 
-    // 1) 검색
+    // 검색
     if (searchTerm !== '') {
       const term = searchTerm.toLowerCase();
       arr = arr.filter(p => p.name.toLowerCase().includes(term));
     }
 
-    // 2) 노출/비노출 필터
-    if (filterStatus === 'visible') {
-      arr = arr.filter(p => p.isVisible);
-    } else if (filterStatus === 'hidden') {
-      arr = arr.filter(p => !p.isVisible);
-    }
-
-    // 3) 정렬
+    // 정렬
     if (sortKey) {
       arr.sort((a, b) => {
         let va = a[sortKey];
@@ -154,15 +146,6 @@ const AdminProductListPage = () => {
         {/* 필터/정렬 셀렉트 */}
         <div className="flex space-x-2">
           <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="border px-3 py-1 rounded"
-          >
-            <option value="all">전체</option>
-            <option value="visible">노출</option>
-            <option value="hidden">비노출</option>
-          </select>
-          <select
             value={sortKey}
             onChange={e => setSortKey(e.target.value)}
             className="border px-3 py-1 rounded"
@@ -193,11 +176,9 @@ const AdminProductListPage = () => {
               <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">상품명</th>
               <th className="px-4 py-2 text-right text-sm font-medium text-gray-600">정상가</th>
               <th className="px-4 py-2 text-right text-sm font-medium text-gray-600">할인가</th>
-              <th className="px-4 py-2 text-center text-sm font-medium text-gray-600">판매시작일</th>
-              <th className="px-4 py-2 text-center text-sm font-medium text-gray-600">상태</th>
               <th className="px-4 py-2 text-right text-sm font-medium text-gray-600">재고</th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">태그</th>
-              <th className="px-4 py-2 text-center text-sm font-medium text-gray-600">Actions</th>
+              <th className="px-4 py-2 text-center text-sm font-medium text-gray-600">상품등록일</th>
+              <th className="px-4 py-2 text-center text-sm font-medium text-gray-600"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -218,19 +199,9 @@ const AdminProductListPage = () => {
                 <td className="px-4 py-2 text-sm text-gray-700 text-right">
                   {p.discountPrice ? `₩${p.discountPrice.toLocaleString()}` : '-'}
                 </td>
-                <td className="px-4 py-2 text-sm text-gray-700 text-center">{p.startDate}</td>
-                <td className="px-4 py-2 text-sm text-gray-700 text-center">
-                  {p.isVisible
-                    ? <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">노출</span>
-                    : <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-red-100 text-red-800">비노출</span>}
-                </td>
                 <td className="px-4 py-2 text-sm text-gray-700 text-right">{p.stock}</td>
-                <td className="px-4 py-2 text-sm text-gray-700">
-                  {p.tags.map(t => (
-                    <span key={t} className="inline-block bg-gray-100 text-gray-800 px-2 py-0.5 mr-1 mb-1 rounded-full text-xs">
-                      #{t}
-                    </span>
-                  ))}
+                <td className="px-4 py-2 text-sm text-gray-700 text-center">
+                  {new Date(p.startDate).toLocaleDateString('ko-KR')}
                 </td>
                 <td className="px-4 py-2 text-sm text-center space-x-2">
                   <Link to={`/admin/products/detail/${p.id}`} className="text-blue-600 hover:underline">
@@ -244,7 +215,7 @@ const AdminProductListPage = () => {
             ))}
             {pagedProducts.length === 0 && (
               <tr>
-                <td colSpan="10" className="px-4 py-6 text-center text-gray-500">
+                <td colSpan="8" className="px-4 py-6 text-center text-gray-500">
                   등록된 상품이 없습니다.
                 </td>
               </tr>
