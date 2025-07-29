@@ -1,13 +1,19 @@
-// src/pages/admin/products/AdminProductFormPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+
+const continentCountryMap = {
+  아시아: ['한국', '일본', '중국'],
+  유럽: ['프랑스', '독일', '영국'],
+  아메리카: ['미국', '캐나다', '브라질'],
+  아프리카: ['이집트', '나이지리아', '남아프리카공화국'],
+  오세아니아: ['호주', '뉴질랜드'],
+};
 
 const AdminProductFormPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(productId);
 
-  // 기본 폼 상태 (태그는 별도 관리)
   const [form, setForm] = useState({
     name: '',
     price: '',
@@ -17,20 +23,20 @@ const AdminProductFormPage = () => {
     stock: 1,
   });
 
-  // 태그 칩 상태
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
 
-  // 이미지 파일 및 미리보기
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState('');
   const [detailFiles, setDetailFiles] = useState([]);
   const [detailPreviews, setDetailPreviews] = useState([]);
 
+  const [continent, setContinent] = useState('');
+  const [country, setCountry] = useState('');
+
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
 
-  // 수정 모드면 기존 데이터 로드
   useEffect(() => {
     if (!isEdit) return;
     (async () => {
@@ -48,6 +54,8 @@ const AdminProductFormPage = () => {
         setThumbnailPreview(data.thumbnailUrl || '');
         setDetailPreviews(data.detailImageUrls || []);
         setTags(data.tags || []);
+        setContinent(data.continent || '');
+        setCountry(data.country || '');
       } catch (err) {
         console.error(err);
         alert('상품 정보를 불러오는 데 실패했습니다.');
@@ -57,13 +65,11 @@ const AdminProductFormPage = () => {
     })();
   }, [isEdit, productId]);
 
-  // 일반 입력 처리
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // 재고 입력 및 증가/감소
   const handleStockChange = (e) => {
     const v = parseInt(e.target.value, 10);
     if (!isNaN(v) && v >= 0) {
@@ -74,7 +80,6 @@ const AdminProductFormPage = () => {
   const decStock = () =>
     setForm(prev => ({ ...prev, stock: Math.max(prev.stock - 1, 0) }));
 
-  // 썸네일 선택
   const handleThumbnailChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -84,7 +89,6 @@ const AdminProductFormPage = () => {
     reader.readAsDataURL(file);
   };
 
-  // 상세설명 이미지 여러개 선택
   const handleDetailImagesChange = (e) => {
     const files = Array.from(e.target.files);
     setDetailFiles(files);
@@ -92,7 +96,6 @@ const AdminProductFormPage = () => {
     setDetailPreviews(previews);
   };
 
-  // 태그 입력 (쉼표 또는 Enter)
   const handleTagInputChange = (e) => setTagInput(e.target.value);
   const handleTagKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
@@ -106,7 +109,16 @@ const AdminProductFormPage = () => {
   };
   const removeTag = (t) => setTags(prev => prev.filter(tag => tag !== t));
 
-  // 폼 제출
+  const handleContinentChange = (e) => {
+    const selectedContinent = e.target.value;
+    setContinent(selectedContinent);
+    setCountry('');
+  };
+
+  const handleCountryChange = (e) => {
+    setCountry(e.target.value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -120,6 +132,8 @@ const AdminProductFormPage = () => {
       formData.append('endDate', form.endDate);
       formData.append('stock', form.stock);
       formData.append('tags', tags.join(','));
+      formData.append('continent', continent);
+      formData.append('country', country);
 
       if (thumbnailFile) {
         formData.append('thumbnail', thumbnailFile);
@@ -175,6 +189,42 @@ const AdminProductFormPage = () => {
           />
         </div>
 
+        {/* 대륙/국가 */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block mb-1 font-medium">대륙</label>
+            <select
+              value={continent}
+              onChange={handleContinentChange}
+              className="w-full border px-3 py-2 rounded"
+            >
+              <option value="">대륙 선택</option>
+              {Object.keys(continentCountryMap).map((cont) => (
+                <option key={cont} value={cont}>
+                  {cont}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">국가</label>
+            <select
+              value={country}
+              onChange={handleCountryChange}
+              disabled={!continent}
+              className="w-full border px-3 py-2 rounded"
+            >
+              <option value="">국가 선택</option>
+              {continent &&
+                continentCountryMap[continent].map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
+        
         {/* 썸네일 이미지 */}
         <div>
           <label className="block mb-1 font-medium">썸네일 이미지</label>
@@ -242,7 +292,7 @@ const AdminProductFormPage = () => {
           </div>
         </div>
 
-        {/* 재고 (– 입력 +) */}
+        {/* 재고 */}
         <div className="flex items-center gap-2">
           <label className="font-medium">재고</label>
           <button
@@ -268,7 +318,7 @@ const AdminProductFormPage = () => {
           </button>
         </div>
 
-        {/* 상세설명 이미지 여러장 */}
+        {/* 상세 이미지 */}
         <div>
           <label className="block mb-1 font-medium">상세설명 이미지</label>
           <input
@@ -290,7 +340,7 @@ const AdminProductFormPage = () => {
           </div>
         </div>
 
-        {/* 태그 입력 */}
+        {/* 태그 */}
         <div>
           <label className="block mb-1 font-medium">태그</label>
           <div className="flex flex-wrap gap-2 mb-2">
@@ -320,7 +370,7 @@ const AdminProductFormPage = () => {
           />
         </div>
 
-        {/* 저장 버튼 */}
+        {/* 저장 */}
         <div className="flex justify-end">
           <button
             type="submit"

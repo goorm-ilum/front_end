@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const AdminProfilePage = () => {
+const MyInfo = () => {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -11,7 +11,6 @@ const AdminProfilePage = () => {
     birthday: '',
     name: '',
     nickname: '',
-    business_num: '',
   });
 
   const [profileImageFile, setProfileImageFile] = useState(null);
@@ -22,7 +21,7 @@ const AdminProfilePage = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch('/api/admin/profile');
+        const res = await fetch('/api/user/profile');
         if (!res.ok) throw new Error('프로필 조회 실패');
         const data = await res.json();
 
@@ -33,7 +32,6 @@ const AdminProfilePage = () => {
           birthday: data.birthday ? data.birthday.split('T')[0] : '',
           name: data.name || '',
           nickname: data.nickname || '',
-          business_num: data.business_num || '',
         });
         setPreviewUrl(data.profile_image || '');
       } catch (err) {
@@ -55,11 +53,11 @@ const AdminProfilePage = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setProfileImageFile(file); // 새 파일로 저장
+    setProfileImageFile(file);
 
     const reader = new FileReader();
     reader.onload = () => {
-      setPreviewUrl(reader.result); // 새 미리보기로 reset
+      setPreviewUrl(reader.result);
     };
     reader.readAsDataURL(file);
   };
@@ -79,7 +77,7 @@ const AdminProfilePage = () => {
         formData.append('profile_image', profileImageFile);
       }
 
-      const res = await fetch('/api/admin/profile', {
+      const res = await fetch('/api/user/profile', {
         method: 'PUT',
         body: formData,
       });
@@ -127,7 +125,6 @@ const AdminProfilePage = () => {
                 </div>
               )}
             </div>
-            {/* 프로필 이미지 변경 input */}
             <input
               type="file"
               accept="image/*"
@@ -211,17 +208,6 @@ const AdminProfilePage = () => {
           />
         </div>
 
-        {/* 사업자번호 */}
-        <div className="flex items-center gap-4">
-          <label className="w-24 text-sm font-medium">사업자번호</label>
-          <input
-            name="business_num"
-            value={form.business_num}
-            readOnly
-            className="flex-1 bg-gray-100 border px-3 py-2 rounded"
-          />
-        </div>
-
         {/* 저장 버튼 */}
         <div className="flex justify-end">
           <button
@@ -237,4 +223,4 @@ const AdminProfilePage = () => {
   );
 };
 
-export default AdminProfilePage;
+export default MyInfo;

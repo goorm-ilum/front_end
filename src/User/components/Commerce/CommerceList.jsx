@@ -239,7 +239,7 @@ const dummyProducts = [
   },
 ];
 
-const CommerceList = () => {
+const CommerceList = ({ showOnlyLiked = false, title = "투어 상품 목록" }) => {
   const navigate = useNavigate();
   // 검색어 상태 추가
   const [search, setSearch] = useState("");
@@ -258,7 +258,8 @@ const CommerceList = () => {
   // 검색 필터링 (간단히 제목/설명에 검색어 포함 여부)
   const filteredProducts = products.filter(product =>
     (!search || product.title.includes(search) || product.description.includes(search)) &&
-    (!date || product.dates.includes(date))
+    (!date || product.dates.includes(date)) &&
+    (!showOnlyLiked || product.like)
   );
 
   // 페이지네이션 적용
@@ -281,8 +282,8 @@ const CommerceList = () => {
   return (
     <section className="flex flex-col gap-6 items-stretch">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold mb-2 text-left text-gray-900">투어 상품 목록</h2>
-        {likedCount > 0 && (
+        <h2 className="text-2xl font-bold mb-2 text-left text-gray-900">{title}</h2>
+        {!showOnlyLiked && likedCount > 0 && (
           <button
             onClick={() => {
               const likedItems = products.filter(product => product.like);

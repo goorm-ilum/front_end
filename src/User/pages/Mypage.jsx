@@ -1,11 +1,9 @@
-import { Routes, Route, Outlet } from 'react-router-dom';
+import MypageMenu from '../components/MypageMenu';
 
-const Commerce = () => {
-  return (
-    <Routes>
-
-    </Routes>
-  );
+const Mypage = () => {
+    return (
+        <MypageMenu />
+    );
 };
 
-export default Commerce;
+export default Mypage;

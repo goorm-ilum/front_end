@@ -5,7 +5,7 @@ import Home from './User/pages/Home';
 import Commerce from './User/pages/Commerce';
 import CommerceDetail from './User/components/Commerce/CommerceDetail';
 import Chat from './User/pages/Chat';
-import Mypage from './User/pages/Mypage';
+import MyPage from './User/pages/Mypage';
 
 import AdminHome from './Admin/pages/AdminHome';
 import AdminProductList from './Admin/pages/AdminProduct/AdminProductListPage';
@@ -27,7 +27,7 @@ function App() {
             <Route path="/commerce" element={<Commerce />} />
             <Route path="/commerce/:id" element={<CommerceDetail />} />
             <Route path="/chat" element={<Chat />} />
-            <Route path="/mypage" element={<Mypage />} />
+            <Route path="/mypage" element={<MyPage />} />
 
             {/* 관리자 페이지 라우트들 */}
             <Route path="/admin" element={<AdminHome />} />
