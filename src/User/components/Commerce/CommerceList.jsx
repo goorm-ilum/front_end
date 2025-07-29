@@ -323,7 +323,41 @@ const CommerceList = () => {
       </div>
 
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold mb-2 text-left">투어 상품 목록</h2>
+        <h2 className="text-2xl font-bold mb-2 text-left text-gray-900">투어 상품 목록</h2>
+      </div>
+
+      {/* 여행지 선택 버튼들 */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">인기 여행지</h3>
+        <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+          {[
+            { name: '오사카', image: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=100&q=80', search: '오사카' },
+            { name: '방콕', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=100&q=80', search: '방콕' },
+            { name: '싱가포르', image: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=100&q=80', search: '싱가포르' },
+            { name: '파리', image: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=100&q=80', search: '파리' },
+            { name: '다낭', image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=100&q=80', search: '다낭' },
+            { name: '괌', image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=100&q=80', search: '괌' },
+            { name: '홍콩', image: 'https://images.unsplash.com/photo-1536599018102-9f803c140fc1?auto=format&fit=crop&w=100&q=80', search: '홍콩' },
+            { name: '제주', image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=100&q=80', search: '제주' }
+          ].map((destination, index) => (
+            <button
+              key={index}
+              onClick={() => setSearch(destination.search)}
+              className="flex flex-col items-center p-3 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 group bg-white"
+            >
+              <div className="w-12 h-12 rounded-full overflow-hidden mb-2">
+                <img
+                  src={destination.image}
+                  alt={destination.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                />
+              </div>
+              <span className="text-xs font-medium text-gray-700 group-hover:text-blue-600">
+                {destination.name}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
       {/* 필터 영역 */}
       <div className="flex flex-col gap-2 mb-4 w-full max-w-lg">
