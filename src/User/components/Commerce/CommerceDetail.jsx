@@ -181,22 +181,22 @@ const CommerceDetail = () => {
               ))}
             </select>
           </div>
-          <div className="flex gap-4 items-center">
+          {/* <div className="flex gap-4 items-center">
             <label className="font-medium text-gray-700">인원</label>
             <div className="flex items-center gap-2">
               <button onClick={() => setCount(c => Math.max(1, c - 1))} className="w-8 h-8 rounded bg-gray-200 text-lg">-</button>
               <span className="w-8 text-center text-gray-900">{count}</span>
               <button onClick={() => setCount(c => c + 1)} className="w-8 h-8 rounded bg-gray-200 text-lg">+</button>
             </div>
-          </div>
+          </div> */}
         </div>
         
         <div className="flex gap-3">
           <button
             className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
-            onClick={() => navigate(`payment`)}
+            onClick={() => navigate(`/commerce/${id}/before-payment?date=${selectedDate}&option=${selectedOption}`)}
           >
-            결제하기
+            예약진행
           </button>
         </div>
       </div>
