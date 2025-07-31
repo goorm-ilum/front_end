@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCustomLogin } from '../../../common/hook/useCustomLogin';
 
 const MyInfo = () => {
   const navigate = useNavigate();
+  const { memberId, isLogin } = useCustomLogin();
 
   const [form, setForm] = useState({
+    id: '',
     account_email: '',
     phone_num: '',
     gender: '',
     birthday: '',
     name: '',
     nickname: '',
+    member_role: '',
+    member_state: '',
   });
 
   const [profileImageFile, setProfileImageFile] = useState(null);
@@ -21,19 +26,26 @@ const MyInfo = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch('/api/user/profile');
+        const res = await fetch('/api/member/me', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        });
         if (!res.ok) throw new Error('프로필 조회 실패');
         const data = await res.json();
 
         setForm({
-          account_email: data.account_email || '',
-          phone_num: data.phone_num || '',
+          id: data.id || '',
+          account_email: data.accountEmail || '',
+          phone_num: data.phoneNum || '',
           gender: data.gender || '',
-          birthday: data.birthday ? data.birthday.split('T')[0] : '',
+          birthday: data.birthday || '',
           name: data.name || '',
           nickname: data.nickname || '',
+          member_role: data.memberRole || '',
+          member_state: data.memberState || '',
         });
-        setPreviewUrl(data.profile_image || '');
+        setPreviewUrl(data.profileImage || '');
       } catch (err) {
         console.error(err);
         alert('프로필 정보를 불러오는 데 실패했습니다.');
@@ -41,28 +53,39 @@ const MyInfo = () => {
         setLoading(false);
       }
     };
-    fetchProfile();
-  }, []);
+
+    if (!isLogin) {
+      alert('로그인이 필요합니다.');
+      navigate('/');
+      return;
+    }
+
+    if (memberId) {
+      fetchProfile();
+    }
+  }, [memberId, isLogin, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // 전화번호 자동 하이픈 추가
+
     if (name === 'phone_num') {
-      const phoneNumber = value.replace(/[^0-9]/g, ''); // 숫자만 추출
+      const phoneNumber = value.replace(/[^0-9]/g, '');
       let formattedPhone = '';
-      
       if (phoneNumber.length <= 3) {
         formattedPhone = phoneNumber;
       } else if (phoneNumber.length <= 7) {
         formattedPhone = phoneNumber.slice(0, 3) + '-' + phoneNumber.slice(3);
       } else {
-        formattedPhone = phoneNumber.slice(0, 3) + '-' + phoneNumber.slice(3, 7) + '-' + phoneNumber.slice(7, 11);
+        formattedPhone =
+          phoneNumber.slice(0, 3) +
+          '-' +
+          phoneNumber.slice(3, 7) +
+          '-' +
+          phoneNumber.slice(7, 11);
       }
-      
-      setForm(prev => ({ ...prev, [name]: formattedPhone }));
+      setForm((prev) => ({ ...prev, [name]: formattedPhone }));
     } else {
-      setForm(prev => ({ ...prev, [name]: value }));
+      setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -94,12 +117,13 @@ const MyInfo = () => {
         formData.append('profile_image', profileImageFile);
       }
 
-      const res = await fetch('/api/user/profile', {
+      const res = await fetch('/api/member/me', {
         method: 'PUT',
         body: formData,
+        credentials: 'include',
       });
-      if (!res.ok) throw new Error('프로필 업데이트 실패');
 
+      if (!res.ok) throw new Error('프로필 업데이트 실패');
       alert('프로필이 성공적으로 수정되었습니다.');
     } catch (err) {
       console.error(err);
@@ -118,17 +142,11 @@ const MyInfo = () => {
       <h1 className="text-2xl font-semibold mb-6">내 정보 수정</h1>
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-6">
-        {/* 상단: 이미지 + 이름/성별 */}
         <div className="flex items-start gap-8">
-          {/* 프로필 이미지 미리보기 */}
           <div className="flex flex-col items-center">
             <div className="relative w-32 h-32 rounded-full overflow-hidden border">
               {previewUrl ? (
-                <img
-                  src={previewUrl}
-                  alt="프로필 미리보기"
-                  className="w-full h-full object-cover"
-                />
+                <img src={previewUrl} alt="프로필 미리보기" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
                   이미지 없음
@@ -137,19 +155,22 @@ const MyInfo = () => {
               <div className="absolute inset-0 flex items-center justify-center">
                 <label className="cursor-pointer bg-black bg-opacity-50 hover:bg-opacity-70 text-white px-3 py-1 rounded-full text-xs transition-all duration-200">
                   사진 변경
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
+                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                 </label>
               </div>
             </div>
           </div>
 
-          {/* 이름 + 성별 */}
           <div className="w-80 space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">ID</label>
+              <input
+                name="id"
+                value={form.id}
+                readOnly
+                className="w-full border px-3 py-2 rounded bg-gray-100"
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">이름</label>
               <input
@@ -186,10 +207,27 @@ const MyInfo = () => {
                 </label>
               </div>
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">멤버 역할</label>
+              <input
+                name="member_role"
+                value={form.member_role}
+                readOnly
+                className="w-full border px-3 py-2 rounded bg-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">멤버 상태</label>
+              <input
+                name="member_state"
+                value={form.member_state}
+                readOnly
+                className="w-full border px-3 py-2 rounded bg-gray-100"
+              />
+            </div>
           </div>
         </div>
 
-        {/* 닉네임 */}
         <div className="flex items-center gap-4">
           <label className="w-24 text-sm font-medium">닉네임</label>
           <input
@@ -200,7 +238,6 @@ const MyInfo = () => {
           />
         </div>
 
-        {/* 이메일 */}
         <div className="flex items-center gap-4">
           <label className="w-24 text-sm font-medium">이메일</label>
           <input
@@ -212,7 +249,6 @@ const MyInfo = () => {
           />
         </div>
 
-        {/* 생년월일 */}
         <div className="flex items-center gap-4">
           <label className="w-24 text-sm font-medium">생년월일</label>
           <input
@@ -224,7 +260,6 @@ const MyInfo = () => {
           />
         </div>
 
-        {/* 전화번호 */}
         <div className="flex items-center gap-4">
           <label className="w-24 text-sm font-medium">전화번호</label>
           <input
@@ -236,24 +271,19 @@ const MyInfo = () => {
           />
         </div>
 
-        {/* 저장 버튼 */}
         <div className="flex justify-end">
           <button
             type="submit"
             disabled={submitting}
             className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            {submitting ? '저장 중…' : '저장하기'}
+            {submitting ? '수정 중…' : '수정하기'}
           </button>
         </div>
       </form>
 
-      {/* 뒤로가기 버튼 */}
       <div className="mt-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-gray-600 hover:text-gray-800"
-        >
+        <button onClick={() => navigate(-1)} className="text-gray-600 hover:text-gray-800">
           ← 뒤로가기
         </button>
       </div>
