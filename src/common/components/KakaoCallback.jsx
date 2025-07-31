@@ -10,6 +10,7 @@ const KakaoCallback = () => {
 
   useEffect(() => {
     const code = new URL(window.location.href).searchParams.get("code");
+    // console.log("카카오 로그인 콜백 코드:", code);
 
     if (code) {
       axios.post(`${API_SERVER_HOST}/api/member/kakao`, new URLSearchParams({ code }), {
@@ -19,7 +20,7 @@ const KakaoCallback = () => {
       })
         .then((res) => {
           const data = res.data;
-          console.log("로그인 유저 정보:", data);
+          // console.log("로그인 유저 정보:", data);
 
           // 사용자 정보 저장
           doSocialLogin(data);
