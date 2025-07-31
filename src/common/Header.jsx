@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-
+import KakaoLoginButton from "./components/KakaoLoginButton";
 
 const Header = () => {
   const location = useLocation();
@@ -71,13 +71,8 @@ const Header = () => {
         </nav>
 
         {/* 오른쪽 로그인 버튼 */}
-        <div className="flex items-center gap-2 min-w-[120px] justify-end">
-          <Link
-            to="/login"
-            className="bg-blue-600 text-white rounded px-4 py-1 hover:bg-blue-700 transition-colors"
-          >
-            로그인
-          </Link>
+        <div className="bg-blue-600 text-white rounded px-4 py-1 hover:bg-blue-700 transition-colors">
+            <KakaoLoginButton />
         </div>
       </div>
     </header>
