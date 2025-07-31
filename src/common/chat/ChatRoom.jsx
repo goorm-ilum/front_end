@@ -158,13 +158,14 @@ const ChatRoom = () => {
             className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="메시지를 입력하세요..."
           />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            전송
-          </button>
+          <div className={`transition-all duration-500 ease-in-out ${input.trim() ? 'opacity-100 scale-100 w-auto' : 'opacity-0 scale-95 w-0 overflow-hidden'}`}>
+            <button
+              onClick={handleSend}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+            >
+              전송
+            </button>
+          </div>
         </div>
       </div>
     </div>
