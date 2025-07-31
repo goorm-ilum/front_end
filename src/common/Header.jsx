@@ -71,9 +71,7 @@ const Header = () => {
         </nav>
 
         {/* 오른쪽 로그인 버튼 */}
-        <div className="bg-blue-600 text-white rounded px-4 py-1 hover:bg-blue-700 transition-colors">
-            <KakaoLoginButton />
-        </div>
+        <KakaoLoginButton />
       </div>
     </header>
   );
