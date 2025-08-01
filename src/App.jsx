@@ -8,7 +8,6 @@ import Home from './User/pages/Home';
 import Commerce from './User/pages/Commerce';
 import CommerceList from './User/components/Commerce/CommerceList';
 import CommerceDetail from './User/components/Commerce/CommerceDetail';
-import CommerceBeforePayment from './User/components/Commerce/CommerceBeforePayment';
 import CommercePayment from './User/components/Commerce/CommercePayment';
 
 import MyPage from './User/pages/Mypage';
@@ -37,7 +36,6 @@ function App() {
               <Route index element={<CommerceList />} />
               <Route path=":id" element={<CommerceDetail />} />
               <Route path=":id/payment" element={<CommercePayment />} />
-              <Route path=":id/before-payment" element={<CommerceBeforePayment />} />
             </Route>
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/chat/*" element={<ChatPage />} />

@@ -207,7 +207,7 @@ const CommerceDetail = () => {
         <div className="flex gap-3">
           <button
             className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
-            onClick={() => navigate(`/commerce/${id}/before-payment?date=${selectedDate}&option=${selectedOption}`)}
+            onClick={() => navigate(`/commerce/${id}/payment?date=${selectedDate}&option=${selectedOption}`)}
           >
             예약진행
           </button>
