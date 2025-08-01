@@ -6,16 +6,16 @@ const MyInfo = () => {
   const navigate = useNavigate();
   const { memberId, isLogin } = useCustomLogin();
 
+  const [countryCode, setCountryCode] = useState('+82');
+  const [localPhoneNumber, setLocalPhoneNumber] = useState('');
+
   const [form, setForm] = useState({
-    id: '',
+    memberId: '',
     account_email: '',
-    phone_num: '',
     gender: '',
     birthday: '',
     name: '',
     nickname: '',
-    member_role: '',
-    member_state: '',
   });
 
   const [profileImageFile, setProfileImageFile] = useState(null);
@@ -23,6 +23,24 @@ const MyInfo = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // 전화번호에서 국가코드와 나머지 번호 분리하는 함수 (하이픈 제거)
+  const splitPhoneNumber = (phoneNum) => {
+    if (!phoneNum) return { countryCode: '+82', localNumber: '' };
+
+    const parts = phoneNum.trim().split(' ');
+    if (parts.length === 2) {
+      const countryCode = parts[0];
+      const localNumber = parts[1].replace(/-/g, ''); // 하이픈 제거
+      return { countryCode, localNumber };
+    } else {
+      return {
+        countryCode: '+82',
+        localNumber: phoneNum.replace(/-/g, ''),
+      };
+    }
+  };
+
+  // 프로필 정보 불러오기
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -34,16 +52,18 @@ const MyInfo = () => {
         if (!res.ok) throw new Error('프로필 조회 실패');
         const data = await res.json();
 
+        const { countryCode, localNumber } = splitPhoneNumber(data.phoneNum || '');
+
+        setCountryCode(countryCode);
+        setLocalPhoneNumber(localNumber); // 숫자만 저장
+
         setForm({
-          id: data.id || '',
+          memberId: data.memberId || '',
           account_email: data.accountEmail || '',
-          phone_num: data.phoneNum || '',
           gender: data.gender || '',
           birthday: data.birthday || '',
           name: data.name || '',
           nickname: data.nickname || '',
-          member_role: data.memberRole || '',
-          member_state: data.memberState || '',
         });
         setPreviewUrl(data.profileImage || '');
       } catch (err) {
@@ -65,30 +85,26 @@ const MyInfo = () => {
     }
   }, [memberId, isLogin, navigate]);
 
+  // 입력값 변경 처리 (전화번호는 따로 처리)
   const handleChange = (e) => {
     const { name, value } = e.target;
 
     if (name === 'phone_num') {
-      const phoneNumber = value.replace(/[^0-9]/g, '');
-      let formattedPhone = '';
-      if (phoneNumber.length <= 3) {
-        formattedPhone = phoneNumber;
-      } else if (phoneNumber.length <= 7) {
-        formattedPhone = phoneNumber.slice(0, 3) + '-' + phoneNumber.slice(3);
-      } else {
-        formattedPhone =
-          phoneNumber.slice(0, 3) +
-          '-' +
-          phoneNumber.slice(3, 7) +
-          '-' +
-          phoneNumber.slice(7, 11);
-      }
-      setForm((prev) => ({ ...prev, [name]: formattedPhone }));
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
+      // 전화번호는 여기서 바로 state 업데이트하지 않음 (로컬번호 별도 관리)
+      return;
     }
+
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 전화번호 로컬번호 입력 핸들링 (숫자만 받음)
+  const handleLocalPhoneChange = (e) => {
+    const value = e.target.value;
+    const cleaned = value.replace(/[^0-9]/g, ''); // 숫자만 필터링
+    setLocalPhoneNumber(cleaned);
+  };
+
+  // 이미지 변경 핸들링
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -102,17 +118,24 @@ const MyInfo = () => {
     reader.readAsDataURL(file);
   };
 
+  // 폼 제출 시 전화번호 합쳐서 서버 전송
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
 
     try {
+      // 수정할 정보들을 JSON 객체로 만듦
+      const updateData = {
+        name: form.name,
+        gender: form.gender,
+        birthday: form.birthday,
+        phoneNum: `${countryCode} ${localPhoneNumber}`,
+      };
+
       const formData = new FormData();
-      formData.append('phone_num', form.phone_num);
-      formData.append('gender', form.gender);
-      formData.append('birthday', form.birthday);
-      formData.append('name', form.name);
-      formData.append('nickname', form.nickname);
+      // 'info'라는 키에 JSON 형태를 Blob으로 감싸서 넣어줘야 함
+      formData.append('info', new Blob([JSON.stringify(updateData)], { type: 'application/json' }));
+
       if (profileImageFile) {
         formData.append('profile_image', profileImageFile);
       }
@@ -163,15 +186,6 @@ const MyInfo = () => {
 
           <div className="w-80 space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">ID</label>
-              <input
-                name="id"
-                value={form.id}
-                readOnly
-                className="w-full border px-3 py-2 rounded bg-gray-100"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-medium mb-1">이름</label>
               <input
                 name="name"
@@ -206,24 +220,6 @@ const MyInfo = () => {
                   여성
                 </label>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">멤버 역할</label>
-              <input
-                name="member_role"
-                value={form.member_role}
-                readOnly
-                className="w-full border px-3 py-2 rounded bg-gray-100"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">멤버 상태</label>
-              <input
-                name="member_state"
-                value={form.member_state}
-                readOnly
-                className="w-full border px-3 py-2 rounded bg-gray-100"
-              />
             </div>
           </div>
         </div>
@@ -262,13 +258,22 @@ const MyInfo = () => {
 
         <div className="flex items-center gap-4">
           <label className="w-24 text-sm font-medium">전화번호</label>
-          <input
-            name="phone_num"
-            type="tel"
-            value={form.phone_num}
-            onChange={handleChange}
-            className="flex-1 border px-3 py-2 rounded"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={countryCode}
+              readOnly
+              className="w-16 border px-3 py-2 rounded bg-gray-100 text-center"
+            />
+            <input
+              name="phone_num"
+              type="tel"
+              value={localPhoneNumber}
+              onChange={handleLocalPhoneChange}
+              className="flex-1 border px-3 py-2 rounded"
+              placeholder="예: 01012345678"
+            />
+          </div>
         </div>
 
         <div className="flex justify-end">
