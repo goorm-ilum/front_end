@@ -250,7 +250,7 @@ const MyInfo = () => {
           <input
             name="birthday"
             type="date"
-            value={form.birthday}
+            value={form.birthday || ''}
             onChange={handleChange}
             className="flex-1 border px-3 py-2 rounded"
           />
