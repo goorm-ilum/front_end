@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 
-export function FailPage() {
+export function OrderFailure() {
   const [searchParams] = useSearchParams();
 
   return (
@@ -15,3 +15,5 @@ export function FailPage() {
     </div>
   );
 }
+
+export default OrderFailure;

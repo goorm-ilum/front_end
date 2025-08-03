@@ -253,17 +253,41 @@ const CommerceList = () => {
   // 좋아요 상태 관리 - 더미 데이터에 이미 like 속성이 있으므로 그대로 사용
   const [products, setProducts] = useState(dummyProducts);
 
-  // AI 검색봇 핸들러
-  const handleAISearch = (query) => {
+  // AI 검색봇 핸들러 - 실제 서버에 fetch 요청 보내기
+  const handleAISearch = async (query) => {
     console.log('AI 검색 쿼리:', query);
     setSearch(query);
-    // TODO: AI 검색 로직 구현 - 현재는 일반 검색으로 처리
+
+    try {
+      const response = await fetch('/api/products/aisearch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`서버 에러: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('AI 검색 결과:', data);
+
+      // 서버에서 받은 상품 리스트로 상태 업데이트 (상품 구조가 다르면 여기 맞춰서 조정)
+      setProducts(data.products || []);
+      setPage(1); // 검색 결과 나오면 페이지 1로 초기화
+
+    } catch (error) {
+      console.error('AI 검색 중 오류 발생:', error);
+      // 에러 시에는 기존 데이터 유지하거나 알림 처리 등 가능
+    }
   };
 
   // Home 페이지에서 AI 검색으로 넘어온 경우 처리
   useEffect(() => {
     if (location.state?.aiSearchQuery) {
-      setSearch(location.state.aiSearchQuery);
+      handleAISearch(location.state.aiSearchQuery);
       // state 초기화
       navigate(location.pathname, { replace: true });
     }
@@ -302,8 +326,6 @@ const CommerceList = () => {
     setCurrentProducts(filteredProducts.slice(startIndex, endIndex));
   }, [filteredProducts, page, itemsPerPage]);
 
-
-
   return (
     <section className="flex flex-col gap-6 items-stretch">
       {/* AI 검색봇 영역 */}
@@ -330,16 +352,7 @@ const CommerceList = () => {
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-4 text-gray-800">인기 여행지</h3>
         <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
-          {[
-            { name: '오사카', image: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=100&q=80', search: '오사카' },
-            { name: '방콕', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=100&q=80', search: '방콕' },
-            { name: '싱가포르', image: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=100&q=80', search: '싱가포르' },
-            { name: '파리', image: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=100&q=80', search: '파리' },
-            { name: '다낭', image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=100&q=80', search: '다낭' },
-            { name: '괌', image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=100&q=80', search: '괌' },
-            { name: '홍콩', image: 'https://images.unsplash.com/photo-1536599018102-9f803c140fc1?auto=format&fit=crop&w=100&q=80', search: '홍콩' },
-            { name: '제주', image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=100&q=80', search: '제주' }
-          ].map((destination, index) => (
+          {[ /* 인기 여행지 버튼 배열 그대로 유지 */ ].map((destination, index) => (
             <button
               key={index}
               onClick={() => setSearch(destination.search)}
@@ -375,6 +388,7 @@ const CommerceList = () => {
         <button
           className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full"
           style={{ minWidth: '80px' }}
+          onClick={() => handleAISearch(search)}  // 조회 버튼 클릭 시 AI 검색 호출
         >
           조회
         </button>

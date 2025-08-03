@@ -9,6 +9,10 @@ import Commerce from './User/pages/Commerce';
 import CommerceList from './User/components/Commerce/CommerceList';
 import CommerceDetail from './User/components/Commerce/CommerceDetail';
 import CommercePayment from './User/components/Commerce/CommercePayment';
+import Checkout from './User/components/Commerce/Checkout';
+import OrderSuccess from './User/pages/Commerce/OrderSuccess';
+import OrderFailure from './User/pages/Commerce/OrderFailure';
+
 
 import MyPage from './User/pages/Mypage';
 import ChatPage from './common/chat/ChatPage';
@@ -39,6 +43,9 @@ function App() {
             </Route>
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/chat/*" element={<ChatPage />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order/success" element={<OrderSuccess />} /> 
+            <Route path="/order/failure" element={<OrderFailure />} />
 
             {/* 관리자용 페이지들 */}
             <Route path="/admin" element={<AdminHome />} />
