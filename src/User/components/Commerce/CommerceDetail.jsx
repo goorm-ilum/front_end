@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import React from 'react'; // Added missing import for React
 
 const dummyProducts = [
   {
@@ -17,7 +18,10 @@ const dummyProducts = [
       'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=800&q=80'
     ],
-    options: ['오전 출발', '오후 출발'],
+    options: [
+      { name: '오전 출발', price: 28000, discountPrice: 22000 },
+      { name: '오후 출발', price: 30000, discountPrice: 24000 }
+    ],
     dates: ['2024-06-10', '2024-06-11', '2024-06-12'],
     like: false,
     likeCount: 156,
@@ -32,61 +36,6 @@ const dummyProducts = [
       contact: 'help@harutour.com',
       description: '25년 경력의 일본 현지 투어 전문 업체. 믿을 수 있는 여행 파트너!'
     }
-  },
-  {
-    id: '2',
-    title: '에버랜드 입장권',
-    thumbnail: 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=600&q=80',
-    price: 48000,
-    discountPrice: 42000,
-    comment: '국내 최대 규모의 테마파크 에버랜드에서 온 가족이 함께 즐길 수 있는 특별한 시간을 보내세요. 스릴 넘치는 롤러코스터부터 귀여운 동물들과의 만남까지, 모든 연령대가 즐길 수 있는 다양한 어트랙션과 쇼가 준비되어 있습니다. 특히 봄에는 벚꽃축제, 가을에는 할로윈축제 등 계절별 특별 이벤트도 함께 즐기실 수 있어요.',
-    images: [
-      'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&w=800&q=80'
-    ],
-    options: ['1일권', '2일권'],
-    dates: ['2024-06-15', '2024-06-16'],
-    like: false,
-    likeCount: 89,
-    location: '대한민국',
-    hashtags: ['#테마파크', '#가족여행', '#어드벤처', '#엔터테인먼트'],
-    reviews: [
-    ],
-    seller: {
-      name: '에버랜드 공식',
-      contact: 'info@everland.com',
-      description: '국내 최대 테마파크, 에버랜드 공식 판매처.'
-    }
-  },
-  {
-    id: '3',
-    title: '한강 유람선',
-    thumbnail: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=600&q=80',
-    price: 25000,
-    discountPrice: null,
-    comment: '서울의 아름다운 한강을 유람선에서 감상하는 특별한 경험을 선사합니다. 주간에는 한강의 푸른 물과 주변의 녹지, 야간에는 반짝이는 서울의 야경을 만끽할 수 있어요. 특히 저녁 시간대의 유람선은 로맨틱한 분위기로 연인들의 데이트 코스로도 인기가 높습니다. 선상에서 즐기는 음악 공연과 함께 특별한 추억을 만들어보세요.',
-    images: [
-      'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80'
-    ],
-    options: ['주간', '야간'],
-    dates: ['2024-06-20', '2024-06-21'],
-    like: false,
-    likeCount: 234,
-    location: '대한민국',
-    hashtags: ['#크루즈', '#야경투어', '#로맨틱', '#힐링'],
-    reviews: [
-      { user: '이민수', rating: 4, comment: '야경이 정말 멋졌어요.' },
-    ],
-    seller: {
-      name: '한강크루즈',
-      contact: 'cruise@hangang.com',
-      description: '서울 대표 유람선 서비스, 한강크루즈.'
-    }
   }
 ];
 
@@ -97,18 +46,41 @@ const CommerceDetail = () => {
 
   // 상태 관리
   const [selectedDate, setSelectedDate] = useState(product?.dates[0] || '');
-  const [selectedOption, setSelectedOption] = useState(product?.options[0] || '');
-  const [count, setCount] = useState(1);
+  const [selectedOption, setSelectedOption] = useState(product?.options[0]?.name || '');
+  const [optionCounts, setOptionCounts] = useState({});
   const [selectedImage, setSelectedImage] = useState(0);
   const [isLiked, setIsLiked] = useState(product?.like || false);
+
+  // 초기 옵션별 수량 설정
+  React.useEffect(() => {
+    const initialCounts = {};
+    product?.options.forEach(option => {
+      initialCounts[option.name] = 0;
+    });
+    setOptionCounts(initialCounts);
+  }, [product]);
 
   const toggleLike = () => {
     setIsLiked(!isLiked);
   };
 
+  const updateOptionCount = (optionName, change) => {
+    setOptionCounts(prev => ({
+      ...prev,
+      [optionName]: Math.max(0, (prev[optionName] || 0) + change),
+    }));
+  };
+
   if (!product) {
     return <div>상품을 찾을 수 없습니다.</div>;
   }
+
+  const selectedOptionData = product.options.find(opt => opt.name === selectedOption);
+  const totalCount = Object.values(optionCounts).reduce((sum, count) => sum + count, 0);
+  const totalPrice = product.options.reduce((sum, option) => {
+    const count = optionCounts[option.name] || 0;
+    return sum + ((option.discountPrice || option.price) * count);
+  }, 0);
 
   return (
     <section className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow flex flex-col gap-8">
@@ -157,57 +129,95 @@ const CommerceDetail = () => {
             </div>
           )}
           
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">{product.title}</h2>
+          {/* 제목과 좋아요, 국가 정보를 한 줄에 배치 */}
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-3xl font-bold text-gray-900">{product.title}</h2>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">❤️ {product.likeCount}</span>
+              <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">📍 {product.location}</span>
+            </div>
+          </div>
           <p className="text-sm text-gray-600 mb-3 leading-relaxed">{product.comment}</p>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">❤️ {product.likeCount}</span>
-          </div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">📍 {product.location}</span>
-          </div>
-          <div className="mb-3">
-            {product.discountPrice ? (
-              <div>
-                <span className="text-gray-400 line-through text-lg">{product.price.toLocaleString()}원</span>
-                <div className="text-2xl text-red-600 font-semibold">{product.discountPrice.toLocaleString()}원~</div>
-              </div>
-            ) : (
-              <div className="text-2xl text-blue-600 font-semibold">{product.price.toLocaleString()}원~</div>
-            )}
-          </div>
         </div>
         
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-4 items-center">
-            <label className="font-medium text-gray-700">날짜</label>
-            <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="border rounded px-2 py-1">
-              {product.dates.map(date => (
-                <option key={date} value={date}>{date}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex gap-4 items-center">
-            <label className="font-medium text-gray-700">옵션</label>
-            <select value={selectedOption} onChange={e => setSelectedOption(e.target.value)} className="border rounded px-2 py-1">
-              {product.options.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-          </div>
-          {/* <div className="flex gap-4 items-center">
-            <label className="font-medium text-gray-700">인원</label>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setCount(c => Math.max(1, c - 1))} className="w-8 h-8 rounded bg-gray-200 text-lg">-</button>
-              <span className="w-8 text-center text-gray-900">{count}</span>
-              <button onClick={() => setCount(c => c + 1)} className="w-8 h-8 rounded bg-gray-200 text-lg">+</button>
+        {/* 옵션 선택 섹션 - CommercePayment와 유사한 레이아웃 */}
+        <div className="bg-blue-50 p-6 rounded-lg mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* 날짜 선택 */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold text-gray-900">날짜 선택</h4>
+              <div className="flex flex-col gap-2">
+                <label className="font-medium text-gray-700">투어 날짜</label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={e => setSelectedDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="border border-gray-300 rounded-lg px-4 py-2 w-full"
+                />
+              </div>
             </div>
-          </div> */}
+
+            {/* 옵션 선택 */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold text-gray-900">옵션 선택</h4>
+              <div className="space-y-4">
+                {product.options.map((option) => (
+                  <div key={option.name} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div className="flex-1">
+                      <h5 className="font-medium text-gray-900">{option.name}</h5>
+                      <div className="text-blue-600 font-semibold">
+                        {option.discountPrice ? (
+                          <div>
+                            <span className="text-gray-400 line-through text-sm">{option.price.toLocaleString()}원</span>
+                            <div className="text-lg">{option.discountPrice.toLocaleString()}원</div>
+                          </div>
+                        ) : (
+                          <div className="text-lg">{option.price.toLocaleString()}원</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => updateOptionCount(option.name, -1)}
+                        className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                        disabled={!selectedDate || (optionCounts[option.name] || 0) === 0}
+                      >-</button>
+                      <span className="w-12 text-center font-medium">{optionCounts[option.name] || 0}</span>
+                      <button
+                        onClick={() => updateOptionCount(option.name, 1)}
+                        className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                        disabled={!selectedDate}
+                      >+</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 선택된 옵션의 총 가격 표시 */}
+          {totalCount > 0 && (
+            <div className="mt-6 p-4 bg-white rounded-lg border">
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-gray-900">총 결제 금액:</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  {totalPrice.toLocaleString()}원
+                </span>
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="flex gap-3">
           <button
-            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
-            onClick={() => navigate(`/commerce/${id}/payment?date=${selectedDate}&option=${selectedOption}`)}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold w-full"
+            onClick={() => {
+              const selectedOptions = product.options.filter(option => (optionCounts[option.name] || 0) > 0);
+              const optionsParam = selectedOptions.map(opt => `${opt.name}:${optionCounts[opt.name]}`).join(',');
+              navigate(`/commerce/${id}/payment?date=${selectedDate}&options=${optionsParam}`);
+            }}
+            disabled={totalCount === 0 || !selectedDate}
           >
             예약진행
           </button>
@@ -231,8 +241,6 @@ const CommerceDetail = () => {
           ))}
         </div>
       </div>
-
-
 
       {/* 리뷰 목록 */}
       <div>
