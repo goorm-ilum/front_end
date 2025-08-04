@@ -43,9 +43,9 @@ function App() {
             </Route>
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/chat/*" element={<ChatPage />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/order/success" element={<OrderSuccess />} /> 
-            <Route path="/order/failure" element={<OrderFailure />} />
+            <Route path="/commerce/checkout" element={<Checkout />} />
+            <Route path="/commerce/order/success" element={<OrderSuccess />} /> 
+            <Route path="/commerce/order/fail" element={<OrderFailure />} />
 
             {/* 관리자용 페이지들 */}
             <Route path="/admin" element={<AdminHome />} />

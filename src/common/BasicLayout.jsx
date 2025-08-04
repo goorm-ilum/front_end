@@ -11,7 +11,8 @@ const BasicLayout = () => {
   // FloatingChatIcon을 숨길 경로 패턴들
   const hideChatIconPatterns = [
     /^\/commerce\/\d+\/before-payment$/,
-    /^\/commerce\/\d+\/payment$/
+    /^\/commerce\/\d+\/payment$/,
+    /^\/commerce\/checkout$/
   ];
   
   const shouldShowChatIcon = !hideChatIconPatterns.some(pattern => 

@@ -2,7 +2,6 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getProductDetail } from '../../../common/api/productApi';
-import { Checkout } from './Checkout';
 
 const CommercePayment = () => {
   const { id } = useParams();
@@ -12,7 +11,6 @@ const CommercePayment = () => {
   const [product, setProduct] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [optionCounts, setOptionCounts] = useState({});
-  const [orderInfo, setOrderInfo] = useState(null);
   const [initialTotalPrice, setInitialTotalPrice] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -202,7 +200,17 @@ const CommercePayment = () => {
       }
 
       const data = await response.json();
-      setOrderInfo(data);
+      console.log('주문 생성 응답:', data);
+      
+      // 주문 생성 성공 후 Checkout 페이지로 이동
+      const params = new URLSearchParams({
+        orderId: data.orderId,
+        orderName: data.orderName,
+        amount: data.totalPrice.toString(),
+        customerEmail: data.customerEmail || ''
+      });
+      
+      navigate(`/commerce/checkout?${params.toString()}`);
     } catch (err) {
       console.error(err);
       alert('주문 생성 중 오류가 발생했습니다: ' + err.message);
@@ -317,26 +325,13 @@ const CommercePayment = () => {
       </div>
 
       {/* 주문 생성 버튼 */}
-      {!orderInfo ? (
-        <button
-          className="w-full bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          onClick={createOrder}
-          disabled={totalCount === 0 || !selectedDate || isCreatingOrder}
-        >
-          {isCreatingOrder ? '주문 생성 중...' : '주문 생성 및 결제'}
-        </button>
-      ) : (
-        // 주문 생성 완료 후 결제 위젯 렌더링
-        <div className="border-t pt-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">결제 방법 선택</h3>
-          <Checkout
-            orderId={orderInfo.orderId}
-            orderName={orderInfo.orderName}
-            amount={orderInfo.amount}
-            customerEmail={orderInfo.customerEmail}
-          />
-        </div>
-      )}
+      <button
+        className="w-full bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+        onClick={createOrder}
+        disabled={totalCount === 0 || !selectedDate || isCreatingOrder}
+      >
+        {isCreatingOrder ? '주문 생성 중...' : '주문 생성 및 결제'}
+      </button>
     </section>
   );
 };
