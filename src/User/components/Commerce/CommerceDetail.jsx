@@ -215,7 +215,7 @@ const CommerceDetail = () => {
             onClick={() => {
               const selectedOptions = product.options.filter(option => (optionCounts[option.name] || 0) > 0);
               const optionsParam = selectedOptions.map(opt => `${opt.name}:${optionCounts[opt.name]}`).join(',');
-              navigate(`/commerce/${id}/payment?date=${selectedDate}&options=${optionsParam}`);
+              navigate(`/commerce/${id}/payment?date=${selectedDate}&options=${optionsParam}&totalPrice=${totalPrice}`);
             }}
             disabled={totalCount === 0 || !selectedDate}
           >
