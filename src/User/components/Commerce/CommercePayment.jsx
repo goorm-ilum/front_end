@@ -3,6 +3,21 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Checkout } from './Checkout';
 
+// CommerceDetail과 동일한 더미 데이터
+const dummyProducts = [
+  {
+    id: '1',
+    productName: '서울 시티 투어',
+    thumbnailImageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
+    shortDescription: '서울의 대표 명소들을 전문 가이드와 함께 둘러보는 프리미엄 시티 투어입니다.',
+    stocks: [
+      { option: '오전 출발', price: 22000 },
+      { option: '오후 출발', price: 24000 }
+    ],
+    availableDates: ['2024-06-10', '2024-06-11', '2024-06-12']
+  }
+];
+
 const CommercePayment = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -12,8 +27,12 @@ const CommercePayment = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [optionCounts, setOptionCounts] = useState({});
   const [orderInfo, setOrderInfo] = useState(null); // 주문 생성 결과 저장
+  const [initialTotalPrice, setInitialTotalPrice] = useState(0); // URL에서 전달받은 초기 총 금액
+  const [isLoading, setIsLoading] = useState(true); // 로딩 상태
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false); // 주문 생성 중 상태
 
   useEffect(() => {
+    // 실제 API에서 상품 정보 가져오기
     fetch(`/api/products/${id}`, { credentials: 'include' })
       .then(res => {
         if (!res.ok) throw new Error('상품 정보를 불러오는 데 실패했습니다.');
@@ -26,16 +45,74 @@ const CommercePayment = () => {
         const initialDate = searchParams.get('date') || (productData.availableDates?.[0] || '');
         setSelectedDate(initialDate);
 
+        // URL에서 전달받은 총 금액 정보
+        const totalPriceParam = searchParams.get('totalPrice');
+        if (totalPriceParam) {
+          setInitialTotalPrice(parseInt(totalPriceParam, 10));
+        }
+
+        // URL에서 전달받은 옵션 정보 파싱
+        const optionsParam = searchParams.get('options');
         const initialOptionCounts = {};
-        productData.stocks.forEach(stock => {
-          initialOptionCounts[stock.option] = 0;
-        });
+        
+        if (optionsParam) {
+          // "오전 출발:2,오후 출발:1" 형태의 문자열을 파싱
+          optionsParam.split(',').forEach(optionStr => {
+            const [optionName, count] = optionStr.split(':');
+            if (optionName && count) {
+              initialOptionCounts[optionName] = parseInt(count, 10);
+            }
+          });
+        } else {
+          // 기본값 설정
+          productData.stocks.forEach(stock => {
+            initialOptionCounts[stock.option] = 0;
+          });
+        }
+        
         setOptionCounts(initialOptionCounts);
+        setIsLoading(false);
       })
-      .catch(console.error);
+      .catch(err => {
+        console.error('상품 정보 로딩 실패:', err);
+        // API 호출 실패 시 더미 데이터로 폴백
+        const productData = dummyProducts.find(p => p.id === id);
+        if (productData) {
+          setProduct(productData);
+          // 더미 데이터로 기본 설정
+          const searchParams = new URLSearchParams(location.search);
+          const initialDate = searchParams.get('date') || (productData.availableDates?.[0] || '');
+          setSelectedDate(initialDate);
+          
+          const totalPriceParam = searchParams.get('totalPrice');
+          if (totalPriceParam) {
+            setInitialTotalPrice(parseInt(totalPriceParam, 10));
+          }
+          
+          const optionsParam = searchParams.get('options');
+          const initialOptionCounts = {};
+          
+          if (optionsParam) {
+            optionsParam.split(',').forEach(optionStr => {
+              const [optionName, count] = optionStr.split(':');
+              if (optionName && count) {
+                initialOptionCounts[optionName] = parseInt(count, 10);
+              }
+            });
+          } else {
+            productData.stocks.forEach(stock => {
+              initialOptionCounts[stock.option] = 0;
+            });
+          }
+          
+          setOptionCounts(initialOptionCounts);
+          setIsLoading(false);
+        }
+      });
   }, [id, location.search]);
 
-  if (!product) return <div>로딩 중...</div>;
+  if (isLoading) return <div className="flex justify-center items-center h-64">로딩 중...</div>;
+  if (!product) return <div className="flex justify-center items-center h-64">상품을 찾을 수 없습니다.</div>;
 
   const handleBack = () => navigate(`/commerce/${id}`);
 
@@ -58,13 +135,13 @@ const CommercePayment = () => {
   const createOrder = async () => {
     if (totalCount === 0 || !selectedDate) return alert('날짜와 옵션을 모두 선택해주세요.');
 
+    setIsCreatingOrder(true);
     try {
-      const response = await fetch('/api/orders', {
+      const response = await fetch(`/api/orders/${id}`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          productId: id,
           date: selectedDate,
           options: selectedOptions.map(opt => ({
             optionName: opt.option,
@@ -74,14 +151,19 @@ const CommercePayment = () => {
         }),
       });
 
-      if (!response.ok) throw new Error('주문 생성에 실패했습니다.');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '주문 생성에 실패했습니다.');
+      }
 
       const data = await response.json();
-      // 백엔드에서 orderId, orderName, amount 등을 반환한다고 가정
+      // 백엔드에서 orderId, orderName, amount, customerEmail 등을 반환
       setOrderInfo(data);
     } catch (err) {
       console.error(err);
-      alert('주문 생성 중 오류가 발생했습니다.');
+      alert('주문 생성 중 오류가 발생했습니다: ' + err.message);
+    } finally {
+      setIsCreatingOrder(false);
     }
   };
 
@@ -156,7 +238,7 @@ const CommercePayment = () => {
         <div className="space-y-3 text-gray-700">
           <div className="flex justify-between">
             <span>투어 날짜:</span>
-            <span>{selectedDate}</span>
+            <span className="font-medium">{selectedDate}</span>
           </div>
           {selectedOptions.length > 0 && (
             <>
@@ -165,7 +247,7 @@ const CommercePayment = () => {
                 {selectedOptions.map((opt) => (
                   <div key={opt.option} className="flex justify-between ml-4">
                     <span>• {opt.option}</span>
-                    <span>{optionCounts[opt.option]}개</span>
+                    <span className="font-medium">{optionCounts[opt.option]}개</span>
                   </div>
                 ))}
               </div>
@@ -173,6 +255,11 @@ const CommercePayment = () => {
                 <span>총 결제 금액:</span>
                 <span className="text-blue-600">{totalPrice.toLocaleString()}원</span>
               </div>
+              {initialTotalPrice > 0 && initialTotalPrice !== totalPrice && (
+                <div className="text-sm text-gray-500 mt-2">
+                  * 상세 페이지에서 선택한 금액과 다를 수 있습니다. 현재 계산된 금액이 최종 결제 금액입니다.
+                </div>
+              )}
             </>
           )}
         </div>
@@ -181,11 +268,11 @@ const CommercePayment = () => {
       {/* 주문 생성 버튼 */}
       {!orderInfo ? (
         <button
-          className="w-full bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg"
+          className="w-full bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           onClick={createOrder}
-          disabled={totalCount === 0 || !selectedDate}
+          disabled={totalCount === 0 || !selectedDate || isCreatingOrder}
         >
-          주문 생성 및 결제
+          {isCreatingOrder ? '주문 생성 중...' : '주문 생성 및 결제'}
         </button>
       ) : (
         // 주문 생성 완료 후 결제 위젯 렌더링

@@ -336,9 +336,9 @@ const CommerceDetail = () => {
           <button
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold w-full"
             onClick={() => {
-              const selectedStocks = product.stocks.filter(stock => (stockCounts[stock.optionName] || 0) > 0);
-              const stocksParam = selectedStocks.map(stock => `${stock.optionName}:${stockCounts[stock.optionName]}`).join(',');
-              navigate(`/commerce/${id}/payment?date=${selectedDate}&stocks=${stocksParam}`);
+              const selectedOptions = product.options.filter(option => (optionCounts[option.name] || 0) > 0);
+              const optionsParam = selectedOptions.map(opt => `${opt.name}:${optionCounts[opt.name]}`).join(',');
+              navigate(`/commerce/${id}/payment?date=${selectedDate}&options=${optionsParam}`);
             }}
             disabled={totalCount === 0 || !selectedDate}
           >
