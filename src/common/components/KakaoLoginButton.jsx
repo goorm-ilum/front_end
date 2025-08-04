@@ -8,7 +8,8 @@ const KakaoLoginButton = () => {
 
 	const handleLogin = async () => {
 		try {
-			const response = await axios.get(`${API_SERVER_HOST}/api/member/kakao-login-url`);
+			// 프록시를 통해 상대 경로로 호출
+			const response = await axios.get('/api/member/kakao-login-url');
 			console.log(response);
 			const data = await response.data;
 			window.location.href = data.url; // 카카오 인증 페이지로 이동
