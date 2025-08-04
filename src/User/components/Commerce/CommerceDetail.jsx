@@ -1,85 +1,193 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-import React from 'react'; // Added missing import for React
-
-const dummyProducts = [
-  {
-    id: '1',
-    title: '서울 시티 투어',
-    thumbnail: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
-    price: 28000,
-    discountPrice: 22000,
-    comment: '서울의 대표 명소들을 전문 가이드와 함께 둘러보는 프리미엄 시티 투어입니다. 경복궁, 남산타워, 홍대거리 등 서울의 핵심 관광지를 효율적으로 탐방하며, 한국의 역사와 현대 문화를 동시에 체험할 수 있습니다. 편안한 전용 차량과 친절한 가이드가 함께하여 최고의 서울 여행 경험을 제공합니다.',
-    images: [
-      'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1517154421773-0529f29ea451?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1538485399081-7c8eddf95c93?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=800&q=80'
-    ],
-    options: [
-      { name: '오전 출발', price: 28000, discountPrice: 22000 },
-      { name: '오후 출발', price: 30000, discountPrice: 24000 }
-    ],
-    dates: ['2024-06-10', '2024-06-11', '2024-06-12'],
-    like: false,
-    likeCount: 156,
-    location: '대한민국',
-    hashtags: ['#어트랙션', '#힐링여행', '#도시투어', '#문화체험'],
-    reviews: [
-      { user: '홍길동', rating: 5, comment: '정말 재밌었어요!' },
-      { user: '김영희', rating: 4, comment: '가이드님이 친절했어요.' },
-    ],
-    seller: {
-      name: '하루하루투어',
-      contact: 'help@harutour.com',
-      description: '25년 경력의 일본 현지 투어 전문 업체. 믿을 수 있는 여행 파트너!'
-    }
-  }
-];
+import { useState, useEffect } from 'react';
+import { getProductDetail, toggleLike } from '../../../common/api/productApi';
 
 const CommerceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const product = dummyProducts.find(p => p.id === id);
-
+  
   // 상태 관리
-  const [selectedDate, setSelectedDate] = useState(product?.dates[0] || '');
-  const [selectedOption, setSelectedOption] = useState(product?.options[0]?.name || '');
-  const [optionCounts, setOptionCounts] = useState({});
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedStock, setSelectedStock] = useState(null);
+  const [stockCounts, setStockCounts] = useState({});
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isLiked, setIsLiked] = useState(product?.like || false);
+  const [isLiked, setIsLiked] = useState(false);
 
-  // 초기 옵션별 수량 설정
-  React.useEffect(() => {
-    const initialCounts = {};
-    product?.options.forEach(option => {
-      initialCounts[option.name] = 0;
-    });
-    setOptionCounts(initialCounts);
-  }, [product]);
-
-  const toggleLike = () => {
-    setIsLiked(!isLiked);
+  // 상품 상세 정보 로드
+  const loadProductDetail = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      console.log('상품 상세 조회 중...', id);
+      const response = await getProductDetail(id);
+      console.log('상품 상세 응답:', response);
+      
+      // 백엔드 응답을 프론트엔드 구조로 변환
+      const transformedProduct = {
+        id: response.productId,
+        title: response.productName,
+        description: response.shortDescription,
+        thumbnail: response.thumbnailImageUrl,
+        price: response.price,
+        discountPrice: response.discountPrice,
+        regDate: response.regDate,
+        countryName: response.countryName,
+        hashtags: response.hashtags || [],
+        images: response.images || [],
+        stocks: response.stocks || [],
+        rating: response.averageReviewStar,
+        reviews: response.reviews || [],
+        like: response.isLiked
+      };
+      
+      setProduct(transformedProduct);
+      setIsLiked(transformedProduct.like);
+      
+      // 첫 번째 재고 옵션을 기본 선택
+      if (transformedProduct.stocks.length > 0) {
+        setSelectedStock(transformedProduct.stocks[0]);
+        setSelectedDate(transformedProduct.stocks[0].startDate);
+        
+        // 재고 옵션별 수량 초기화
+        const initialCounts = {};
+        transformedProduct.stocks.forEach(stock => {
+          initialCounts[stock.optionName] = 0;
+        });
+        setStockCounts(initialCounts);
+      }
+      
+    } catch (error) {
+      console.error('상품 상세 조회 실패:', error);
+      
+      let errorMessage = '상품 상세 정보를 불러오는데 실패했습니다.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        const statusText = error.response.statusText;
+        
+        if (status === 404) {
+          errorMessage = '상품을 찾을 수 없습니다. (404)';
+        } else if (status === 403) {
+          errorMessage = '접근 권한이 없습니다. (403)';
+        } else if (status === 500) {
+          errorMessage = '서버 내부 오류가 발생했습니다. (500)';
+        } else {
+          errorMessage = `서버 오류: ${status} - ${statusText}`;
+        }
+      } else if (error.request) {
+        errorMessage = '서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.';
+      } else {
+        errorMessage = `요청 오류: ${error.message}`;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateOptionCount = (optionName, change) => {
-    setOptionCounts(prev => ({
+  // 컴포넌트 마운트 시 상품 정보 로드
+  useEffect(() => {
+    if (id) {
+      loadProductDetail();
+    }
+  }, [id]);
+
+  const handleToggleLike = async () => {
+    try {
+      console.log('좋아요 토글 중...', { productId: id });
+      
+      // 백엔드에 토글 요청
+      await toggleLike(id);
+      console.log('좋아요 토글 완료');
+      
+      // 로컬 상태 업데이트
+      setIsLiked(!isLiked);
+      
+    } catch (error) {
+      console.error('좋아요 토글 실패:', error);
+      
+      // 에러 메시지 표시
+      let errorMessage = '좋아요 처리 중 오류가 발생했습니다.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          errorMessage = '로그인이 필요합니다. 로그인 후 다시 시도해주세요.';
+        } else if (status === 404) {
+          errorMessage = '상품을 찾을 수 없습니다.';
+        } else {
+          errorMessage = `서버 오류: ${status}`;
+        }
+      } else if (error.request) {
+        errorMessage = '서버에 연결할 수 없습니다.';
+      }
+      
+      alert(errorMessage);
+    }
+  };
+
+  const updateStockCount = (optionName, change) => {
+    setStockCounts(prev => ({
       ...prev,
       [optionName]: Math.max(0, (prev[optionName] || 0) + change),
     }));
   };
 
-  if (!product) {
-    return <div>상품을 찾을 수 없습니다.</div>;
+  // 로딩 상태
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-gray-600">상품 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    );
   }
 
-  const selectedOptionData = product.options.find(opt => opt.name === selectedOption);
-  const totalCount = Object.values(optionCounts).reduce((sum, count) => sum + count, 0);
-  const totalPrice = product.options.reduce((sum, option) => {
-    const count = optionCounts[option.name] || 0;
-    return sum + ((option.discountPrice || option.price) * count);
+  // 에러 상태
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
+        <div className="text-center py-8">
+          <p className="text-red-600">{error}</p>
+          <button 
+            onClick={() => navigate('/commerce')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            상품 목록으로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 상품이 없는 경우
+  if (!product) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
+        <div className="text-center py-8">
+          <p className="text-gray-600">상품을 찾을 수 없습니다.</p>
+          <button 
+            onClick={() => navigate('/commerce')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            상품 목록으로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const totalCount = Object.values(stockCounts).reduce((sum, count) => sum + count, 0);
+  const totalPrice = product.stocks.reduce((sum, stock) => {
+    const count = stockCounts[stock.optionName] || 0;
+    return sum + ((stock.discountPrice || stock.price) * count);
   }, 0);
 
   return (
@@ -87,13 +195,13 @@ const CommerceDetail = () => {
       {/* 썸네일 이미지 */}
       <div className="relative">
         <img 
-          src={product.thumbnail} 
+          src={product.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'} 
           alt={product.title} 
           className="w-full h-96 object-cover rounded-lg shadow-lg"
         />
         {/* 좋아요 버튼 */}
         <button
-          onClick={toggleLike}
+          onClick={handleToggleLike}
           className={`absolute top-4 right-4 p-2 rounded-full transition-colors ${
             isLiked 
               ? 'bg-red-500 text-white' 
@@ -133,81 +241,96 @@ const CommerceDetail = () => {
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-3xl font-bold text-gray-900">{product.title}</h2>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">❤️ {product.likeCount}</span>
-              <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">📍 {product.location}</span>
+              <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">❤️ {isLiked ? '1' : '0'}</span>
+              <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">📍 {product.countryName}</span>
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-3 leading-relaxed">{product.comment}</p>
+          <p className="text-sm text-gray-600 mb-3 leading-relaxed">{product.description}</p>
+          
+          {/* 가격 정보 */}
+          <div className="mb-4">
+            {product.discountPrice && product.discountPrice !== product.price ? (
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 line-through text-lg">{product.price?.toLocaleString()}원</span>
+                <span className="text-2xl font-bold text-red-600">{product.discountPrice?.toLocaleString()}원</span>
+              </div>
+            ) : (
+              <span className="text-2xl font-bold text-blue-700">{product.price?.toLocaleString()}원</span>
+            )}
+          </div>
         </div>
         
-        {/* 옵션 선택 섹션 - CommercePayment와 유사한 레이아웃 */}
-        <div className="bg-blue-50 p-6 rounded-lg mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* 날짜 선택 */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-semibold text-gray-900">날짜 선택</h4>
-              <div className="flex flex-col gap-2">
-                <label className="font-medium text-gray-700">투어 날짜</label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={e => setSelectedDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="border border-gray-300 rounded-lg px-4 py-2 w-full"
-                />
-              </div>
-            </div>
-
-            {/* 옵션 선택 */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-semibold text-gray-900">옵션 선택</h4>
+        {/* 재고 옵션 선택 섹션 */}
+        {product.stocks && product.stocks.length > 0 && (
+          <div className="bg-blue-50 p-6 rounded-lg mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* 날짜 선택 */}
               <div className="space-y-4">
-                {product.options.map((option) => (
-                  <div key={option.name} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex-1">
-                      <h5 className="font-medium text-gray-900">{option.name}</h5>
-                      <div className="text-blue-600 font-semibold">
-                        {option.discountPrice ? (
-                          <div>
-                            <span className="text-gray-400 line-through text-sm">{option.price.toLocaleString()}원</span>
-                            <div className="text-lg">{option.discountPrice.toLocaleString()}원</div>
-                          </div>
-                        ) : (
-                          <div className="text-lg">{option.price.toLocaleString()}원</div>
-                        )}
+                <h4 className="text-lg font-semibold text-gray-900">날짜 선택</h4>
+                <div className="flex flex-col gap-2">
+                  <label className="font-medium text-gray-700">투어 날짜</label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={e => setSelectedDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="border border-gray-300 rounded-lg px-4 py-2 w-full"
+                  />
+                </div>
+              </div>
+
+              {/* 재고 옵션 선택 */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-gray-900">옵션 선택</h4>
+                <div className="space-y-4">
+                  {product.stocks.map((stock) => (
+                    <div key={stock.optionName} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                      <div className="flex-1">
+                        <h5 className="font-medium text-gray-900">{stock.optionName}</h5>
+                        <div className="text-sm text-gray-600 mb-1">재고: {stock.stock}개</div>
+                        <div className="text-blue-600 font-semibold">
+                          {stock.discountPrice && stock.discountPrice !== stock.price ? (
+                            <div>
+                              <span className="text-gray-400 line-through text-sm">{stock.price.toLocaleString()}원</span>
+                              <div className="text-lg">{stock.discountPrice.toLocaleString()}원</div>
+                            </div>
+                          ) : (
+                            <div className="text-lg">{stock.price.toLocaleString()}원</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => updateStockCount(stock.optionName, -1)}
+                          className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                          disabled={!selectedDate || (stockCounts[stock.optionName] || 0) === 0}
+                        >-</button>
+                        <span className="w-12 text-center font-medium">{stockCounts[stock.optionName] || 0}</span>
+                        <button
+                          onClick={() => updateStockCount(stock.optionName, 1)}
+                          className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                          disabled={!selectedDate || (stockCounts[stock.optionName] || 0) >= stock.stock}
+                        >+</button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => updateOptionCount(option.name, -1)}
-                        className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-                        disabled={!selectedDate || (optionCounts[option.name] || 0) === 0}
-                      >-</button>
-                      <span className="w-12 text-center font-medium">{optionCounts[option.name] || 0}</span>
-                      <button
-                        onClick={() => updateOptionCount(option.name, 1)}
-                        className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-                        disabled={!selectedDate}
-                      >+</button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* 선택된 옵션의 총 가격 표시 */}
-          {totalCount > 0 && (
-            <div className="mt-6 p-4 bg-white rounded-lg border">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-900">총 결제 금액:</span>
-                <span className="text-2xl font-bold text-blue-600">
-                  {totalPrice.toLocaleString()}원
-                </span>
+            {/* 선택된 옵션의 총 가격 표시 */}
+            {totalCount > 0 && (
+              <div className="mt-6 p-4 bg-white rounded-lg border">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-gray-900">총 결제 금액:</span>
+                  <span className="text-2xl font-bold text-blue-600">
+                    {totalPrice.toLocaleString()}원
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
         
         <div className="flex gap-3">
           <button
@@ -215,7 +338,7 @@ const CommerceDetail = () => {
             onClick={() => {
               const selectedOptions = product.options.filter(option => (optionCounts[option.name] || 0) > 0);
               const optionsParam = selectedOptions.map(opt => `${opt.name}:${optionCounts[opt.name]}`).join(',');
-              navigate(`/commerce/${id}/payment?date=${selectedDate}&options=${optionsParam}&totalPrice=${totalPrice}`);
+              navigate(`/commerce/${id}/payment?date=${selectedDate}&options=${optionsParam}`);
             }}
             disabled={totalCount === 0 || !selectedDate}
           >
@@ -225,22 +348,24 @@ const CommerceDetail = () => {
       </div>
 
       {/* 상품 이미지 갤러리 */}
-      <div>
-        <h3 className="text-xl font-semibold mb-4 text-gray-900">상품 이미지</h3>
-        
-        {/* 이미지들 */}
-        <div className="flex flex-col gap-4">
-          {product.images.map((image, index) => (
-            <div key={index}>
-              <img 
-                src={image} 
-                alt={`${product.title} ${index + 1}`}
-                className="w-full h-64 object-cover rounded-lg shadow-md"
-              />
-            </div>
-          ))}
+      {product.images && product.images.length > 0 && (
+        <div>
+          <h3 className="text-xl font-semibold mb-4 text-gray-900">상품 이미지</h3>
+          
+          {/* 이미지들 */}
+          <div className="flex flex-col gap-4">
+            {product.images.map((image, index) => (
+              <div key={index}>
+                <img 
+                  src={image} 
+                  alt={`${product.title} ${index + 1}`}
+                  className="w-full h-64 object-cover rounded-lg shadow-md"
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 리뷰 목록 */}
       <div>
@@ -259,22 +384,15 @@ const CommerceDetail = () => {
         </ul>
       </div>
 
-      {/* 판매자 정보 */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-t pt-4">
-        <div>
-          <div className="font-semibold text-gray-900">판매자: {product.seller.name}</div>
-          <div className="text-gray-600 text-sm">{product.seller.description}</div>
-          <div className="text-gray-500 text-xs">문의: {product.seller.contact}</div>
+      {/* 상품 등록일 */}
+      <div className="border-t pt-4">
+        <div className="text-sm text-gray-500">
+          상품 등록일: {new Date(product.regDate).toLocaleDateString('ko-KR')}
         </div>
-        <button 
-          onClick={() => navigate('/chat')}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-fit"
-        >
-          판매자에게 메시지 보내기
-        </button>
       </div>
     </section>
   );
 };
 
 export default CommerceDetail;
+
