@@ -334,11 +334,15 @@ const CommerceDetail = () => {
         
         <div className="flex gap-3">
           <button
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold w-full"
+            className={`px-6 py-3 rounded-lg font-semibold w-full transition-colors ${
+              totalCount === 0 || !selectedDate
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
             onClick={() => {
-              const selectedOptions = product.options.filter(option => (optionCounts[option.name] || 0) > 0);
-              const optionsParam = selectedOptions.map(opt => `${opt.name}:${optionCounts[opt.name]}`).join(',');
-              navigate(`/commerce/${id}/payment?date=${selectedDate}&options=${optionsParam}`);
+              const selectedOptions = product.stocks.filter(stock => (stockCounts[stock.optionName] || 0) > 0);
+              const optionsParam = selectedOptions.map(opt => `${opt.optionName}:${stockCounts[opt.optionName]}`).join(',');
+              navigate(`/commerce/${id}/payment?date=${selectedDate}&options=${optionsParam}&totalPrice=${totalPrice}`);
             }}
             disabled={totalCount === 0 || !selectedDate}
           >

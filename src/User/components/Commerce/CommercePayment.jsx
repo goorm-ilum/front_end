@@ -1,22 +1,8 @@
 // CommercePayment.jsx
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { getProductDetail } from '../../../common/api/productApi';
 import { Checkout } from './Checkout';
-
-// CommerceDetail과 동일한 더미 데이터
-const dummyProducts = [
-  {
-    id: '1',
-    productName: '서울 시티 투어',
-    thumbnailImageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
-    shortDescription: '서울의 대표 명소들을 전문 가이드와 함께 둘러보는 프리미엄 시티 투어입니다.',
-    stocks: [
-      { option: '오전 출발', price: 22000 },
-      { option: '오후 출발', price: 24000 }
-    ],
-    availableDates: ['2024-06-10', '2024-06-11', '2024-06-12']
-  }
-];
 
 const CommercePayment = () => {
   const { id } = useParams();
@@ -26,110 +12,169 @@ const CommercePayment = () => {
   const [product, setProduct] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [optionCounts, setOptionCounts] = useState({});
-  const [orderInfo, setOrderInfo] = useState(null); // 주문 생성 결과 저장
-  const [initialTotalPrice, setInitialTotalPrice] = useState(0); // URL에서 전달받은 초기 총 금액
-  const [isLoading, setIsLoading] = useState(true); // 로딩 상태
-  const [isCreatingOrder, setIsCreatingOrder] = useState(false); // 주문 생성 중 상태
+  const [orderInfo, setOrderInfo] = useState(null);
+  const [initialTotalPrice, setInitialTotalPrice] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [error, setError] = useState('');
+
+  // 상품 상세 정보 로드
+  const loadProductDetail = async () => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      console.log('상품 상세 조회 중...', id);
+      const response = await getProductDetail(id);
+      console.log('상품 상세 응답:', response);
+      
+      // 백엔드 응답을 프론트엔드 구조로 변환 (CommerceDetail과 동일한 방식)
+      const transformedProduct = {
+        id: response.productId,
+        title: response.productName,
+        description: response.shortDescription,
+        thumbnail: response.thumbnailImageUrl,
+        price: response.price,
+        discountPrice: response.discountPrice,
+        regDate: response.regDate,
+        countryName: response.countryName,
+        hashtags: response.hashtags || [],
+        images: response.images || [],
+        stocks: response.stocks || [],
+        rating: response.averageReviewStar,
+        reviews: response.reviews || [],
+        like: response.isLiked
+      };
+      
+      setProduct(transformedProduct);
+
+      // URL 파라미터에서 전달받은 정보 파싱
+      const searchParams = new URLSearchParams(location.search);
+      const initialDate = searchParams.get('date') || '';
+      setSelectedDate(initialDate);
+
+      // URL에서 전달받은 총 금액 정보
+      const totalPriceParam = searchParams.get('totalPrice');
+      if (totalPriceParam) {
+        setInitialTotalPrice(parseInt(totalPriceParam, 10));
+      }
+
+      // URL에서 전달받은 옵션 정보 파싱
+      const optionsParam = searchParams.get('options');
+      const initialOptionCounts = {};
+      
+      if (optionsParam) {
+        // "오전 출발:2,오후 출발:1" 형태의 문자열을 파싱
+        optionsParam.split(',').forEach(optionStr => {
+          const [optionName, count] = optionStr.split(':');
+          if (optionName && count) {
+            initialOptionCounts[optionName] = parseInt(count, 10);
+          }
+        });
+      } else {
+        // 기본값 설정
+        transformedProduct.stocks.forEach(stock => {
+          initialOptionCounts[stock.optionName] = 0;
+        });
+      }
+      
+      setOptionCounts(initialOptionCounts);
+      
+    } catch (error) {
+      console.error('상품 상세 조회 실패:', error);
+      
+      let errorMessage = '상품 상세 정보를 불러오는데 실패했습니다.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        const statusText = error.response.statusText;
+        
+        if (status === 404) {
+          errorMessage = '상품을 찾을 수 없습니다. (404)';
+        } else if (status === 403) {
+          errorMessage = '접근 권한이 없습니다. (403)';
+        } else if (status === 500) {
+          errorMessage = '서버 내부 오류가 발생했습니다. (500)';
+        } else {
+          errorMessage = `서버 오류: ${status} - ${statusText}`;
+        }
+      } else if (error.request) {
+        errorMessage = '서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.';
+      } else {
+        errorMessage = `요청 오류: ${error.message}`;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // 실제 API에서 상품 정보 가져오기
-    fetch(`/api/products/${id}`, { credentials: 'include' })
-      .then(res => {
-        if (!res.ok) throw new Error('상품 정보를 불러오는 데 실패했습니다.');
-        return res.json();
-      })
-      .then(productData => {
-        setProduct(productData);
-
-        const searchParams = new URLSearchParams(location.search);
-        const initialDate = searchParams.get('date') || (productData.availableDates?.[0] || '');
-        setSelectedDate(initialDate);
-
-        // URL에서 전달받은 총 금액 정보
-        const totalPriceParam = searchParams.get('totalPrice');
-        if (totalPriceParam) {
-          setInitialTotalPrice(parseInt(totalPriceParam, 10));
-        }
-
-        // URL에서 전달받은 옵션 정보 파싱
-        const optionsParam = searchParams.get('options');
-        const initialOptionCounts = {};
-        
-        if (optionsParam) {
-          // "오전 출발:2,오후 출발:1" 형태의 문자열을 파싱
-          optionsParam.split(',').forEach(optionStr => {
-            const [optionName, count] = optionStr.split(':');
-            if (optionName && count) {
-              initialOptionCounts[optionName] = parseInt(count, 10);
-            }
-          });
-        } else {
-          // 기본값 설정
-          productData.stocks.forEach(stock => {
-            initialOptionCounts[stock.option] = 0;
-          });
-        }
-        
-        setOptionCounts(initialOptionCounts);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        console.error('상품 정보 로딩 실패:', err);
-        // API 호출 실패 시 더미 데이터로 폴백
-        const productData = dummyProducts.find(p => p.id === id);
-        if (productData) {
-          setProduct(productData);
-          // 더미 데이터로 기본 설정
-          const searchParams = new URLSearchParams(location.search);
-          const initialDate = searchParams.get('date') || (productData.availableDates?.[0] || '');
-          setSelectedDate(initialDate);
-          
-          const totalPriceParam = searchParams.get('totalPrice');
-          if (totalPriceParam) {
-            setInitialTotalPrice(parseInt(totalPriceParam, 10));
-          }
-          
-          const optionsParam = searchParams.get('options');
-          const initialOptionCounts = {};
-          
-          if (optionsParam) {
-            optionsParam.split(',').forEach(optionStr => {
-              const [optionName, count] = optionStr.split(':');
-              if (optionName && count) {
-                initialOptionCounts[optionName] = parseInt(count, 10);
-              }
-            });
-          } else {
-            productData.stocks.forEach(stock => {
-              initialOptionCounts[stock.option] = 0;
-            });
-          }
-          
-          setOptionCounts(initialOptionCounts);
-          setIsLoading(false);
-        }
-      });
+    if (id) {
+      loadProductDetail();
+    }
   }, [id, location.search]);
 
-  if (isLoading) return <div className="flex justify-center items-center h-64">로딩 중...</div>;
-  if (!product) return <div className="flex justify-center items-center h-64">상품을 찾을 수 없습니다.</div>;
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-gray-600">상품 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
+        <div className="text-center py-8">
+          <p className="text-red-600">{error}</p>
+          <button 
+            onClick={() => navigate(`/commerce/${id}`)}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            상품 상세로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
+        <div className="text-center py-8">
+          <p className="text-gray-600">상품을 찾을 수 없습니다.</p>
+          <button 
+            onClick={() => navigate('/commerce')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            상품 목록으로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleBack = () => navigate(`/commerce/${id}`);
 
   const updateOptionCount = (optionName, change) => {
     setOptionCounts(prev => ({
       ...prev,
-      [optionName]: Math.max(0, prev[optionName] + change),
+      [optionName]: Math.max(0, (prev[optionName] || 0) + change),
     }));
   };
 
   const totalCount = Object.values(optionCounts).reduce((sum, count) => sum + count, 0);
   const totalPrice = product.stocks.reduce((sum, stock) => {
-    const count = optionCounts[stock.option] || 0;
-    return sum + (stock.price * count);
+    const count = optionCounts[stock.optionName] || 0;
+    return sum + ((stock.discountPrice || stock.price) * count);
   }, 0);
 
-  const selectedOptions = product.stocks.filter(stock => optionCounts[stock.option] > 0);
+  const selectedOptions = product.stocks.filter(stock => (optionCounts[stock.optionName] || 0) > 0);
 
   // 주문 생성 함수: 백엔드에 주문 생성 요청
   const createOrder = async () => {
@@ -144,8 +189,8 @@ const CommercePayment = () => {
         body: JSON.stringify({
           date: selectedDate,
           options: selectedOptions.map(opt => ({
-            optionName: opt.option,
-            quantity: optionCounts[opt.option],
+            optionName: opt.optionName,
+            quantity: optionCounts[opt.optionName],
           })),
           totalPrice: totalPrice,
         }),
@@ -157,7 +202,6 @@ const CommercePayment = () => {
       }
 
       const data = await response.json();
-      // 백엔드에서 orderId, orderName, amount, customerEmail 등을 반환
       setOrderInfo(data);
     } catch (err) {
       console.error(err);
@@ -169,7 +213,6 @@ const CommercePayment = () => {
 
   return (
     <section className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
-      {/* ... 기존 UI 코드 동일 ... */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">예약 정보 확인</h1>
         <button onClick={handleBack} className="text-blue-600 hover:text-blue-800 font-medium">
@@ -178,10 +221,10 @@ const CommercePayment = () => {
       </div>
 
       <div className="flex gap-6 mb-8 p-4 bg-gray-50 rounded-lg">
-        <img src={product.thumbnailImageUrl} alt={product.productName} className="w-24 h-24 object-cover rounded-lg" />
+        <img src={product.thumbnail} alt={product.title} className="w-24 h-24 object-cover rounded-lg" />
         <div className="flex-1">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">{product.productName}</h2>
-          <p className="text-gray-600 text-sm">{product.shortDescription}</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{product.title}</h2>
+          <p className="text-gray-600 text-sm">{product.description}</p>
         </div>
       </div>
 
@@ -206,24 +249,32 @@ const CommercePayment = () => {
           <h3 className="text-lg font-semibold text-gray-900">옵션 및 수량 선택</h3>
           <div className="space-y-4">
             {product.stocks.map((stock) => (
-              <div key={stock.option} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div key={stock.optionName} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{stock.option}</h4>
-                  <p className="text-blue-600 font-semibold">
-                    {stock.price ? stock.price.toLocaleString() : '가격 정보 없음'}원/인
-                  </p>
+                  <h4 className="font-medium text-gray-900">{stock.optionName}</h4>
+                  <div className="text-sm text-gray-600 mb-1">재고: {stock.stock}개</div>
+                  <div className="text-blue-600 font-semibold">
+                    {stock.discountPrice && stock.discountPrice !== stock.price ? (
+                      <div>
+                        <span className="text-gray-400 line-through text-sm">{stock.price?.toLocaleString()}원</span>
+                        <div className="text-lg">{stock.discountPrice?.toLocaleString()}원</div>
+                      </div>
+                    ) : (
+                      <div className="text-lg">{stock.price?.toLocaleString()}원</div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={() => updateOptionCount(stock.option, -1)}
-                    className="w-10 h-10 rounded-lg bg-gray-200"
-                    disabled={!selectedDate || optionCounts[stock.option] === 0}
+                    onClick={() => updateOptionCount(stock.optionName, -1)}
+                    className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                    disabled={!selectedDate || (optionCounts[stock.optionName] || 0) === 0}
                   >-</button>
-                  <span className="w-12 text-center font-medium">{optionCounts[stock.option]}</span>
+                  <span className="w-12 text-center font-medium">{optionCounts[stock.optionName] || 0}</span>
                   <button
-                    onClick={() => updateOptionCount(stock.option, 1)}
-                    className="w-10 h-10 rounded-lg bg-gray-200"
-                    disabled={!selectedDate}
+                    onClick={() => updateOptionCount(stock.optionName, 1)}
+                    className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                    disabled={!selectedDate || (optionCounts[stock.optionName] || 0) >= stock.stock}
                   >+</button>
                 </div>
               </div>
@@ -238,16 +289,16 @@ const CommercePayment = () => {
         <div className="space-y-3 text-gray-700">
           <div className="flex justify-between">
             <span>투어 날짜:</span>
-            <span className="font-medium">{selectedDate}</span>
+            <span className="font-medium">{selectedDate || '날짜를 선택해주세요'}</span>
           </div>
           {selectedOptions.length > 0 && (
             <>
               <div className="space-y-2">
                 <span className="font-medium">선택한 옵션:</span>
                 {selectedOptions.map((opt) => (
-                  <div key={opt.option} className="flex justify-between ml-4">
-                    <span>• {opt.option}</span>
-                    <span className="font-medium">{optionCounts[opt.option]}개</span>
+                  <div key={opt.optionName} className="flex justify-between ml-4">
+                    <span>• {opt.optionName}</span>
+                    <span className="font-medium">{optionCounts[opt.optionName]}개</span>
                   </div>
                 ))}
               </div>
