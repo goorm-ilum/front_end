@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import axiosInstance from './api/mainApi';
 
 const FloatingChatIcon = () => {
-  const [unreadCount, setUnreadCount] = useState(3); // 예시로 3개 설정
+  const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
 
   // 현재 경로에 따라 채팅 링크 결정
@@ -23,8 +24,38 @@ const FloatingChatIcon = () => {
     }
   };
 
+  // 안 읽은 메시지 개수 가져오기
+  const fetchUnreadCount = async () => {
+    try {
+      console.log('=== 안 읽은 메시지 개수 API 호출 ===');
+      const userId = 'dhrdbs'; // 실제로는 로그인한 사용자 ID를 사용해야 함
+      const response = await axiosInstance.get(`/api/chat/countALLUnreadMessages?userId=${userId}`);
+      console.log('안 읽은 메시지 개수 응답:', response.data);
+      
+      if (response.data && response.data.count !== undefined) {
+        setUnreadCount(response.data.count);
+        console.log('안 읽은 메시지 개수:', response.data.count);
+      } else {
+        console.log('응답 데이터에 count가 없습니다:', response.data);
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      console.error('안 읽은 메시지 개수 가져오기 실패:', error);
+      console.error('에러 상세:', error.response?.data);
+      console.error('에러 상태:', error.response?.status);
+      // 에러 발생 시 기본값 사용
+      setUnreadCount(0);
+    }
+  };
+
   useEffect(() => {
-    // API 호출 로직 (주석 처리)
+    // 컴포넌트 마운트 시 안 읽은 메시지 개수 가져오기
+    fetchUnreadCount();
+    
+    // 주기적으로 안 읽은 메시지 개수 업데이트 (30초마다)
+    const interval = setInterval(fetchUnreadCount, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   return (
