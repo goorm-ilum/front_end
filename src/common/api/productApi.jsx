@@ -55,7 +55,7 @@ export const toggleLike = async (productId) => {
 // 좋아요 목록 조회
 export const getLikedProducts = async (params = {}) => {
   try {
-    const response = await axios.get('/api/products/liked', {
+    const response = await axios.get('/api/me/likes', {
       params: {
         page: params.page || 0,
         size: params.size || 9
@@ -64,6 +64,83 @@ export const getLikedProducts = async (params = {}) => {
     return response.data;
   } catch (error) {
     console.error('좋아요 목록 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 내 리뷰 목록 조회
+export const getMyReviews = async (params = {}) => {
+  try {
+    const response = await axios.get('/api/me/reviews', {
+      params: {
+        page: params.page || 0,
+        size: params.size || 9
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('내 리뷰 목록 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 리뷰 수정
+export const updateReview = async (reviewId, reviewData) => {
+  try {
+    const response = await axios.patch(`/api/reviews/${reviewId}`, {
+      comment: reviewData.comment,
+      reviewStar: reviewData.reviewStar
+    });
+    return response.data;
+  } catch (error) {
+    console.error('리뷰 수정 실패:', error);
+    throw error;
+  }
+};
+
+// 리뷰 삭제
+export const deleteReview = async (reviewId) => {
+  try {
+    const response = await axios.delete(`/api/reviews/${reviewId}`);
+    return response.data;
+  } catch (error) {
+    console.error('리뷰 삭제 실패:', error);
+    throw error;
+  }
+};
+
+// 리뷰 작성 폼 데이터 조회 (상품 정보 포함)
+export const getReviewFormData = async (productId) => {
+  try {
+    const response = await axios.get(`/api/products/${productId}/reviews/form`);
+    return response.data;
+  } catch (error) {
+    console.error('리뷰 작성 폼 데이터 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 리뷰 수정 폼 데이터 조회 (상품 정보 포함)
+export const getReviewEditFormData = async (reviewId) => {
+  try {
+    const response = await axios.get(`/api/reviews/${reviewId}/form`);
+    return response.data;
+  } catch (error) {
+    console.error('리뷰 수정 폼 데이터 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 리뷰 작성
+export const createReview = async (productId, reviewData) => {
+  try {
+    const response = await axios.post(`/api/products/${productId}/reviews`, {
+      comment: reviewData.comment,
+      reviewStar: reviewData.reviewStar
+    });
+    return response.data;
+  } catch (error) {
+    console.error('리뷰 작성 실패:', error);
     throw error;
   }
 }; 

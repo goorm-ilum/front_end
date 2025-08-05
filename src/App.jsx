@@ -8,6 +8,7 @@ import Home from './User/pages/Home';
 import Commerce from './User/pages/Commerce';
 import CommerceList from './User/components/Commerce/CommerceList';
 import CommerceDetail from './User/components/Commerce/CommerceDetail';
+
 import CommercePayment from './User/components/Commerce/CommercePayment';
 import Checkout from './User/components/Commerce/Checkout';
 import OrderSuccess from './User/pages/Commerce/OrderSuccess';
@@ -15,6 +16,7 @@ import OrderFailure from './User/pages/Commerce/OrderFailure';
 
 
 import MyPage from './User/pages/Mypage';
+import ReviewForm from './User/pages/Mypage/ReviewForm';
 import ChatPage from './common/chat/ChatPage';
 
 import AdminHome from './Admin/pages/AdminHome';
@@ -42,6 +44,8 @@ function App() {
               <Route path=":id/payment" element={<CommercePayment />} />
             </Route>
             <Route path="/mypage" element={<MyPage />} />
+            <Route path="/mypage/review/create/:productId" element={<ReviewForm />} />
+            <Route path="/mypage/review/edit/:reviewId" element={<ReviewForm />} />
             <Route path="/chat/*" element={<ChatPage />} />
             <Route path="/commerce/checkout" element={<Checkout />} />
             <Route path="/commerce/order/success" element={<OrderSuccess />} /> 

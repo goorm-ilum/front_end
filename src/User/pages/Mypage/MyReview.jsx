@@ -1,169 +1,285 @@
-import React, { useState } from 'react';
-
-// 별점 표시용 컴포넌트 (5점 만점)
-const StarRating = ({ rating }) => {
-  const fullStars = Math.floor(rating);
-  const emptyStars = 5 - fullStars;
-  return (
-    <div className="flex text-yellow-400">
-      {[...Array(fullStars)].map((_, i) => (
-        <svg
-          key={`full-${i}`}
-          className="w-5 h-5 fill-current"
-          viewBox="0 0 20 20"
-        >
-          <path d="M10 15l-5.878 3.09 1.123-6.545L.49 6.91l6.561-.955L10 0l2.949 5.955 6.561.955-4.755 4.635 1.123 6.545z" />
-        </svg>
-      ))}
-      {[...Array(emptyStars)].map((_, i) => (
-        <svg
-          key={`empty-${i}`}
-          className="w-5 h-5 fill-gray-300"
-          viewBox="0 0 20 20"
-        >
-          <path d="M10 15l-5.878 3.09 1.123-6.545L.49 6.91l6.561-.955L10 0l2.949 5.955 6.561.955-4.755 4.635 1.123 6.545z" />
-        </svg>
-      ))}
-    </div>
-  );
-};
-
-const mockReviews = [
-  {
-    id: 1,
-    thumbnail: 'https://placehold.co/100x100?text=상품1',
-    title: '오사카 3박 4일 자유여행 패키지',
-    rating: 5,
-    content: '정말 최고의 여행이었어요! 가이드도 친절하고 숙소도 만족스러웠습니다.',
-    reviewImage: 'https://placehold.co/150x100?text=리뷰이미지1',
-  },
-  {
-    id: 2,
-    thumbnail: 'https://placehold.co/100x100?text=상품2',
-    title: '제주도 렌터카 포함 2박 3일 숙박패키지',
-    rating: 4,
-    content: '렌터카가 좀 낡았지만 여행 자체는 즐거웠어요.',
-    reviewImage: '',
-  },
-  {
-    id: 3,
-    thumbnail: 'https://placehold.co/100x100?text=상품3',
-    title: '스위스 알프스 기차여행 7박 8일',
-    rating: 3,
-    content: '경치는 정말 멋졌지만 일정이 조금 빡빡했어요.',
-    reviewImage: 'https://placehold.co/150x100?text=리뷰이미지3',
-  },
-  {
-    id: 4,
-    thumbnail: 'https://placehold.co/100x100?text=상품4',
-    title: '태국 푸켓 리조트 숙박 패키지',
-    rating: 5,
-    content: '리조트가 너무 좋아서 계속 머물고 싶었어요.',
-    reviewImage: '',
-  },
-  {
-    id: 5,
-    thumbnail: 'https://placehold.co/100x100?text=상품5',
-    title: '부산 1박 2일 기차여행',
-    rating: 2,
-    content: '조금 아쉬웠지만 가격 대비 괜찮았습니다.',
-    reviewImage: '',
-  },
-  {
-    id: 6,
-    thumbnail: 'https://placehold.co/100x100?text=상품6',
-    title: '유럽 배낭여행 14박 15일',
-    rating: 4,
-    content: '배낭여행 답게 자유로웠고 많은 추억이 생겼어요.',
-    reviewImage: 'https://placehold.co/150x100?text=리뷰이미지6',
-  },
-];
-
-const ITEMS_PER_PAGE = 5;
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getMyReviews, updateReview, deleteReview } from '../../../common/api/productApi';
+import Pagination from '../../../common/Pagination';
 
 const MyReview = () => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const navigate = useNavigate();
+  
+  // 상태 관리
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  // 페이지네이션 설정
+  const [page, setPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 9;
 
-  const totalPages = Math.ceil(mockReviews.length / ITEMS_PER_PAGE);
-  const paginatedReviews = mockReviews.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  // 내 리뷰 목록 로드
+  const loadMyReviews = async (pageNum = 0) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      console.log('내 리뷰 목록 조회 중...', { page: pageNum, size: itemsPerPage });
+      const response = await getMyReviews({
+        page: pageNum,
+        size: itemsPerPage
+      });
+      
+      console.log('내 리뷰 목록 응답:', response);
+      
+      // 백엔드 응답 구조에 맞게 데이터 변환
+      if (Array.isArray(response)) {
+        const transformedReviews = response.map(review => ({
+          id: review.reviewId,
+          productName: review.productName,
+          thumbnailImageUrl: review.thumbnailImageUrl,
+          content: review.comment,
+          rating: review.reviewStar,
+          updatedAt: review.updatedAt
+        }));
+        setReviews(transformedReviews);
+        setTotalItems(transformedReviews.length);
+      } else if (response.content) {
+        const transformedReviews = response.content.map(review => ({
+          id: review.reviewId,
+          productName: review.productName,
+          thumbnailImageUrl: review.thumbnailImageUrl,
+          content: review.comment,
+          rating: review.reviewStar,
+          updatedAt: review.updatedAt
+        }));
+        setReviews(transformedReviews);
+        setTotalItems(response.totalElements || transformedReviews.length);
+      } else {
+        setReviews([]);
+        setTotalItems(0);
+      }
+      
+    } catch (error) {
+      console.error('내 리뷰 목록 조회 실패:', error);
+      
+      let errorMessage = '내 리뷰 목록을 불러오는데 실패했습니다.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          errorMessage = '로그인이 필요합니다. 로그인 후 다시 시도해주세요.';
+        } else if (status === 404) {
+          errorMessage = '리뷰 목록을 찾을 수 없습니다.';
+        } else {
+          errorMessage = `서버 오류: ${status}`;
+        }
+      } else if (error.request) {
+        errorMessage = '서버에 연결할 수 없습니다.';
+      }
+      
+      setError(errorMessage);
+      setReviews([]);
+      setTotalItems(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 리뷰 목록 로드
+  useEffect(() => {
+    loadMyReviews(0);
+  }, []);
+
+  // 페이지 변경 시 API 호출
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    const pageIndex = newPage - 1;
+    loadMyReviews(pageIndex);
+  };
+
+  // 리뷰 수정 핸들러
+  const handleEditReview = (review) => {
+    console.log('리뷰 수정:', review.id);
+    
+    // 리뷰 수정 페이지로 이동 (reviewId만 필요)
+    navigate(`/mypage/review/edit/${review.id}`);
+  };
+
+  // 리뷰 삭제 핸들러
+  const handleDeleteReview = async (reviewId) => {
+    if (window.confirm('정말로 이 리뷰를 삭제하시겠습니까?')) {
+      try {
+        console.log('리뷰 삭제 중...', reviewId);
+        
+        // 백엔드에 삭제 요청
+        await deleteReview(reviewId);
+        console.log('리뷰 삭제 완료');
+        
+        // 성공 메시지 표시
+        alert('리뷰가 삭제되었습니다.');
+        
+        // 리뷰 목록 새로고침
+        loadMyReviews(page - 1);
+        
+      } catch (error) {
+        console.error('리뷰 삭제 실패:', error);
+        
+        let errorMessage = '리뷰 삭제 중 오류가 발생했습니다.';
+        
+        if (error.response) {
+          const status = error.response.status;
+          if (status === 401) {
+            errorMessage = '로그인이 필요합니다. 로그인 후 다시 시도해주세요.';
+          } else if (status === 404) {
+            errorMessage = '리뷰를 찾을 수 없습니다.';
+          } else if (status === 403) {
+            errorMessage = '리뷰를 삭제할 권한이 없습니다.';
+          } else {
+            errorMessage = `서버 오류: ${status}`;
+          }
+        } else if (error.request) {
+          errorMessage = '서버에 연결할 수 없습니다.';
+        }
+        
+        alert(errorMessage);
+      }
+    }
+  };
+
+  // 별점 표시 컴포넌트
+  const StarRating = ({ rating }) => {
+    return (
+      <div className="flex items-center">
+        {[...Array(5)].map((_, index) => (
+          <svg
+            key={index}
+            className={`w-4 h-4 ${
+              index < rating ? 'text-yellow-400' : 'text-gray-300'
+            }`}
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+        ))}
+        <span className="ml-2 text-sm text-gray-600">{rating}/5</span>
+      </div>
+    );
+  };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">내가 작성한 리뷰</h1>
-
-      {paginatedReviews.map(review => (
-        <div
-          key={review.id}
-          className="border rounded-lg p-4 mb-6 shadow-sm flex gap-4"
-        >
-          {/* 썸네일 */}
-          <img
-            src={review.thumbnail}
-            alt={review.title}
-            className="w-24 h-24 rounded object-cover"
-          />
-
-          {/* 리뷰 내용 */}
-          <div className="flex-1 flex flex-col justify-between">
-            <div>
-              <div className="text-lg font-semibold mb-1">{review.title}</div>
-              <StarRating rating={review.rating} />
-              <p className="mt-2 text-gray-700 whitespace-pre-line">{review.content}</p>
-            </div>
-
-            {/* 리뷰 이미지 */}
-            {review.reviewImage && (
-              <img
-                src={review.reviewImage}
-                alt="리뷰 이미지"
-                className="mt-4 max-w-xs rounded"
-              />
-            )}
-
-            {/* 버튼들 */}
-            <div className="mt-4 flex gap-3">
-              <button className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                수정
-              </button>
-              <button className="px-4 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm">
-                삭제
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
-
-      {/* 페이지네이션 */}
-      <div className="flex justify-center mt-6 space-x-2">
-        <button
-          onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-          disabled={currentPage === 1}
-          className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
-        >
-          이전
-        </button>
-        {Array.from({ length: totalPages }).map((_, idx) => (
-          <button
-            key={idx + 1}
-            onClick={() => setCurrentPage(idx + 1)}
-            className={`px-3 py-1 border rounded hover:bg-gray-100 ${
-              currentPage === idx + 1 ? 'bg-blue-100 font-bold' : ''
-            }`}
-          >
-            {idx + 1}
-          </button>
-        ))}
-        <button
-          onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
-        >
-          다음
-        </button>
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">내가 작성한 리뷰</h2>
+        <p className="text-gray-600">내가 작성한 리뷰들을 확인하세요</p>
       </div>
+
+      {/* 로딩 상태 */}
+      {loading && (
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-gray-600">리뷰 목록을 불러오는 중...</p>
+        </div>
+      )}
+
+      {/* 에러 상태 */}
+      {error && (
+        <div className="text-center py-8">
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
+
+      {/* 리뷰 목록이 비어있는 경우 */}
+      {!loading && !error && reviews.length === 0 && (
+        <div className="text-center py-12">
+          <div className="text-gray-400 mb-4">
+            <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">아직 작성한 리뷰가 없습니다</h3>
+          <p className="text-gray-500 mb-4">상품을 구매하고 리뷰를 작성해보세요!</p>
+          <button
+            onClick={() => navigate('/commerce')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            상품 둘러보기
+          </button>
+        </div>
+      )}
+
+      {/* 리뷰 목록 */}
+      {!loading && !error && reviews.length > 0 && (
+        <>
+          <div className="space-y-6 mb-6">
+            {reviews.map(review => (
+              <div
+                key={review.id}
+                className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow p-6"
+              >
+                <div className="flex items-start space-x-4">
+                  {/* 상품 썸네일 */}
+                  <div className="flex-shrink-0">
+                    <img
+                      src={review.thumbnailImageUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'}
+                      alt={review.productName}
+                      className="w-16 h-16 object-cover rounded-lg bg-gray-100"
+                    />
+                  </div>
+                  
+                  {/* 리뷰 내용 */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {review.productName}
+                      </h3>
+                      <span className="text-sm text-gray-500">
+                        {new Date(review.updatedAt).toLocaleDateString('ko-KR')}
+                      </span>
+                    </div>
+                    
+                    {/* 별점 */}
+                    <div className="mb-3">
+                      <StarRating rating={review.rating} />
+                    </div>
+                    
+                    {/* 리뷰 내용 */}
+                    <div className="text-gray-700 leading-relaxed">
+                      {review.content}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 수정/삭제 버튼 */}
+                <div className="flex justify-end mt-4 space-x-2">
+                  <button
+                    onClick={() => handleEditReview(review)}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={() => handleDeleteReview(review.id)}
+                    className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 페이지네이션 */}
+          {totalItems > 0 && (
+            <Pagination
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              currentPage={page}
+              onPageChange={handlePageChange}
+              className="mt-6"
+            />
+          )}
+        </>
+      )}
     </div>
   );
 };
