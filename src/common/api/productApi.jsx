@@ -134,13 +134,32 @@ export const getReviewEditFormData = async (reviewId) => {
 // 리뷰 작성
 export const createReview = async (productId, reviewData) => {
   try {
-    const response = await axios.post(`/api/products/${productId}/reviews`, {
+    console.log('리뷰 작성 요청:', { productId, reviewData });
+    
+    // API 문서에 맞는 요청 형식으로 데이터 준비
+    const requestData = {
       comment: reviewData.comment,
-      reviewStar: reviewData.reviewStar
+      reviewStar: parseInt(reviewData.reviewStar) // 숫자로 확실히 변환
+    };
+    
+    console.log('전송할 데이터:', requestData);
+    
+    const response = await axios.post(`/api/products/${productId}/reviews`, requestData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
+    
+    console.log('리뷰 작성 응답:', response);
+    console.log('응답 상태:', response.status);
+    console.log('응답 데이터:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('리뷰 작성 실패:', error);
+    console.error('에러 응답:', error.response);
+    console.error('에러 상태:', error.response?.status);
+    console.error('에러 데이터:', error.response?.data);
     throw error;
   }
 }; 

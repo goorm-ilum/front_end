@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { updateReview, getReviewFormData, getReviewEditFormData, createReview } from '../../../common/api/productApi';
+import MessagePopup from '../../../common/components/MessagePopup';
 
-const ReviewForm = () => {
+const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
   const navigate = useNavigate();
-  const { reviewId, productId } = useParams();
+  const { reviewId: urlReviewId, productId: urlProductId } = useParams();
+  
+  // props 또는 URL 파라미터에서 값 가져오기
+  const finalProductId = propsProductId || urlProductId;
+  const finalReviewId = propsReviewId || urlReviewId;
   
   // 상태 관리
   const [formData, setFormData] = useState({
@@ -15,6 +20,10 @@ const ReviewForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showMessagePopup, setShowMessagePopup] = useState(false);
+  const [messageData, setMessageData] = useState({ message: '', type: 'info' });
 
   // 수정 모드인지 확인하고 데이터 로드
   useEffect(() => {
@@ -23,10 +32,10 @@ const ReviewForm = () => {
       setError('');
       
       try {
-        if (reviewId) {
+        if (finalReviewId) {
           // 리뷰 수정 모드
           setIsEditing(true);
-          const response = await getReviewEditFormData(reviewId);
+          const response = await getReviewEditFormData(finalReviewId);
           
           // 백엔드 응답 구조에 맞게 데이터 설정
           setProductInfo({
@@ -37,48 +46,71 @@ const ReviewForm = () => {
             comment: response.myComment || '',
             reviewStar: response.myStar || 5
           });
-        } else if (productId) {
+        } else if (finalProductId) {
           // 리뷰 작성 모드
           setIsEditing(false);
-          const response = await getReviewFormData(productId);
+          const response = await getReviewFormData(finalProductId);
           setProductInfo(response);
         } else {
           // productId가 없는 경우 에러 처리
-          setError('상품 정보를 찾을 수 없습니다.');
+          const errorMessage = '상품 정보를 찾을 수 없습니다.';
+          alert(errorMessage);
+          // 구매내역 페이지로 이동
+          navigate('/mypage?tab=order');
+          return;
         }
       } catch (error) {
         console.error('폼 데이터 로드 실패:', error);
         
         let errorMessage = '폼 데이터를 불러오는데 실패했습니다.';
+        let shouldNavigate = false;
         
         if (error.response) {
           const status = error.response.status;
           if (status === 401) {
             errorMessage = '로그인이 필요합니다.';
-          } else if (status === 404) {
+            shouldNavigate = true;
+                  } else if (status === 403) {
+          errorMessage = '이미 작성한 리뷰입니다.';
+          setErrorMessage(errorMessage);
+          setShowErrorPopup(true);
+          return;
+        } else if (status === 404) {
             errorMessage = '상품 또는 리뷰를 찾을 수 없습니다.';
+            shouldNavigate = true;
           } else {
             errorMessage = `서버 오류: ${status}`;
+            shouldNavigate = true;
           }
         } else if (error.request) {
           errorMessage = '서버에 연결할 수 없습니다.';
+          shouldNavigate = true;
         }
         
-        setError(errorMessage);
+        if (status !== 403) {
+          setMessageData({ message: errorMessage, type: 'error' });
+          setShowMessagePopup(true);
+          
+          // 오류 발생 시 구매내역 페이지로 이동
+          if (shouldNavigate) {
+            navigate('/mypage?tab=order');
+          }
+        }
+        return;
       } finally {
         setLoading(false);
       }
     };
 
     loadFormData();
-  }, [reviewId, productId]);
+  }, [finalReviewId, finalProductId, navigate]);
 
   // 폼 데이터 변경 핸들러
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'reviewStar' ? parseFloat(value) : value
+      [name]: name === 'reviewStar' ? parseInt(value) : value
     }));
   };
 
@@ -86,7 +118,7 @@ const ReviewForm = () => {
   const handleStarChange = (rating) => {
     setFormData(prev => ({
       ...prev,
-      reviewStar: rating
+      reviewStar: parseInt(rating)
     }));
   };
 
@@ -95,29 +127,73 @@ const ReviewForm = () => {
     e.preventDefault();
     
     if (!formData.comment.trim()) {
-      setError('리뷰 내용을 입력해주세요.');
+      const errorMessage = '리뷰 내용을 입력해주세요.';
+      setMessageData({ message: errorMessage, type: 'warning' });
+      setShowMessagePopup(true);
+      return;
+    }
+
+    // 데이터 검증
+    if (!finalProductId) {
+      setMessageData({ message: '상품 정보를 찾을 수 없습니다.', type: 'error' });
+      setShowMessagePopup(true);
+      return;
+    }
+
+    if (!formData.reviewStar || formData.reviewStar < 1 || formData.reviewStar > 5) {
+      setMessageData({ message: '별점을 1-5 사이로 선택해주세요.', type: 'warning' });
+      setShowMessagePopup(true);
       return;
     }
 
     setLoading(true);
-    setError('');
 
     try {
       if (isEditing) {
         // 리뷰 수정
-        await updateReview(reviewId, formData);
+        await updateReview(finalReviewId, formData);
         console.log('리뷰 수정 완료');
       } else {
         // 리뷰 작성
-        await createReview(productId, formData);
-        console.log('리뷰 작성 완료');
+        console.log('리뷰 작성 시작:', { 
+          productId: finalProductId, 
+          formData: {
+            comment: formData.comment,
+            reviewStar: formData.reviewStar
+          }
+        });
+        
+        // API 문서에 맞는 형식으로 데이터 준비
+        const reviewData = {
+          comment: formData.comment.trim(),
+          reviewStar: parseInt(formData.reviewStar)
+        };
+        
+        console.log('전송할 리뷰 데이터:', reviewData);
+        const result = await createReview(finalProductId, reviewData);
+        console.log('리뷰 작성 결과:', result);
       }
       
       // 성공 후 내 리뷰 목록으로 이동
+      console.log('리뷰 목록 페이지로 이동');
       navigate('/mypage?tab=review');
       
     } catch (error) {
       console.error('리뷰 처리 실패:', error);
+      console.error('에러 상세 정보:', {
+        message: error.message,
+        response: error.response,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      // 실제 에러인지 확인 (성공적인 응답이지만 에러로 처리되는 경우 방지)
+      if (error.response && error.response.status >= 200 && error.response.status < 300) {
+        // 성공적인 응답인 경우 리뷰 목록으로 이동
+        console.log('성공적인 응답으로 처리됨');
+        navigate('/mypage?tab=review');
+        return;
+      }
       
       let errorMessage = isEditing ? '리뷰 수정 중 오류가 발생했습니다.' : '리뷰 작성 중 오류가 발생했습니다.';
       
@@ -125,10 +201,13 @@ const ReviewForm = () => {
         const status = error.response.status;
         if (status === 401) {
           errorMessage = '로그인이 필요합니다. 로그인 후 다시 시도해주세요.';
+        } else if (status === 403) {
+          errorMessage = '이미 작성한 리뷰입니다.';
+          setErrorMessage(errorMessage);
+          setShowErrorPopup(true);
+          return;
         } else if (status === 404) {
           errorMessage = isEditing ? '리뷰를 찾을 수 없습니다.' : '상품을 찾을 수 없습니다.';
-        } else if (status === 403) {
-          errorMessage = '권한이 없습니다.';
         } else {
           errorMessage = `서버 오류: ${status}`;
         }
@@ -136,10 +215,22 @@ const ReviewForm = () => {
         errorMessage = '서버에 연결할 수 없습니다.';
       }
       
-      setError(errorMessage);
+      if (error.response && error.response.status !== 403) {
+        setMessageData({ message: errorMessage, type: 'error' });
+        setShowMessagePopup(true);
+      }
+      // 403 오류는 팝업으로 처리되므로 여기서는 이동하지 않음
     } finally {
       setLoading(false);
     }
+  };
+
+  // 팝업 닫기 핸들러
+  const handleClosePopup = () => {
+    setShowErrorPopup(false);
+    setErrorMessage('');
+    // 팝업 닫기 후 구매내역 페이지로 이동
+    navigate('/mypage?tab=order');
   };
 
   // 별점 표시 컴포넌트
@@ -176,22 +267,7 @@ const ReviewForm = () => {
     );
   }
 
-  // 에러 상태
-  if (error && !productInfo) {
-    return (
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="text-center py-8">
-          <p className="text-red-600">{error}</p>
-          <button
-            onClick={() => navigate('/mypage?tab=review')}
-            className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-          >
-            돌아가기
-          </button>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -262,12 +338,7 @@ const ReviewForm = () => {
           />
         </div>
 
-        {/* 에러 메시지 */}
-        {error && (
-          <div className="text-red-600 text-sm">
-            {error}
-          </div>
-        )}
+
 
         {/* 버튼 그룹 */}
         <div className="flex justify-end space-x-3">
@@ -287,6 +358,22 @@ const ReviewForm = () => {
           </button>
         </div>
       </form>
+
+      {/* 메시지 팝업 */}
+      <MessagePopup
+        isOpen={showErrorPopup}
+        onClose={handleClosePopup}
+        message={errorMessage}
+        type="warning"
+      />
+      
+      {/* 일반 메시지 팝업 */}
+      <MessagePopup
+        isOpen={showMessagePopup}
+        onClose={() => setShowMessagePopup(false)}
+        message={messageData.message}
+        type={messageData.type}
+      />
     </div>
   );
 };

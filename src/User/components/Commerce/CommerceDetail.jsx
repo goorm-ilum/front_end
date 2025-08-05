@@ -2,6 +2,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getProductDetail, toggleLike } from '../../../common/api/productApi';
 
+// 한국 시간 기준으로 날짜 문자열 생성 (공통 함수)
+const getKoreaDateString = (date) => {
+  // 로컬 시간 기준으로 직접 날짜 생성 (시간대 문제 완전 해결)
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // 달력 컴포넌트
 const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -36,30 +45,33 @@ const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
   
-  // 날짜가 재고가 있는 날짜인지 확인
+  // 날짜가 재고가 있는 날짜인지 확인 (일관된 날짜 형식 사용)
   const isAvailableDate = (date) => {
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = getKoreaDateString(date);
     return availableDates.includes(dateString);
   };
-  
+
   // 날짜가 오늘 이후인지 확인
   const isFutureDate = (date) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date >= today;
+    const todayString = getKoreaDateString(today);
+    const dateString = getKoreaDateString(date);
+    return dateString >= todayString;
   };
 
   // 지난 날짜인지 확인
   const isPastDate = (date) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date < today;
+    const todayString = getKoreaDateString(today);
+    const dateString = getKoreaDateString(date);
+    return dateString < todayString;
   };
   
   // 날짜 클릭 핸들러
   const handleDateClick = (date) => {
     if (isAvailableDate(date) && isFutureDate(date)) {
-      const dateString = date.toISOString().split('T')[0];
+      // 일관된 날짜 형식 사용
+      const dateString = getKoreaDateString(date);
       onDateSelect(dateString);
     }
   };
@@ -101,7 +113,7 @@ const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
       {/* 날짜 그리드 */}
       <div className="grid grid-cols-7 gap-1">
         {calendarDates.map((date, index) => {
-          const dateString = date.toISOString().split('T')[0];
+          const dateString = getKoreaDateString(date);
           const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
           const isSelected = selectedDate === dateString;
           const isAvailable = isAvailableDate(date) && isFutureDate(date);
@@ -189,45 +201,45 @@ const CommerceDetail = () => {
       setProduct(transformedProduct);
       setIsLiked(transformedProduct.like);
       
-      // 재고가 있는 가장 빠른 날짜를 기본 선택
-      if (transformedProduct.stocks.length > 0) {
-        // 오늘 날짜
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        // 재고가 있는 날짜들을 오늘 이후로 필터링하고 정렬
-        const availableDates = transformedProduct.stocks
-          .map(stock => stock.startDate)
-          .filter((date, index, self) => self.indexOf(date) === index) // 중복 제거
-          .filter(date => {
-            const dateObj = new Date(date);
-            return dateObj >= today; // 오늘 포함
-          })
-          .sort(); // 날짜순 정렬
-        
-        if (availableDates.length > 0) {
-          // 가장 빠른 날짜 선택
-          const earliestDate = availableDates[0];
-          setSelectedDate(earliestDate);
-          
-          // 해당 날짜의 첫 번째 재고 옵션을 기본 선택
-          const firstStockForDate = transformedProduct.stocks.find(stock => stock.startDate === earliestDate);
-          if (firstStockForDate) {
-            setSelectedStock(firstStockForDate);
-          }
-        } else {
-          // 오늘 이후 재고가 없는 경우 첫 번째 재고 선택
-          setSelectedStock(transformedProduct.stocks[0]);
-          setSelectedDate(transformedProduct.stocks[0].startDate);
-        }
-        
-        // 재고 옵션별 수량 초기화
-        const initialCounts = {};
-        transformedProduct.stocks.forEach(stock => {
-          initialCounts[stock.optionName] = 0;
-        });
-        setStockCounts(initialCounts);
+        // 재고가 있는 가장 빠른 날짜를 기본 선택
+  if (transformedProduct.stocks.length > 0) {
+    // 오늘 날짜 (한국 시간 기준)
+    const today = new Date();
+    const todayString = getKoreaDateString(today);
+    
+    // 재고가 있는 날짜들을 오늘 이후로 필터링하고 정렬
+    const availableDates = transformedProduct.stocks
+      .map(stock => stock.startDate)
+      .filter((date, index, self) => self.indexOf(date) === index) // 중복 제거
+      .filter(date => {
+        // 날짜 문자열을 직접 비교 (한국 시간 기준)
+        return date >= todayString; // 오늘 포함
+      })
+      .sort(); // 날짜순 정렬
+    
+    if (availableDates.length > 0) {
+      // 가장 빠른 날짜 선택
+      const earliestDate = availableDates[0];
+      setSelectedDate(earliestDate);
+      
+      // 해당 날짜의 첫 번째 재고 옵션을 기본 선택
+      const firstStockForDate = transformedProduct.stocks.find(stock => stock.startDate === earliestDate);
+      if (firstStockForDate) {
+        setSelectedStock(firstStockForDate);
       }
+    } else {
+      // 오늘 이후 재고가 없는 경우 첫 번째 재고 선택
+      setSelectedStock(transformedProduct.stocks[0]);
+      setSelectedDate(transformedProduct.stocks[0].startDate);
+    }
+    
+    // 재고 옵션별 수량 초기화
+    const initialCounts = {};
+    transformedProduct.stocks.forEach(stock => {
+      initialCounts[stock.optionName] = 0;
+    });
+    setStockCounts(initialCounts);
+  }
       
     } catch (error) {
       console.error('상품 상세 조회 실패:', error);
@@ -309,12 +321,12 @@ const CommerceDetail = () => {
 
   // 날짜 변경 핸들러
   const handleDateChange = (newDate) => {
-    // 지난 날짜인지 확인
+    // 지난 날짜인지 확인 (한국 시간 기준)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDateObj = new Date(newDate);
+    const todayString = getKoreaDateString(today);
     
-    if (selectedDateObj < today) {
+    // 날짜 문자열을 직접 비교 (한국 시간 기준)
+    if (newDate < todayString) {
       console.log('지난 날짜는 선택할 수 없습니다.');
       return;
     }
@@ -393,6 +405,19 @@ const CommerceDetail = () => {
   return (
     <>
       <section className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow flex flex-col gap-8">
+        {/* 뒤로가기 버튼 */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => navigate('/commerce')}
+            className="bg-gray-100 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            투어 상품 목록으로
+          </button>
+        </div>
+
         {/* 썸네일 이미지 */}
         <div className="relative">
           <img 

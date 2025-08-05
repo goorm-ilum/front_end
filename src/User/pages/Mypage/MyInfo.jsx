@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCustomLogin } from '../../../common/hook/useCustomLogin';
+import MessagePopup from '../../../common/components/MessagePopup';
 
 const MyInfo = () => {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ const MyInfo = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showMessagePopup, setShowMessagePopup] = useState(false);
+  const [messageData, setMessageData] = useState({ message: '', type: 'info' });
 
   // 전화번호에서 국가코드와 나머지 번호 분리하는 함수 (하이픈 제거)
   const splitPhoneNumber = (phoneNum) => {
@@ -66,16 +69,18 @@ const MyInfo = () => {
           nickname: data.nickname || '',
         });
         setPreviewUrl(data.profileImage || '');
-      } catch (err) {
-        console.error(err);
-        alert('프로필 정보를 불러오는 데 실패했습니다.');
-      } finally {
+              } catch (err) {
+          console.error(err);
+          setMessageData({ message: '프로필 정보를 불러오는 데 실패했습니다.', type: 'error' });
+          setShowMessagePopup(true);
+        } finally {
         setLoading(false);
       }
     };
 
     if (!isLogin) {
-      alert('로그인이 필요합니다.');
+      setMessageData({ message: '로그인이 필요합니다.', type: 'warning' });
+      setShowMessagePopup(true);
       navigate('/');
       return;
     }
@@ -147,10 +152,12 @@ const MyInfo = () => {
       });
 
       if (!res.ok) throw new Error('프로필 업데이트 실패');
-      alert('프로필이 성공적으로 수정되었습니다.');
+      setMessageData({ message: '프로필이 성공적으로 수정되었습니다.', type: 'success' });
+      setShowMessagePopup(true);
     } catch (err) {
       console.error(err);
-      alert('프로필 수정 중 오류가 발생했습니다.');
+      setMessageData({ message: '프로필 수정 중 오류가 발생했습니다.', type: 'error' });
+      setShowMessagePopup(true);
     } finally {
       setSubmitting(false);
     }
@@ -287,11 +294,13 @@ const MyInfo = () => {
         </div>
       </form>
 
-      <div className="mt-6">
-        <button onClick={() => navigate(-1)} className="text-gray-600 hover:text-gray-800">
-          ← 뒤로가기
-        </button>
-      </div>
+      {/* 메시지 팝업 */}
+      <MessagePopup
+        isOpen={showMessagePopup}
+        onClose={() => setShowMessagePopup(false)}
+        message={messageData.message}
+        type={messageData.type}
+      />
     </div>
   );
 };
