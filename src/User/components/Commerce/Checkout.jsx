@@ -21,6 +21,7 @@ const Checkout = () => {
     const orderName = searchParams.get('orderName');
     const amount = searchParams.get('amount');
     const customerEmail = searchParams.get('customerEmail');
+    const productId = searchParams.get('productId'); // productId 추가
 
     if (!orderId || !orderName || !amount) {
       setError('주문 정보가 올바르지 않습니다.');
@@ -32,7 +33,8 @@ const Checkout = () => {
       orderId,
       orderName,
       amount: parseInt(amount, 10),
-      customerEmail
+      customerEmail,
+      productId // productId 추가
     });
     setLoading(false);
   }, [location.search]);

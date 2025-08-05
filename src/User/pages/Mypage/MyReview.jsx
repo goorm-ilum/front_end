@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyReviews, updateReview, deleteReview } from '../../../common/api/productApi';
 import Pagination from '../../../common/Pagination';
+import MessagePopup from '../../../common/components/MessagePopup';
+import ConfirmPopup from '../../../common/components/ConfirmPopup';
 
 const MyReview = () => {
   const navigate = useNavigate();
@@ -10,6 +12,10 @@ const MyReview = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showMessagePopup, setShowMessagePopup] = useState(false);
+  const [messageData, setMessageData] = useState({ message: '', type: 'info' });
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmData, setConfirmData] = useState({ message: '', onConfirm: null });
   
   // 페이지네이션 설정
   const [page, setPage] = useState(1);
@@ -76,7 +82,8 @@ const MyReview = () => {
         errorMessage = '서버에 연결할 수 없습니다.';
       }
       
-      setError(errorMessage);
+      setMessageData({ message: errorMessage, type: 'error' });
+      setShowMessagePopup(true);
       setReviews([]);
       setTotalItems(0);
     } finally {
@@ -104,44 +111,53 @@ const MyReview = () => {
     navigate(`/mypage/review/edit/${review.id}`);
   };
 
-  // 리뷰 삭제 핸들러
-  const handleDeleteReview = async (reviewId) => {
-    if (window.confirm('정말로 이 리뷰를 삭제하시겠습니까?')) {
-      try {
-        console.log('리뷰 삭제 중...', reviewId);
-        
-        // 백엔드에 삭제 요청
-        await deleteReview(reviewId);
-        console.log('리뷰 삭제 완료');
-        
-        // 성공 메시지 표시
-        alert('리뷰가 삭제되었습니다.');
-        
-        // 리뷰 목록 새로고침
-        loadMyReviews(page - 1);
-        
-      } catch (error) {
-        console.error('리뷰 삭제 실패:', error);
-        
-        let errorMessage = '리뷰 삭제 중 오류가 발생했습니다.';
-        
-        if (error.response) {
-          const status = error.response.status;
-          if (status === 401) {
-            errorMessage = '로그인이 필요합니다. 로그인 후 다시 시도해주세요.';
-          } else if (status === 404) {
-            errorMessage = '리뷰를 찾을 수 없습니다.';
-          } else if (status === 403) {
-            errorMessage = '리뷰를 삭제할 권한이 없습니다.';
-          } else {
-            errorMessage = `서버 오류: ${status}`;
-          }
-        } else if (error.request) {
-          errorMessage = '서버에 연결할 수 없습니다.';
+  // 리뷰 삭제 확인 핸들러
+  const handleDeleteConfirm = (reviewId) => {
+    setConfirmData({
+      message: '정말로 이 리뷰를 삭제하시겠습니까?',
+      onConfirm: () => performDeleteReview(reviewId)
+    });
+    setShowConfirmPopup(true);
+  };
+
+  // 실제 리뷰 삭제 실행
+  const performDeleteReview = async (reviewId) => {
+    try {
+      console.log('리뷰 삭제 중...', reviewId);
+      
+      // 백엔드에 삭제 요청
+      await deleteReview(reviewId);
+      console.log('리뷰 삭제 완료');
+      
+      // 성공 메시지 표시
+      setMessageData({ message: '리뷰가 삭제되었습니다.', type: 'success' });
+      setShowMessagePopup(true);
+      
+      // 리뷰 목록 새로고침
+      loadMyReviews(page - 1);
+      
+    } catch (error) {
+      console.error('리뷰 삭제 실패:', error);
+      
+      let errorMessage = '리뷰 삭제 중 오류가 발생했습니다.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          errorMessage = '로그인이 필요합니다. 로그인 후 다시 시도해주세요.';
+        } else if (status === 404) {
+          errorMessage = '리뷰를 찾을 수 없습니다.';
+        } else if (status === 403) {
+          errorMessage = '리뷰를 삭제할 권한이 없습니다.';
+        } else {
+          errorMessage = `서버 오류: ${status}`;
         }
-        
-        alert(errorMessage);
+      } else if (error.request) {
+        errorMessage = '서버에 연결할 수 없습니다.';
       }
+      
+      setMessageData({ message: errorMessage, type: 'error' });
+      setShowMessagePopup(true);
     }
   };
 
@@ -258,7 +274,7 @@ const MyReview = () => {
                     수정
                   </button>
                   <button
-                    onClick={() => handleDeleteReview(review.id)}
+                    onClick={() => handleDeleteConfirm(review.id)}
                     className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
                   >
                     삭제
@@ -280,6 +296,23 @@ const MyReview = () => {
           )}
         </>
       )}
+
+      {/* 메시지 팝업 */}
+      <MessagePopup
+        isOpen={showMessagePopup}
+        onClose={() => setShowMessagePopup(false)}
+        message={messageData.message}
+        type={messageData.type}
+      />
+
+      {/* 확인 팝업 */}
+      <ConfirmPopup
+        isOpen={showConfirmPopup}
+        onClose={() => setShowConfirmPopup(false)}
+        onConfirm={confirmData.onConfirm}
+        message={confirmData.message}
+        title="리뷰 삭제"
+      />
     </div>
   );
 };

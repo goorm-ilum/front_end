@@ -3,6 +3,15 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getProductDetail } from '../../../common/api/productApi';
 
+// 한국 시간 기준으로 날짜 문자열 생성 (공통 함수)
+const getKoreaDateString = (date) => {
+  // 로컬 시간 기준으로 직접 날짜 생성 (시간대 문제 완전 해결)
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // 달력 컴포넌트 (상품 상세와 동일)
 const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -37,30 +46,33 @@ const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
-  // 날짜가 재고가 있는 날짜인지 확인
+  // 날짜가 재고가 있는 날짜인지 확인 (일관된 날짜 형식 사용)
   const isAvailableDate = (date) => {
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = getKoreaDateString(date);
     return availableDates.includes(dateString);
   };
 
   // 날짜가 오늘 이후인지 확인
   const isFutureDate = (date) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date >= today;
+    const todayString = getKoreaDateString(today);
+    const dateString = getKoreaDateString(date);
+    return dateString >= todayString;
   };
 
   // 지난 날짜인지 확인
   const isPastDate = (date) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date < today;
+    const todayString = getKoreaDateString(today);
+    const dateString = getKoreaDateString(date);
+    return dateString < todayString;
   };
 
   // 날짜 클릭 핸들러
   const handleDateClick = (date) => {
     if (isAvailableDate(date) && isFutureDate(date)) {
-      const dateString = date.toISOString().split('T')[0];
+      // 일관된 날짜 형식 사용
+      const dateString = getKoreaDateString(date);
       onDateSelect(dateString);
     }
   };
@@ -102,7 +114,7 @@ const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
       {/* 날짜 그리드 */}
       <div className="grid grid-cols-7 gap-1">
         {calendarDates.map((date, index) => {
-          const dateString = date.toISOString().split('T')[0];
+          const dateString = getKoreaDateString(date);
           const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
           const isSelected = selectedDate === dateString;
           const isAvailable = isAvailableDate(date) && isFutureDate(date);
@@ -195,11 +207,12 @@ const CommercePayment = () => {
       let finalSelectedDate = '';
       
       if (initialDate) {
+        // 오늘 날짜 (한국 시간 기준)
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const initialDateObj = new Date(initialDate);
+        const todayString = getKoreaDateString(today);
         
-        if (initialDateObj >= today) {
+        // 날짜 문자열을 직접 비교 (한국 시간 기준)
+        if (initialDate >= todayString) {
           finalSelectedDate = initialDate;
         } else {
           console.log('전달된 날짜가 지난 날짜입니다. 가장 빠른 날짜를 선택합니다.');
@@ -208,16 +221,17 @@ const CommercePayment = () => {
       
       // 초기 날짜가 없거나 지난 날짜인 경우, 가장 빠른 날짜 선택
       if (!finalSelectedDate && transformedProduct.stocks.length > 0) {
+        // 오늘 날짜 (한국 시간 기준)
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const todayString = getKoreaDateString(today);
         
         // 재고가 있는 날짜들을 오늘 이후로 필터링하고 정렬
         const availableDates = transformedProduct.stocks
           .map(stock => stock.startDate)
           .filter((date, index, self) => self.indexOf(date) === index) // 중복 제거
           .filter(date => {
-            const dateObj = new Date(date);
-            return dateObj >= today; // 오늘 포함
+            // 날짜 문자열을 직접 비교 (한국 시간 기준)
+            return date >= todayString; // 오늘 포함
           })
           .sort(); // 날짜순 정렬
         
@@ -293,12 +307,12 @@ const CommercePayment = () => {
 
   // 날짜 변경 핸들러
   const handleDateChange = (newDate) => {
-    // 지난 날짜인지 확인
+    // 지난 날짜인지 확인 (한국 시간 기준)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDateObj = new Date(newDate);
+    const todayString = getKoreaDateString(today);
     
-    if (selectedDateObj < today) {
+    // 날짜 문자열을 직접 비교 (한국 시간 기준)
+    if (newDate < todayString) {
       console.log('지난 날짜는 선택할 수 없습니다.');
       return;
     }
@@ -419,7 +433,8 @@ const CommercePayment = () => {
         orderId: data.orderId,
         orderName: orderName, // 상품명을 주문명으로 사용
         amount: data.totalPrice.toString(),
-        customerEmail: data.customerEmail || ''
+        customerEmail: data.customerEmail || '',
+        productId: id // productId 추가
       });
       
       navigate(`/commerce/checkout?${params.toString()}`);

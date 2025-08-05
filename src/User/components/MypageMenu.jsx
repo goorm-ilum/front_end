@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import MyInfo from '../pages/Mypage/MyInfo';
 import MyOrder from '../pages/Mypage/MyOrder';
 import MyLike from '../pages/Mypage/MyLike';
@@ -9,18 +9,23 @@ import ReviewForm from '../pages/Mypage/ReviewForm';
 const MypageMenu = () => {
   const [selectedMenu, setSelectedMenu] = useState('info');
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // URL 파라미터에서 탭 정보 확인
   useEffect(() => {
     const tab = searchParams.get('tab');
-    const mode = searchParams.get('mode');
-
-    if (mode === 'create' || mode === 'edit') {
+    
+    // 경로에서 리뷰 작성/수정 모드 확인
+    if (location.pathname.includes('/mypage/review/')) {
       setSelectedMenu('review-form');
     } else if (tab && ['info', 'order', 'like', 'review'].includes(tab)) {
       setSelectedMenu(tab);
+    } else if (location.pathname === '/mypage') {
+      // 기본 경로일 때는 내 정보 탭으로 설정
+      setSelectedMenu('info');
     }
-  }, [searchParams]);
+  }, [searchParams, location.pathname]);
 
   const menuItems = [
     { id: 'info', label: '내 정보', component: MyInfo },
@@ -28,6 +33,12 @@ const MypageMenu = () => {
     { id: 'like', label: '내 좋아요', component: MyLike },
     { id: 'review', label: '내 리뷰', component: MyReview },
   ];
+
+  // 탭 클릭 핸들러
+  const handleTabClick = (tabId) => {
+    setSelectedMenu(tabId);
+    navigate(`/mypage?tab=${tabId}`);
+  };
 
   const getSelectedComponent = () => {
     if (selectedMenu === 'review-form') {
@@ -38,6 +49,20 @@ const MypageMenu = () => {
 
   const SelectedComponent = getSelectedComponent();
 
+  // 리뷰 작성 모드일 때 productId를 props로 전달
+  const getComponentProps = () => {
+    if (selectedMenu === 'review-form') {
+      // 경로에서 productId와 reviewId 추출
+      const pathParts = location.pathname.split('/');
+      const productId = pathParts.includes('create') ? pathParts[pathParts.length - 1] : null;
+      const reviewId = pathParts.includes('edit') ? pathParts[pathParts.length - 1] : null;
+      return { productId, reviewId };
+    }
+    return {};
+  };
+
+  const componentProps = getComponentProps();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 메뉴 바 */}
@@ -47,7 +72,7 @@ const MypageMenu = () => {
             {menuItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setSelectedMenu(item.id)}
+                onClick={() => handleTabClick(item.id)}
                 className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
                   selectedMenu === item.id
                     ? 'bg-blue-500 text-white shadow-md'
@@ -63,7 +88,7 @@ const MypageMenu = () => {
 
       {/* 선택된 메뉴의 컴포넌트 렌더링 */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <SelectedComponent />
+        <SelectedComponent {...componentProps} />
       </div>
     </div>
   );

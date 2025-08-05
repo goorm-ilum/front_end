@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MessagePopup from '../../../common/components/MessagePopup';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -8,6 +9,10 @@ const MyOrder = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showMessagePopup, setShowMessagePopup] = useState(false);
+  const [messageData, setMessageData] = useState({ message: '', type: 'info' });
   const navigate = useNavigate();
 
   // 주문 내역 조회
@@ -25,7 +30,8 @@ const MyOrder = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            alert('로그인이 필요합니다.');
+            setMessageData({ message: '로그인이 필요합니다.', type: 'warning' });
+            setShowMessagePopup(true);
             navigate('/');
             return;
           }
@@ -86,6 +92,44 @@ const MyOrder = () => {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  // 리뷰 작성 버튼 클릭 핸들러
+  const handleReviewClick = async (productId) => {
+    try {
+      // 리뷰 작성 가능 여부를 확인하기 위해 API 호출
+      const response = await fetch(`/api/products/${productId}/reviews/form`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (response.status === 403) {
+        // 이미 작성한 리뷰인 경우 팝업 표시
+        setErrorMessage('이미 작성한 리뷰입니다.');
+        setShowErrorPopup(true);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('리뷰 작성 페이지 접근에 실패했습니다.');
+      }
+
+      // 리뷰 작성 가능한 경우 리뷰 작성 페이지로 이동
+      navigate(`/mypage/review/create/${productId}`);
+    } catch (error) {
+      console.error('리뷰 작성 버튼 클릭 오류:', error);
+      setErrorMessage('리뷰 작성 페이지 접근에 실패했습니다.');
+      setShowErrorPopup(true);
+    }
+  };
+
+  // 팝업 닫기 핸들러
+  const handleClosePopup = () => {
+    setShowErrorPopup(false);
+    setErrorMessage('');
+  };
 
   // 날짜 포맷팅 함수
   const formatDate = (dateString) => {
@@ -193,7 +237,7 @@ const MyOrder = () => {
                 주문상세
               </button>
                 <button 
-                  onClick={() => navigate(`/mypage?mode=create&productId=${index}`)}
+                  onClick={() => handleReviewClick(order.productId)}
                   className="px-3 py-1 bg-gray-100 rounded border hover:bg-gray-200 text-sm"
                 >
                   리뷰 작성
@@ -238,11 +282,23 @@ const MyOrder = () => {
         </div>
       )}
 
-      <div className="mt-6">
-        <button onClick={() => navigate(-1)} className="text-gray-600 hover:text-gray-800">
-          ← 뒤로가기
-        </button>
-      </div>
+
+
+      {/* 메시지 팝업 */}
+      <MessagePopup
+        isOpen={showErrorPopup}
+        onClose={handleClosePopup}
+        message={errorMessage}
+        type="warning"
+      />
+      
+      {/* 일반 메시지 팝업 */}
+      <MessagePopup
+        isOpen={showMessagePopup}
+        onClose={() => setShowMessagePopup(false)}
+        message={messageData.message}
+        type={messageData.type}
+      />
     </div>
   );
 };
