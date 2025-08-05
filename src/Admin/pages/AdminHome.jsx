@@ -4,7 +4,10 @@ const Home = () => {
   const loginState = useSelector((state) => state.loginSlice);
   const { accessToken, name, role } = loginState;
   const isLogin = !!accessToken;
-  const isAdminRole = role === 'A' || role === 'A' || role === 'ADMIN' || role === 'admin' || role === 1;
+  const normalizedRole = role ? role.toString().trim().toLowerCase() : '';
+  const isAdminRole = role === 'A' || role === 'A' || role === 'ADMIN' || role === 'admin' || 
+                     role === 1 || role === '1' || role === 'ROLE_ADMIN' || role === 'role_admin' ||
+                     normalizedRole === 'a' || normalizedRole === 'admin' || normalizedRole === 'role_admin';
 
   return (
     <section className="flex flex-col items-center justify-center text-center gap-6 py-12">

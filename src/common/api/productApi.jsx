@@ -87,13 +87,27 @@ export const getMyReviews = async (params = {}) => {
 // 리뷰 수정
 export const updateReview = async (reviewId, reviewData) => {
   try {
-    const response = await axiosInstance.patch(`/api/reviews/${reviewId}`, {
+    console.log('리뷰 수정 요청:', { reviewId, reviewData });
+    
+    const requestData = {
       comment: reviewData.comment,
-      reviewStar: reviewData.reviewStar
-    });
+      reviewStar: parseInt(reviewData.reviewStar)
+    };
+    
+    console.log('전송할 데이터:', requestData);
+    
+    const response = await axiosInstance.patch(`/api/reviews/${reviewId}`, requestData);
+    
+    console.log('리뷰 수정 응답:', response);
+    console.log('응답 상태:', response.status);
+    console.log('응답 데이터:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('리뷰 수정 실패:', error);
+    console.error('에러 응답:', error.response);
+    console.error('에러 상태:', error.response?.status);
+    console.error('에러 데이터:', error.response?.data);
     throw error;
   }
 };
@@ -123,10 +137,20 @@ export const getReviewFormData = async (productId) => {
 // 리뷰 수정 폼 데이터 조회 (상품 정보 포함)
 export const getReviewEditFormData = async (reviewId) => {
   try {
+    console.log('리뷰 수정 폼 데이터 조회 요청:', reviewId);
+    
     const response = await axiosInstance.get(`/api/reviews/${reviewId}/form`);
+    
+    console.log('리뷰 수정 폼 데이터 응답:', response);
+    console.log('응답 상태:', response.status);
+    console.log('응답 데이터:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('리뷰 수정 폼 데이터 조회 실패:', error);
+    console.error('에러 응답:', error.response);
+    console.error('에러 상태:', error.response?.status);
+    console.error('에러 데이터:', error.response?.data);
     throw error;
   }
 };

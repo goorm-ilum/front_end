@@ -42,23 +42,29 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
           setIsEditing(true);
           const response = await getReviewEditFormData(finalReviewId);
           
+          console.log('리뷰 수정 폼 데이터 응답:', response);
+          
           // 백엔드 응답 구조에 맞게 데이터 설정
-          setProductInfo({
-            productName: response.productName,
-            thumbnailImageUrl: response.thumbnailUrl
-          });
-          setFormData({
-            comment: response.myComment || '',
-            reviewStar: response.myStar || 5
-          });
+          if (response && response.productName) {
+            setProductInfo({
+              productName: response.productName,
+              thumbnailImageUrl: response.thumbnailUrl || response.thumbnailImageUrl
+            });
+            setFormData({
+              comment: response.myComment || response.comment || '',
+              reviewStar: response.myStar || response.reviewStar || 5
+            });
+          } else {
+            throw new Error('리뷰 수정 데이터를 불러올 수 없습니다.');
+          }
         } else if (finalProductId) {
           // 리뷰 작성 모드
           setIsEditing(false);
           const response = await getReviewFormData(finalProductId);
           setProductInfo(response);
         } else {
-          // productId가 없는 경우 에러 처리
-          const errorMessage = '상품 정보를 찾을 수 없습니다.';
+          // reviewId와 productId 모두 없는 경우 에러 처리
+          const errorMessage = '리뷰 또는 상품 정보를 찾을 수 없습니다.';
           alert(errorMessage);
           // 구매내역 페이지로 이동
           navigate('/mypage?tab=order');
@@ -69,19 +75,24 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
         
         let errorMessage = '폼 데이터를 불러오는데 실패했습니다.';
         let shouldNavigate = false;
+        let status = null;
         
         if (error.response) {
-          const status = error.response.status;
+          status = error.response.status;
           if (status === 401) {
             errorMessage = '로그인이 필요합니다.';
             shouldNavigate = true;
-                  } else if (status === 403) {
-          errorMessage = '이미 작성한 리뷰입니다.';
-          setErrorMessage(errorMessage);
-          setShowErrorPopup(true);
-          return;
-        } else if (status === 404) {
-            errorMessage = '상품 또는 리뷰를 찾을 수 없습니다.';
+          } else if (status === 403) {
+            errorMessage = '이미 작성한 리뷰입니다.';
+            setErrorMessage(errorMessage);
+            setShowErrorPopup(true);
+            return;
+          } else if (status === 404) {
+            if (isEditing) {
+              errorMessage = '수정하려는 리뷰를 찾을 수 없습니다.';
+            } else {
+              errorMessage = '상품을 찾을 수 없습니다.';
+            }
             shouldNavigate = true;
           } else {
             errorMessage = `서버 오류: ${status}`;
@@ -89,6 +100,10 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
           }
         } else if (error.request) {
           errorMessage = '서버에 연결할 수 없습니다.';
+          shouldNavigate = true;
+        } else {
+          // 네트워크 오류가 아닌 다른 오류 (예: 데이터 파싱 오류)
+          errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
           shouldNavigate = true;
         }
         
@@ -230,12 +245,21 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
           setShowErrorPopup(true);
           return;
         } else if (status === 404) {
-          errorMessage = isEditing ? '리뷰를 찾을 수 없습니다.' : '상품을 찾을 수 없습니다.';
+          if (isEditing) {
+            errorMessage = '수정하려는 리뷰를 찾을 수 없습니다. 리뷰가 삭제되었거나 존재하지 않습니다.';
+          } else {
+            errorMessage = '상품을 찾을 수 없습니다. 상품이 삭제되었거나 존재하지 않습니다.';
+          }
+        } else if (status === 500) {
+          errorMessage = '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
         } else {
           errorMessage = `서버 오류: ${status}`;
         }
       } else if (error.request) {
         errorMessage = '서버에 연결할 수 없습니다.';
+      } else {
+        // 네트워크 오류가 아닌 다른 오류 (예: 데이터 파싱 오류)
+        errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
       }
       
       if (error.response && error.response.status !== 403) {

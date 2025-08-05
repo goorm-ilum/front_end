@@ -2,35 +2,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Pagination from '../../../common/Pagination';
+import { getAdminProducts, searchAdminProducts, sortAdminProducts, deleteAdminProduct } from '../../../common/api/adminApi';
+import MessagePopup from '../../../common/components/MessagePopup';
 
 const AdminProductListPage = () => {
-  // 1) 더미 데이터 생성 (11개)
-  const dummyProducts = useMemo(() => {
-    return Array.from({ length: 11 }, (_, idx) => {
-      const id = idx + 1;
-      const startDate = new Date(Date.now() - idx * 86400000) // 과거 날짜
-        .toISOString()
-        .split('T')[0];
-      const endDate = new Date(Date.now() + (idx + 5) * 86400000)
-        .toISOString()
-        .split('T')[0];
-      return {
-        id,
-        name: `상품 ${id}`,
-        thumbnail: `https://picsum.photos/seed/${id}/100/100`,
-        price: id * 10000,                                  
-        discountPrice: id % 2 === 0 ? id * 9000 : '',      
-        startDate,                                         
-        endDate,                                           
-        stock: id * 3,                                    
-        isVisible: id % 2 === 0                          
-      };
-    });
-  }, []);
-
   // 상태
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showMessagePopup, setShowMessagePopup] = useState(false);
+  const [messageData, setMessageData] = useState({ message: '', type: 'info' });
 
   // 페이징
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,75 +21,255 @@ const AdminProductListPage = () => {
   // 검색/필터/정렬 상태
   const [inputValue, setInputValue] = useState('');    // input 에 타이핑할 값
   const [searchTerm, setSearchTerm] = useState('');    // 실제 검색어
-  const [filterStatus, setFilterStatus] = useState('all'); // all / visible / hidden
-  const [sortKey, setSortKey] = useState('');              // '' / name / price / startDate
-  const [sortOrder, setSortOrder] = useState('asc');       // asc / desc
+  const [sortKey, setSortKey] = useState('updatedAt');     // 기본값: 등록일 순
+  const [sortOrder, setSortOrder] = useState('desc');      // 기본값: 내림차순 (최신순)
+  const [forceSearch, setForceSearch] = useState(0);      // 강제 검색 실행을 위한 카운터
 
-  // 더미 데이터 세팅
+  // 상품 목록 로드 (기본)
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const params = {
+        page: currentPage - 1 // 백엔드는 0-based pagination
+      };
+      
+      const response = await getAdminProducts(params);
+      console.log('상품 목록 응답:', response);
+      
+      // 백엔드 응답 구조에 맞게 데이터 변환
+      const transformedProducts = response.map(product => ({
+        id: product.id,
+        name: product.productName,
+        thumbnail: product.thumbnailImageUrl,
+        price: product.price,
+        discountPrice: product.discountPrice,
+        stock: product.totalStock,
+        updatedAt: product.updatedAt
+      }));
+      
+      setProducts(transformedProducts);
+    } catch (error) {
+      console.error('상품 목록 로드 실패:', error);
+      
+      let errorMessage = '상품 목록을 불러오는데 실패했습니다.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          errorMessage = '로그인이 필요합니다.';
+        } else if (status === 403) {
+          errorMessage = '관리자 권한이 필요합니다.';
+        } else if (status === 404) {
+          errorMessage = '상품 목록을 찾을 수 없습니다.';
+        } else {
+          errorMessage = `서버 오류: ${status}`;
+        }
+      } else if (error.request) {
+        errorMessage = '서버에 연결할 수 없습니다.';
+      }
+      
+      setError(errorMessage);
+      setMessageData({ message: errorMessage, type: 'error' });
+      setShowMessagePopup(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 상품 검색 (정렬 상태 유지)
+  const searchProducts = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const params = {
+        keyword: searchTerm,
+        sortBy: sortKey,
+        ascending: sortOrder === 'asc',
+        page: currentPage - 1
+      };
+      
+      const response = await searchAdminProducts(params);
+      console.log('상품 검색 응답:', response);
+      
+      // 백엔드 응답 구조에 맞게 데이터 변환
+      const transformedProducts = response.map(product => ({
+        id: product.id,
+        name: product.productName,
+        thumbnail: product.thumbnailImageUrl,
+        price: product.price,
+        discountPrice: product.discountPrice,
+        stock: product.totalStock,
+        updatedAt: product.updatedAt
+      }));
+      
+      setProducts(transformedProducts);
+    } catch (error) {
+      console.error('상품 검색 실패:', error);
+      
+      let errorMessage = '상품 검색에 실패했습니다.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          errorMessage = '로그인이 필요합니다.';
+        } else if (status === 403) {
+          errorMessage = '관리자 권한이 필요합니다.';
+        } else if (status === 404) {
+          errorMessage = '검색 결과를 찾을 수 없습니다.';
+        } else {
+          errorMessage = `서버 오류: ${status}`;
+        }
+      } else if (error.request) {
+        errorMessage = '서버에 연결할 수 없습니다.';
+      }
+      
+      setError(errorMessage);
+      setMessageData({ message: errorMessage, type: 'error' });
+      setShowMessagePopup(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 상품 정렬
+  const sortProducts = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const params = {
+        sortBy: sortKey,
+        ascending: sortOrder === 'asc',
+        page: currentPage - 1
+      };
+      
+      const response = await sortAdminProducts(params);
+      console.log('상품 정렬 응답:', response);
+      
+      // 백엔드 응답 구조에 맞게 데이터 변환
+      const transformedProducts = response.map(product => ({
+        id: product.id,
+        name: product.productName,
+        thumbnail: product.thumbnailImageUrl,
+        price: product.price,
+        discountPrice: product.discountPrice,
+        stock: product.totalStock,
+        updatedAt: product.updatedAt
+      }));
+      
+      setProducts(transformedProducts);
+    } catch (error) {
+      console.error('상품 정렬 실패:', error);
+      
+      let errorMessage = '상품 정렬에 실패했습니다.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          errorMessage = '로그인이 필요합니다.';
+        } else if (status === 403) {
+          errorMessage = '관리자 권한이 필요합니다.';
+        } else if (status === 404) {
+          errorMessage = '정렬할 상품을 찾을 수 없습니다.';
+        } else {
+          errorMessage = `서버 오류: ${status}`;
+        }
+      } else if (error.request) {
+        errorMessage = '서버에 연결할 수 없습니다.';
+      }
+      
+      setError(errorMessage);
+      setMessageData({ message: errorMessage, type: 'error' });
+      setShowMessagePopup(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 상품 목록 로드
   useEffect(() => {
-    setProducts(dummyProducts);
-    setLoading(false);
-  }, [dummyProducts]);
+    if (searchTerm) {
+      searchProducts();
+    } else {
+      sortProducts(); // 기본적으로 정렬된 목록을 보여줌
+    }
+  }, [currentPage, searchTerm, sortKey, sortOrder, forceSearch]);
 
   // 검색 버튼 눌렀을 때
   const handleSearch = e => {
     e.preventDefault();
-    setSearchTerm(inputValue.trim());
+    const keyword = inputValue.trim();
+    
+    // 같은 검색어라도 강제로 검색 실행 (재고 등이 변경되었을 수 있음)
+    setSearchTerm(keyword); // 검색어가 없어도 검색 실행 (전체 목록 조회)
+    setCurrentPage(1); // 검색 시 1페이지로 이동
+    
+    // 강제로 검색 실행을 위한 상태 추가
+    setForceSearch(prev => prev + 1);
   };
 
-  // 검색 / 필터 / 정렬 로직
-  const filteredSorted = useMemo(() => {
-    let arr = [...products];
+  // 정렬 변경 핸들러
+  const handleSortChange = (newSortKey) => {
+    setSortKey(newSortKey);
+    setCurrentPage(1); // 정렬 변경 시 1페이지로 이동
+  };
 
-    // 검색
-    if (searchTerm !== '') {
-      const term = searchTerm.toLowerCase();
-      arr = arr.filter(p => p.name.toLowerCase().includes(term));
-    }
+  // 정렬 순서 변경 핸들러
+  const handleSortOrderChange = (newSortOrder) => {
+    setSortOrder(newSortOrder);
+    setCurrentPage(1); // 정렬 순서 변경 시 1페이지로 이동
+  };
 
-    // 정렬
-    if (sortKey) {
-      arr.sort((a, b) => {
-        let va = a[sortKey];
-        let vb = b[sortKey];
-
-        if (sortKey === 'startDate') {
-          va = new Date(va).getTime();
-          vb = new Date(vb).getTime();
-        }
-
-        if (typeof va === 'string') {
-          va = va.toLowerCase();
-          vb = vb.toLowerCase();
-        }
-
-        if (va < vb) return sortOrder === 'asc' ? -1 : 1;
-        if (va > vb) return sortOrder === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return arr;
-  }, [products, searchTerm, filterStatus, sortKey, sortOrder]);
-
-  // 검색/필터/정렬 변경 시 페이징 1로 초기화
+  // 현재 페이지 아이템 설정
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, filterStatus, sortKey, sortOrder]);
-
-  // filteredSorted가 변경될 때마다 현재 페이지 아이템 업데이트
-  useEffect(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    setPagedProducts(filteredSorted.slice(startIndex, endIndex));
-  }, [filteredSorted, currentPage, itemsPerPage]);
+    setPagedProducts(products);
+  }, [products]);
 
 
 
   // 삭제 핸들러
-  const handleDelete = id => {
+  const handleDelete = async (id) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
-    setProducts(prev => prev.filter(p => p.id !== id));
+    
+    try {
+      await deleteAdminProduct(id);
+      
+      // 삭제 성공 시 목록 새로고침
+      setMessageData({ message: '상품이 성공적으로 삭제되었습니다.', type: 'success' });
+      setShowMessagePopup(true);
+      
+      // 현재 상태에 맞게 목록 다시 로드
+      if (searchTerm) {
+        searchProducts();
+      } else {
+        sortProducts();
+      }
+    } catch (error) {
+      console.error('상품 삭제 실패:', error);
+      
+      let errorMessage = '상품 삭제에 실패했습니다.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          errorMessage = '로그인이 필요합니다.';
+        } else if (status === 403) {
+          errorMessage = '관리자 권한이 필요합니다.';
+        } else if (status === 404) {
+          errorMessage = '삭제할 상품을 찾을 수 없습니다.';
+        } else {
+          errorMessage = `서버 오류: ${status}`;
+        }
+      } else if (error.request) {
+        errorMessage = '서버에 연결할 수 없습니다.';
+      }
+      
+      setMessageData({ message: errorMessage, type: 'error' });
+      setShowMessagePopup(true);
+    }
   };
 
   if (loading) {
@@ -149,19 +310,20 @@ const AdminProductListPage = () => {
 
         {/* 필터/정렬 셀렉트 */}
         <div className="flex space-x-2">
-          <select
-            value={sortKey}
-            onChange={e => setSortKey(e.target.value)}
-            className="border px-3 py-1 rounded"
-          >
-            <option value="">정렬 안 함</option>
-            <option value="name">상품명 순</option>
-            <option value="price">정상가 순</option>
-            <option value="startDate">등록일 순</option>
-          </select>
+                     <select
+             value={sortKey}
+             onChange={e => handleSortChange(e.target.value)}
+             className="border px-3 py-1 rounded"
+           >
+             <option value="updatedAt">등록일 순</option>
+             <option value="productName">상품명 순</option>
+             <option value="price">정상가 순</option>
+             <option value="discountPrice">할인가 순</option>
+             <option value="totalStock">재고 순</option>
+           </select>
           <select
             value={sortOrder}
-            onChange={e => setSortOrder(e.target.value)}
+            onChange={e => handleSortOrderChange(e.target.value)}
             className="border px-3 py-1 rounded"
           >
             <option value="asc">오름차순</option>
@@ -205,7 +367,7 @@ const AdminProductListPage = () => {
                 </td>
                 <td className="px-4 py-2 text-sm text-gray-700 text-right">{p.stock}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">
-                  {p.startDate}
+                  {new Date(p.updatedAt).toLocaleDateString('ko-KR')}
                 </td>
                 <td className="px-4 py-2 text-sm text-center space-x-2">
                   <Link to={`/admin/products/detail/${p.id}`} className="text-blue-600 hover:underline">
@@ -230,11 +392,19 @@ const AdminProductListPage = () => {
 
       {/* 페이징 UI */}
       <Pagination
-        totalItems={filteredSorted.length}
+        totalItems={products.length}
         itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
         className="mt-4"
+      />
+
+      {/* 메시지 팝업 */}
+      <MessagePopup
+        isOpen={showMessagePopup}
+        onClose={() => setShowMessagePopup(false)}
+        message={messageData.message}
+        type={messageData.type}
       />
     </div>
   );

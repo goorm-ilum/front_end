@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import KakaoLoginButton from "./components/KakaoLoginButton";
+import AdminMenuLink from "./components/AdminMenuLink";
 
 const Header = () => {
   const location = useLocation();
@@ -9,8 +10,11 @@ const Header = () => {
   const isLogin = !!accessToken; // accessToken이 있으면 로그인된 것으로 간주
   const isAdmin = location.pathname.startsWith('/admin');
   
-  // role 체크를 더 유연하게
-  const isAdminRole = role === 'A' || role === 'A' || role === 'ADMIN' || role === 'admin' || role === 1;
+  // role 체크를 더 유연하게 (문자열, 숫자, 대소문자 모두 고려)
+  const normalizedRole = role ? role.toString().trim().toLowerCase() : '';
+  const isAdminRole = role === 'A' || role === 'A' || role === 'ADMIN' || role === 'admin' || 
+                     role === 1 || role === '1' || role === 'ROLE_ADMIN' || role === 'role_admin' ||
+                     normalizedRole === 'a' || normalizedRole === 'admin' || normalizedRole === 'role_admin';
   const isAdminUser = isLogin && isAdminRole;
 
   console.log('=== Header 디버깅 ===');
@@ -52,33 +56,33 @@ const Header = () => {
 
         {/* nav: user / admin 분기 */}
         <nav className="flex-1 flex justify-center gap-8">
-                     {isAdmin ? (
-             <>
-                               <Link
-                  to="/admin"
-                  className="text-gray-700 hover:text-blue-600"
-                >
-                  Home
-                </Link>
-               <Link
-                 to="/admin/products"
-                 className="text-gray-700 hover:text-blue-600"
-               >
-                 상품관리
-               </Link>
-               <Link
-                 to="/admin/orders"
-                 className="text-gray-700 hover:text-blue-600"
-               >
-                 주문관리
-               </Link>
-               <Link
-                 to="/admin/chats"
-                 className="text-gray-700 hover:text-blue-600"
-               >
-                 채팅관리
-               </Link>
-             </>
+          {isAdmin ? (
+            <>
+              <Link
+                to="/admin"
+                className="text-gray-700 hover:text-blue-600"
+              >
+                Home
+              </Link>
+              <AdminMenuLink
+                to="/admin/products"
+                className="text-gray-700 hover:text-blue-600"
+              >
+                상품관리
+              </AdminMenuLink>
+              <AdminMenuLink
+                to="/admin/orders"
+                className="text-gray-700 hover:text-blue-600"
+              >
+                주문관리
+              </AdminMenuLink>
+              <AdminMenuLink
+                to="/admin/chats"
+                className="text-gray-700 hover:text-blue-600"
+              >
+                채팅관리
+              </AdminMenuLink>
+            </>
           ) : (
             <>
               <Link
@@ -94,7 +98,6 @@ const Header = () => {
                 Mypage
               </Link>
               {/* 사용자용 추가 메뉴들... */}
-         
             </>
           )}
         </nav>
