@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import axiosInstance from '../api/mainApi';  // mainApi의 axiosInstance 사용
 import { getCookie } from '../util/cookieUtil';  // 쿠키 유틸 추가
-import SockJS from 'sockjs-client';
+// import SockJS from 'sockjs-client/dist/sockjs.min.js';
 import { Client } from '@stomp/stompjs';
 
 const dummyMessages = {
@@ -165,37 +165,48 @@ const ChatRoom = () => {
   const stompClientRef = useRef(null);
 
   useEffect(() => {
-    const socket = new SockJS('http://localhost:8080/ws');
-    const client = new Client({
-      webSocketFactory: () => socket,
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-      debug: (msg) => console.log('STOMP DEBUG:', msg),
-    });
+    const initWebSocket = async () => {
+      try {
+        const SockJS = (await import('sockjs-client')).default;
+        const socket = new SockJS('http://localhost:8080/ws');
+        const client = new Client({
+          webSocketFactory: () => socket,
+          reconnectDelay: 5000,
+          heartbeatIncoming: 4000,
+          heartbeatOutgoing: 4000,
+          debug: (msg) => console.log('STOMP DEBUG:', msg),
+        });
 
-    client.onConnect = () => {
-      console.log('✅ WebSocket 연결 성공');
-      client.subscribe(`/topic/chat/${actualRoomId}`, (message) => {
-        const newMessage = JSON.parse(message.body);
-        // createdAt 필드가 없으면 현재 시간 추가
-        if (!newMessage.createdAt) {
-          const now = new Date();
-          newMessage.createdAt = now.toISOString().slice(0, 19).replace('T', ' ');
-        }
-        setMessages((prev) => [...prev, newMessage]);
-      });
-      stompClientRef.current = client;
+        client.onConnect = () => {
+          console.log('✅ WebSocket 연결 성공');
+          client.subscribe(`/topic/chat/${actualRoomId}`, (message) => {
+            const newMessage = JSON.parse(message.body);
+            // createdAt 필드가 없으면 현재 시간 추가
+            if (!newMessage.createdAt) {
+              const now = new Date();
+              newMessage.createdAt = now.toISOString().slice(0, 19).replace('T', ' ');
+            }
+            setMessages((prev) => [...prev, newMessage]);
+          });
+          stompClientRef.current = client;
+        };
+
+        client.onStompError = (frame) => {
+          console.error('❌ STOMP 에러:', frame);
+        };
+
+        client.activate();
+      } catch (error) {
+        console.error('WebSocket 초기화 실패:', error);
+      }
     };
 
-    client.onStompError = (frame) => {
-      console.error('❌ STOMP 에러:', frame);
-    };
-
-    client.activate();
+    initWebSocket();
 
     return () => {
-      client.deactivate();
+      if (stompClientRef.current) {
+        stompClientRef.current.deactivate();
+      }
     };
   }, [actualRoomId]);
   
