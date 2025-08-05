@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
-import axios from 'axios';
-import { API_SERVER_HOST } from '../api/mainApi';
+import axiosInstance from '../api/mainApi';
 import { useCustomLogin } from '../hook/useCustomLogin';
 
 const KakaoCallback = () => {
@@ -13,7 +12,7 @@ const KakaoCallback = () => {
     // console.log("카카오 로그인 콜백 코드:", code);
 
     if (code) {
-      axios.post(`${API_SERVER_HOST}/api/member/kakao`, new URLSearchParams({ code }), {
+      axiosInstance.post(`/api/member/kakao`, new URLSearchParams({ code }), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -29,7 +28,18 @@ const KakaoCallback = () => {
           if (data.nicknameSet === false) {
             navigate('/member/register');
           } else {
-            navigate('/');
+            // 로그인 시점의 이전 페이지 URL 확인
+            const previousUrl = sessionStorage.getItem('loginRedirectUrl') || '/';
+            const isFromAdminPage = previousUrl.startsWith('/admin');
+            
+            // 관리자이면서 관리자 페이지에서 로그인한 경우에만 관리자 페이지로 이동
+            const isAdmin = data.role === 'A' || data.role === 'A' || data.role === 'ADMIN' || data.role === 'admin' || data.role === 1;
+            
+            if (isAdmin && isFromAdminPage) {
+              navigate('/admin');
+            } else {
+              navigate('/');
+            }
           }
         })
         .catch((error) => {

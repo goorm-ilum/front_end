@@ -7,10 +7,20 @@ export const useCustomLogin = () => {
 	const dispatch = useDispatch();
 	const loginState = useSelector((state) => state.loginSlice);
 
-	const isLogin = useSelector((state) => state.loginSlice.accessToken);
+	const accessToken = useSelector((state) => state.loginSlice.accessToken);
+	const isLogin = !!accessToken; // accessToken이 있으면 로그인된 것으로 간주
 	const memberId = useSelector((state) => state.loginSlice.id);
 	const nicknameSet = useSelector((state) => state.loginSlice.nicknameSet);
 	const nickname = useSelector((state) => state.loginSlice.nickname);
+	const role = useSelector((state) => state.loginSlice.role);
+
+	console.log('=== useCustomLogin 디버깅 ===');
+	console.log('isLogin:', isLogin);
+	console.log('memberId:', memberId);
+	console.log('nickname:', nickname);
+	console.log('role:', role);
+	console.log('role type:', typeof role);
+	console.log('전체 loginState:', loginState);
 
 	// 로그인 함수
 	const doLogin = async (loginParam) => {
@@ -73,6 +83,7 @@ export const useCustomLogin = () => {
 		memberId,
 		nicknameSet,
 		nickname,
+		role,
 		doLogin,
 		doSocialLogin,
 		doLogout,

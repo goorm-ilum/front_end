@@ -1,6 +1,5 @@
 import axiosInstance, {API_SERVER_HOST} from '../api/mainApi';
 import {getCookie, setCookie} from './cookieUtil';
-import axios from 'axios';
 
 export const refreshJWT = async () => {
 	const member = getCookie("member");
@@ -23,8 +22,8 @@ export const refreshJWT = async () => {
 		}
 
 
-		const res = await axios.post(
-				`${API_SERVER_HOST}/api/member/refresh`,
+		const res = await axiosInstance.post(
+				`/api/member/refresh`,
 				{},
 				{
 					headers: {
@@ -104,7 +103,7 @@ export const handleAuthError = async (err) => {
 				// 새 accessToken으로 Authorization 헤더 업데이트
 				originalRequest.headers.Authorization = `Bearer ${tokenResponse.accessToken}`;
 				console.log("Retrying original request with new access token...");
-				return axios(originalRequest); // 원래 요청 재시도
+				return axiosInstance(originalRequest); // 원래 요청 재시도
 			}
 		} catch (refreshError) {
 			console.error("Failed to refresh token:", refreshError);

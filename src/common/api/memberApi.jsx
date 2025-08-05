@@ -1,4 +1,3 @@
-import axios from 'axios';
 import axiosInstance, {API_SERVER_HOST} from './mainApi';
 
 const host = `${API_SERVER_HOST}/api/member`;
@@ -14,7 +13,7 @@ export const loginPost = async (loginParam) => {
 	console.log("전송할 데이터:", form.toString());
 
 	try {
-		const res = await axios.post(`${host}/login`, form, header);
+		const res = await axiosInstance.post(`${host}/login`, form, header);
 		console.log("응답 데이터:", res.data);
 		return res.data;
 	} catch (error) {

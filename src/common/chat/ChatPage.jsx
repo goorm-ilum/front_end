@@ -1,6 +1,7 @@
 // src/common/chat/ChatPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import axiosInstance from '../api/mainApi';  // mainApi의 axiosInstance 사용
 import ChatRoom from './ChatRoom';
 
@@ -27,6 +28,11 @@ const ChatPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { roomId } = useParams();
+  const loginState = useSelector((state) => state.loginSlice);
+  const { accessToken, role } = loginState;
+  const isLogin = !!accessToken; // accessToken이 있으면 로그인된 것으로 간주
+  const isAdminRole = role === 'A' || role === 'A' || role === 'ADMIN' || role === 'admin' || role === 1;
+  const isAdminUser = isLogin && isAdminRole;
   const [rooms, setRooms] = useState(dummyRooms);
 
   // API에서 채팅방 목록 가져오기
@@ -98,7 +104,7 @@ const ChatPage = () => {
     console.log('getChatLink 호출 - roomId:', roomId);
     console.log('현재 location.pathname:', location.pathname);
     
-    if (location.pathname.startsWith('/admin')) {
+    if (location.pathname.startsWith('/admin') && isAdminUser) {
       const link = `/admin/chats/${roomId}`;
       console.log('관리자 채팅 링크:', link);
       return link;
@@ -134,7 +140,7 @@ const ChatPage = () => {
     console.log('delete room', id);
     // 삭제 후, 다른 방 또는 목록으로 이동
     if (id === roomId) {
-      if (location.pathname.startsWith('/admin')) {
+      if (location.pathname.startsWith('/admin') && isAdminUser) {
         navigate('/admin/chats');
       } else {
         navigate('/chat');

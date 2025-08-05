@@ -1,14 +1,20 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import axiosInstance from './api/mainApi';
 
 const FloatingChatIcon = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
+  const loginState = useSelector((state) => state.loginSlice);
+  const { accessToken, role } = loginState;
+  const isLogin = !!accessToken; // accessToken이 있으면 로그인된 것으로 간주
+  const isAdminRole = role === 'A' || role === 'A' || role === 'ADMIN' || role === 'admin' || role === 1;
+  const isAdminUser = isLogin && isAdminRole;
 
   // 현재 경로에 따라 채팅 링크 결정
   const getChatLink = () => {
-    if (location.pathname.startsWith('/admin')) {
+    if (location.pathname.startsWith('/admin') && isAdminUser) {
       return '/admin/chats'; // 관리자 페이지에서는 관리자 채팅
     } else {
       return '/chat'; // 사용자 페이지에서는 일반 채팅
@@ -17,7 +23,7 @@ const FloatingChatIcon = () => {
 
   // 현재 경로에 따라 제목 결정
   const getChatTitle = () => {
-    if (location.pathname.startsWith('/admin')) {
+    if (location.pathname.startsWith('/admin') && isAdminUser) {
       return '채팅 관리'; // 관리자용 제목
     } else {
       return '채팅 상담'; // 사용자용 제목

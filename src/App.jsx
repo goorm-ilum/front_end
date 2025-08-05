@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import BasicLayout from './common/BasicLayout';
 import MemberRouter from './common/router/memberRouter';
+import AdminProtectedRoute from './common/components/AdminProtectedRoute';
 
 import Home from './User/pages/Home';
 import Commerce from './User/pages/Commerce';
@@ -55,13 +56,41 @@ function App() {
 
             {/* 관리자용 페이지들 */}
             <Route path="/admin" element={<AdminHome />} />
-            <Route path="/admin/products" element={<AdminProductList />} />
-            <Route path="/admin/products/create" element={<AdminProductForm />} />
-            <Route path="/admin/products/detail/:productId" element={<AdminProductForm />} />
-            <Route path="/admin/orders" element={<AdminOrderList />} />
-            <Route path="/admin/orders/:orderId" element={<AdminOrderDetail />} />
-            <Route path="/admin/chats/*" element={<ChatPage />} />
-            <Route path="/admin/profile" element={<AdminProfilePage />} />
+            <Route path="/admin/products" element={
+              <AdminProtectedRoute>
+                <AdminProductList />
+              </AdminProtectedRoute>
+            } />
+            <Route path="/admin/products/create" element={
+              <AdminProtectedRoute>
+                <AdminProductForm />
+              </AdminProtectedRoute>
+            } />
+            <Route path="/admin/products/detail/:productId" element={
+              <AdminProtectedRoute>
+                <AdminProductForm />
+              </AdminProtectedRoute>
+            } />
+            <Route path="/admin/orders" element={
+              <AdminProtectedRoute>
+                <AdminOrderList />
+              </AdminProtectedRoute>
+            } />
+            <Route path="/admin/orders/:orderId" element={
+              <AdminProtectedRoute>
+                <AdminOrderDetail />
+              </AdminProtectedRoute>
+            } />
+            <Route path="/admin/chats/*" element={
+              <AdminProtectedRoute>
+                <ChatPage />
+              </AdminProtectedRoute>
+            } />
+            <Route path="/admin/profile" element={
+              <AdminProtectedRoute>
+                <AdminProfilePage />
+              </AdminProtectedRoute>
+            } />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -4,7 +4,6 @@ import MyInfo from '../pages/Mypage/MyInfo';
 import MyOrder from '../pages/Mypage/MyOrder';
 import MyLike from '../pages/Mypage/MyLike';
 import MyReview from '../pages/Mypage/MyReview';
-import ReviewForm from '../pages/Mypage/ReviewForm';
 
 const MypageMenu = () => {
   const [selectedMenu, setSelectedMenu] = useState('info');
@@ -16,10 +15,7 @@ const MypageMenu = () => {
   useEffect(() => {
     const tab = searchParams.get('tab');
     
-    // 경로에서 리뷰 작성/수정 모드 확인
-    if (location.pathname.includes('/mypage/review/')) {
-      setSelectedMenu('review-form');
-    } else if (tab && ['info', 'order', 'like', 'review'].includes(tab)) {
+    if (tab && ['info', 'order', 'like', 'review'].includes(tab)) {
       setSelectedMenu(tab);
     } else if (location.pathname === '/mypage') {
       // 기본 경로일 때는 내 정보 탭으로 설정
@@ -41,27 +37,10 @@ const MypageMenu = () => {
   };
 
   const getSelectedComponent = () => {
-    if (selectedMenu === 'review-form') {
-      return ReviewForm;
-    }
     return menuItems.find((item) => item.id === selectedMenu)?.component || MyInfo;
   };
 
   const SelectedComponent = getSelectedComponent();
-
-  // 리뷰 작성 모드일 때 productId를 props로 전달
-  const getComponentProps = () => {
-    if (selectedMenu === 'review-form') {
-      // 경로에서 productId와 reviewId 추출
-      const pathParts = location.pathname.split('/');
-      const productId = pathParts.includes('create') ? pathParts[pathParts.length - 1] : null;
-      const reviewId = pathParts.includes('edit') ? pathParts[pathParts.length - 1] : null;
-      return { productId, reviewId };
-    }
-    return {};
-  };
-
-  const componentProps = getComponentProps();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -88,7 +67,7 @@ const MypageMenu = () => {
 
       {/* 선택된 메뉴의 컴포넌트 렌더링 */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <SelectedComponent {...componentProps} />
+        <SelectedComponent />
       </div>
     </div>
   );

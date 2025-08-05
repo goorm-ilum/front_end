@@ -4,12 +4,15 @@ import { updateReview, getReviewFormData, getReviewEditFormData, createReview } 
 import MessagePopup from '../../../common/components/MessagePopup';
 
 const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
+  console.log('ReviewForm 컴포넌트 렌더링됨');
   const navigate = useNavigate();
   const { reviewId: urlReviewId, productId: urlProductId } = useParams();
   
   // props 또는 URL 파라미터에서 값 가져오기
   const finalProductId = propsProductId || urlProductId;
   const finalReviewId = propsReviewId || urlReviewId;
+  
+  console.log('ReviewForm 파라미터:', { propsProductId, propsReviewId, urlReviewId, urlProductId, finalProductId, finalReviewId });
   
   // 상태 관리
   const [formData, setFormData] = useState({
@@ -28,12 +31,14 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
   // 수정 모드인지 확인하고 데이터 로드
   useEffect(() => {
     const loadFormData = async () => {
+      console.log('ReviewForm 로드 시작:', { finalReviewId, finalProductId, isEditing });
       setLoading(true);
       setError('');
       
       try {
         if (finalReviewId) {
           // 리뷰 수정 모드
+          console.log('리뷰 수정 모드로 설정');
           setIsEditing(true);
           const response = await getReviewEditFormData(finalReviewId);
           
@@ -126,6 +131,8 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('폼 제출 시작:', { isEditing, finalReviewId, finalProductId, formData });
+    
     if (!formData.comment.trim()) {
       const errorMessage = '리뷰 내용을 입력해주세요.';
       setMessageData({ message: errorMessage, type: 'warning' });
@@ -134,7 +141,15 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
     }
 
     // 데이터 검증
-    if (!finalProductId) {
+    if (isEditing && !finalReviewId) {
+      console.log('리뷰 수정 모드에서 reviewId 없음');
+      setMessageData({ message: '리뷰 정보를 찾을 수 없습니다.', type: 'error' });
+      setShowMessagePopup(true);
+      return;
+    }
+    
+    if (!isEditing && !finalProductId) {
+      console.log('리뷰 작성 모드에서 productId 없음');
       setMessageData({ message: '상품 정보를 찾을 수 없습니다.', type: 'error' });
       setShowMessagePopup(true);
       return;
@@ -151,6 +166,14 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
     try {
       if (isEditing) {
         // 리뷰 수정
+        console.log('리뷰 수정 시작:', { 
+          reviewId: finalReviewId, 
+          formData: {
+            comment: formData.comment,
+            reviewStar: formData.reviewStar
+          }
+        });
+        
         await updateReview(finalReviewId, formData);
         console.log('리뷰 수정 완료');
       } else {
