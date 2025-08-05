@@ -12,6 +12,7 @@ import CommercePayment from './User/components/Commerce/CommercePayment';
 import Checkout from './User/components/Commerce/Checkout';
 import OrderSuccess from './User/pages/Commerce/OrderSuccess';
 import OrderFailure from './User/pages/Commerce/OrderFailure';
+import MyOrderDetail from './User/pages/Mypage/MyOrderDetail';
 
 
 import MyPage from './User/pages/Mypage';
@@ -46,6 +47,7 @@ function App() {
             <Route path="/commerce/checkout" element={<Checkout />} />
             <Route path="/commerce/order/success" element={<OrderSuccess />} /> 
             <Route path="/commerce/order/fail" element={<OrderFailure />} />
+            <Route path="/order-detail" element={<MyOrderDetail />} />
 
             {/* 관리자용 페이지들 */}
             <Route path="/admin" element={<AdminHome />} />

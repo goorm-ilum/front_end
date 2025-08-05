@@ -3,8 +3,7 @@ import { loadTossPayments, ANONYMOUS } from "@tosspayments/tosspayments-sdk";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-// 토스 페이먼츠 클라이언트 키 (실제 운영환경에서는 환경변수로 관리)
-const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
+const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY;
 
 const Checkout = () => {
   const location = useLocation();

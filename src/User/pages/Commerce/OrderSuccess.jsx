@@ -51,7 +51,7 @@ export function OrderSuccess() {
   };
 
   const handleGoMyPage = () => {
-    navigate('/mypage');
+    navigate('/mypage?tab=order');
   };
 
   if (isLoading) {
