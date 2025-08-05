@@ -1,29 +1,15 @@
 // src/pages/admin/orders/AdminOrderListPage.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import Pagination from '../../../common/Pagination';
-
-const dummyOrders = [
-  { id: 'ORD001', customer: '홍길동',    product: '노트북',          date: '2024-06-01', amount: 12000, payment: '카드',    status: '결제완료' },
-  { id: 'ORD002', customer: '이영희',    product: '스마트폰',        date: '2024-06-02', amount: 35000, payment: '토스',    status: '결제완료' },
-  { id: 'ORD003', customer: '김철수',    product: '블루투스 이어폰', date: '2024-06-03', amount: 22000, payment: '계좌이체', status: '결제완료' },
-  { id: 'ORD004', customer: '박영수',    product: '휴대폰 케이스',   date: '2024-06-04', amount: 18000, payment: '카드',    status: '결제완료' },
-  { id: 'ORD005', customer: '최민수',    product: '무선 마우스',     date: '2024-06-05', amount: 54000, payment: '카드',    status: '결제완료' },
-  { id: 'ORD006', customer: '이은주',    product: '기계식 키보드',   date: '2024-06-06', amount: 15000, payment: '토스',    status: '결제완료' },
-  { id: 'ORD007', customer: '정다인',    product: '스마트워치',      date: '2024-06-07', amount: 23000, payment: '계좌이체', status: '결제완료' },
-  { id: 'ORD008', customer: '김진우',    product: 'USB-C 케이블',   date: '2024-06-08', amount: 31000, payment: '카드',    status: '결제완료' },
-  { id: 'ORD009', customer: '한지민',    product: 'HDMI 케이블',    date: '2024-06-09', amount: 29000, payment: '카드',    status: '결제완료' },
-  { id: 'ORD010', customer: '강호동',    product: '보조배터리',      date: '2024-06-10', amount: 42000, payment: '토스',    status: '결제완료' },
-  { id: 'ORD011', customer: '유재석',    product: 'SD 카드',        date: '2024-06-11', amount: 33000, payment: '계좌이체', status: '결제완료' },
-  { id: 'ORD012', customer: '송중기',    product: '외장 HDD',       date: '2024-06-12', amount: 27000, payment: '카드',    status: '결제완료' },
-  { id: 'ORD013', customer: '이준기',    product: '모니터',          date: '2024-06-13', amount: 36000, payment: '토스',    status: '결제완료' },
-  { id: 'ORD014', customer: '이정재',    product: '웹캠',            date: '2024-06-14', amount: 48000, payment: '계좌이체', status: '결제완료' },
-  { id: 'ORD015', customer: '김우빈',    product: '헤드셋',          date: '2024-06-15', amount: 39000, payment: '카드',    status: '결제완료' },
-];
+import { getAdminOrders } from '../../../common/api/orderApi';
+import { useCustomLogin } from '../../../common/hook/useCustomLogin';
 
 const AdminOrderListPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { isLogin, moveToLogin } = useCustomLogin();
 
   // 검색 input 상태, 실제 검색어
   const [inputValue, setInputValue] = useState('');
@@ -38,16 +24,90 @@ const AdminOrderListPage = () => {
   const [pagedOrders, setPagedOrders] = useState([]);
   const itemsPerPage = 10; // 페이지당 아이템 개수
 
-  // 더미 로드
+  // API에서 주문 데이터 로드
   useEffect(() => {
-    setOrders(dummyOrders);
-    setLoading(false);
-  }, []);
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        if (!isLogin) {
+          setError('로그인이 필요합니다.');
+          return;
+        }
+        
+        const data = await getAdminOrders();
+        setOrders(data);
+      } catch (err) {
+        console.error('주문 데이터 로드 실패:', err);
+        
+        if (err.message === '로그인이 필요합니다.') {
+          setError('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
+          setTimeout(() => moveToLogin(), 2000);
+        } else if (err.message === '관리자 권한이 필요합니다.') {
+          setError('관리자 권한이 필요합니다. 관리자 계정으로 로그인해주세요.');
+        } else {
+          setError('주문 데이터를 불러오는데 실패했습니다.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [isLogin]); // moveToLogin 제거
 
   // 검색 버튼 클릭
   const handleSearch = e => {
     e.preventDefault();
     setSearchTerm(inputValue.trim());
+  };
+
+  // 날짜 포맷팅 함수
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    
+    try {
+      // 배열인 경우 처리 (LocalDateTime이 배열로 직렬화된 경우)
+      if (Array.isArray(dateString)) {
+        const [year, month, day] = dateString;
+        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      }
+      
+      // 문자열인 경우 기존 처리
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toISOString().split('T')[0];
+    } catch (error) {
+      console.error('날짜 포맷팅 에러:', error, dateString);
+      return '';
+    }
+  };
+
+  // 결제수단 한글 변환
+  const getPaymentMethodText = (paymentMethod) => {
+    switch (paymentMethod) {
+      case 'CARD': return '카드';
+      case 'ACCOUNT': return '계좌이체';
+      case 'TOSSPAY': return '토스페이';
+      case 'PAYCO': return '페이코';
+      case 'KAKAO': return '카카오페이';
+      case 'NAVER': return '네이버페이';
+      case 'MOBILE': return '휴대폰결제';
+      case 'UNKNOWN': return '알 수 없음';
+      default: return paymentMethod;
+    }
+  };
+
+  // 주문상태 한글 변환
+  const getOrderStatusText = (orderStatus) => {
+    switch (orderStatus) {
+      case 'PENDING': return '결제대기';
+      case 'SUCCESS': return '예약확정';
+      case 'FAILED': return '결제실패';
+      case 'CANCELLED': return '예약취소';
+      default: return orderStatus;
+    }
   };
 
   // 검색/필터/정렬 적용
@@ -57,23 +117,24 @@ const AdminOrderListPage = () => {
     if (searchTerm !== '') {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(o =>
-        o.product.toLowerCase().includes(term)
+        o.productName.toLowerCase().includes(term)
       );
     }
 
     if (paymentFilter) {
-      filtered = filtered.filter(o => o.payment === paymentFilter);
+      const paymentText = getPaymentMethodText(paymentFilter);
+      filtered = filtered.filter(o => getPaymentMethodText(o.paymentMethod) === paymentText);
     }
 
     filtered.sort((a, b) => {
       switch (sortKey) {
         case 'amount':
-          return b.amount - a.amount;
+          return b.totalPrice - a.totalPrice;
         case 'id':
-          return a.id.localeCompare(b.id);
+          return a.orderCode.localeCompare(b.orderCode);
         case 'date':
         default:
-          return new Date(b.date) - new Date(a.date);
+          return new Date(b.createdAt) - new Date(a.createdAt);
       }
     });
 
@@ -94,6 +155,10 @@ const AdminOrderListPage = () => {
 
   if (loading) {
     return <div className="p-6 text-center">로딩중…</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-center text-red-600">{error}</div>;
   }
 
   return (
@@ -139,9 +204,13 @@ const AdminOrderListPage = () => {
             className="px-3 py-2 border rounded"
           >
             <option value="">결제수단 전체</option>
-            <option value="카드">카드</option>
-            <option value="토스">토스</option>
-            <option value="계좌이체">계좌이체</option>
+            <option value="CARD">카드</option>
+            <option value="ACCOUNT">계좌이체</option>
+            <option value="TOSSPAY">토스페이</option>
+            <option value="PAYCO">페이코</option>
+            <option value="KAKAO">카카오페이</option>
+            <option value="NAVER">네이버페이</option>
+            <option value="MOBILE">휴대폰결제</option>
           </select>
         </div>
       </div>
@@ -163,20 +232,20 @@ const AdminOrderListPage = () => {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {pagedOrders.map(o => (
-              <tr key={o.id}>
-                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{o.id}</td>
-                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{o.customer}</td>
-                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{o.product}</td>
-                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{o.date}</td>
+              <tr key={o.orderCode}>
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{o.orderCode}</td>
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{o.memberName}</td>
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{o.productName}</td>
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{formatDate(o.createdAt)}</td>
                 <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700 text-right">
-                  ₩{o.amount.toLocaleString()}
+                  ₩{o.totalPrice.toLocaleString()}
                 </td>
-                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{o.payment}</td>
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{getPaymentMethodText(o.paymentMethod)}</td>
                 <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700 text-center">
-                  {o.status}
+                  {getOrderStatusText(o.orderStatus)}
                 </td>
                 <td className="px-4 py-2 whitespace-nowrap text-sm text-center">
-                  <Link to={`/admin/orders/${o.id}`} className="text-blue-600 hover:underline">
+                  <Link to={`/admin/orders/${o.orderCode}`} className="text-blue-600 hover:underline">
                     상세
                   </Link>
                 </td>
