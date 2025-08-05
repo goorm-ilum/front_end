@@ -48,6 +48,13 @@ const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
     today.setHours(0, 0, 0, 0);
     return date >= today;
   };
+
+  // 지난 날짜인지 확인
+  const isPastDate = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  };
   
   // 날짜 클릭 핸들러
   const handleDateClick = (date) => {
@@ -98,6 +105,7 @@ const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
           const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
           const isSelected = selectedDate === dateString;
           const isAvailable = isAvailableDate(date) && isFutureDate(date);
+          const isPast = isPastDate(date);
           
           return (
             <button
@@ -111,6 +119,7 @@ const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
                 ${isAvailable && !isSelected ? 'hover:bg-blue-100' : ''}
                 ${!isAvailable ? 'cursor-not-allowed' : 'cursor-pointer'}
                 ${isAvailable && !isSelected ? 'bg-green-50' : ''}
+                ${isPast ? 'text-gray-400 bg-gray-100' : ''}
               `}
             >
               {date.getDate()}
@@ -180,10 +189,37 @@ const CommerceDetail = () => {
       setProduct(transformedProduct);
       setIsLiked(transformedProduct.like);
       
-      // 첫 번째 재고 옵션을 기본 선택
+      // 재고가 있는 가장 빠른 날짜를 기본 선택
       if (transformedProduct.stocks.length > 0) {
-        setSelectedStock(transformedProduct.stocks[0]);
-        setSelectedDate(transformedProduct.stocks[0].startDate);
+        // 오늘 날짜
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // 재고가 있는 날짜들을 오늘 이후로 필터링하고 정렬
+        const availableDates = transformedProduct.stocks
+          .map(stock => stock.startDate)
+          .filter((date, index, self) => self.indexOf(date) === index) // 중복 제거
+          .filter(date => {
+            const dateObj = new Date(date);
+            return dateObj >= today; // 오늘 포함
+          })
+          .sort(); // 날짜순 정렬
+        
+        if (availableDates.length > 0) {
+          // 가장 빠른 날짜 선택
+          const earliestDate = availableDates[0];
+          setSelectedDate(earliestDate);
+          
+          // 해당 날짜의 첫 번째 재고 옵션을 기본 선택
+          const firstStockForDate = transformedProduct.stocks.find(stock => stock.startDate === earliestDate);
+          if (firstStockForDate) {
+            setSelectedStock(firstStockForDate);
+          }
+        } else {
+          // 오늘 이후 재고가 없는 경우 첫 번째 재고 선택
+          setSelectedStock(transformedProduct.stocks[0]);
+          setSelectedDate(transformedProduct.stocks[0].startDate);
+        }
         
         // 재고 옵션별 수량 초기화
         const initialCounts = {};
@@ -273,6 +309,16 @@ const CommerceDetail = () => {
 
   // 날짜 변경 핸들러
   const handleDateChange = (newDate) => {
+    // 지난 날짜인지 확인
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDateObj = new Date(newDate);
+    
+    if (selectedDateObj < today) {
+      console.log('지난 날짜는 선택할 수 없습니다.');
+      return;
+    }
+    
     setSelectedDate(newDate);
     // 날짜 변경 시 옵션 개수 초기화
     if (product?.stocks) {

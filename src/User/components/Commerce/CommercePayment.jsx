@@ -50,6 +50,13 @@ const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
     return date >= today;
   };
 
+  // 지난 날짜인지 확인
+  const isPastDate = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  };
+
   // 날짜 클릭 핸들러
   const handleDateClick = (date) => {
     if (isAvailableDate(date) && isFutureDate(date)) {
@@ -99,6 +106,7 @@ const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
           const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
           const isSelected = selectedDate === dateString;
           const isAvailable = isAvailableDate(date) && isFutureDate(date);
+          const isPast = isPastDate(date);
 
           return (
             <button
@@ -112,6 +120,7 @@ const Calendar = ({ availableDates, selectedDate, onDateSelect }) => {
                 ${isAvailable && !isSelected ? 'hover:bg-blue-100' : ''}
                 ${!isAvailable ? 'cursor-not-allowed' : 'cursor-pointer'}
                 ${isAvailable && !isSelected ? 'bg-green-50' : ''}
+                ${isPast ? 'text-gray-400 bg-gray-100' : ''}
               `}
             >
               {date.getDate()}
@@ -181,7 +190,43 @@ const CommercePayment = () => {
       // URL 파라미터에서 전달받은 정보 파싱
       const searchParams = new URLSearchParams(location.search);
       const initialDate = searchParams.get('date') || '';
-      setSelectedDate(initialDate);
+      
+      // 초기 날짜 설정 로직
+      let finalSelectedDate = '';
+      
+      if (initialDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const initialDateObj = new Date(initialDate);
+        
+        if (initialDateObj >= today) {
+          finalSelectedDate = initialDate;
+        } else {
+          console.log('전달된 날짜가 지난 날짜입니다. 가장 빠른 날짜를 선택합니다.');
+        }
+      }
+      
+      // 초기 날짜가 없거나 지난 날짜인 경우, 가장 빠른 날짜 선택
+      if (!finalSelectedDate && transformedProduct.stocks.length > 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // 재고가 있는 날짜들을 오늘 이후로 필터링하고 정렬
+        const availableDates = transformedProduct.stocks
+          .map(stock => stock.startDate)
+          .filter((date, index, self) => self.indexOf(date) === index) // 중복 제거
+          .filter(date => {
+            const dateObj = new Date(date);
+            return dateObj >= today; // 오늘 포함
+          })
+          .sort(); // 날짜순 정렬
+        
+        if (availableDates.length > 0) {
+          finalSelectedDate = availableDates[0];
+        }
+      }
+      
+      setSelectedDate(finalSelectedDate);
 
       // URL에서 전달받은 총 금액 정보
       const totalPriceParam = searchParams.get('totalPrice');
@@ -248,6 +293,16 @@ const CommercePayment = () => {
 
   // 날짜 변경 핸들러
   const handleDateChange = (newDate) => {
+    // 지난 날짜인지 확인
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDateObj = new Date(newDate);
+    
+    if (selectedDateObj < today) {
+      console.log('지난 날짜는 선택할 수 없습니다.');
+      return;
+    }
+    
     setSelectedDate(newDate);
     // 날짜 변경 시 옵션 개수 초기화
     if (product?.stocks) {
@@ -338,6 +393,7 @@ const CommercePayment = () => {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          productName: product.title, // 상품명 추가
           date: selectedDate,
           options: selectedOptions.map(opt => ({
             optionName: opt.optionName,
@@ -355,10 +411,13 @@ const CommercePayment = () => {
       const data = await response.json();
       console.log('주문 생성 응답:', data);
       
+      // 주문명을 상품명으로 설정 (백엔드에서 생성된 주문명 대신)
+      const orderName = product.title;
+      
       // 주문 생성 성공 후 Checkout 페이지로 이동
       const params = new URLSearchParams({
         orderId: data.orderId,
-        orderName: data.orderName,
+        orderName: orderName, // 상품명을 주문명으로 사용
         amount: data.totalPrice.toString(),
         customerEmail: data.customerEmail || ''
       });
