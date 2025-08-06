@@ -24,6 +24,20 @@ const CommerceList = () => {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 9; // 페이지당 아이템 개수
 
+  // 페이지 새로고침 감지 및 처리
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // 페이지가 새로고침될 때 실행될 코드
+      console.log('상품 목록 페이지 새로고침 감지');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   // 초기 상품 목록 로드
   const loadProducts = async (pageNum = 0, keyword = '') => {
     setLoading(true);

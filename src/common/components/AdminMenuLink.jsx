@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import MessagePopup from './MessagePopup';
 
 const AdminMenuLink = ({ to, children, className }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const loginState = useSelector((state) => state.loginSlice);
   const { accessToken, role } = loginState;
   const isLogin = !!accessToken;
@@ -25,6 +26,13 @@ const AdminMenuLink = ({ to, children, className }) => {
     if (!isLogin || !isAdminRole) {
       e.preventDefault();
       setShowMessagePopup(true);
+      return;
+    }
+
+    // 같은 페이지를 클릭한 경우 새로고침
+    if (location.pathname === to) {
+      e.preventDefault();
+      window.location.reload();
       return;
     }
   };

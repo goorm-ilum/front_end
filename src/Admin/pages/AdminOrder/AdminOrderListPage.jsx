@@ -57,6 +57,20 @@ const AdminOrderListPage = () => {
     fetchOrders();
   }, [isLogin]); // moveToLogin 제거
 
+  // 페이지 새로고침 감지 및 처리
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // 페이지가 새로고침될 때 실행될 코드
+      console.log('주문 관리 페이지 새로고침 감지');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   // 검색 버튼 클릭
   const handleSearch = e => {
     e.preventDefault();
