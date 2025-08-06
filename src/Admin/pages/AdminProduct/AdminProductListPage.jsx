@@ -1,6 +1,6 @@
 // src/pages/admin/products/AdminProductListPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Pagination from '../../../common/Pagination';
 import { getAdminProducts, searchAdminProducts, sortAdminProducts, deleteAdminProduct } from '../../../common/api/adminApi';
 import MessagePopup from '../../../common/components/MessagePopup';
@@ -8,6 +8,8 @@ import SuccessModal from '../../../components/SuccessModal';
 import ConfirmModal from '../../../common/components/ConfirmModal';
 
 const AdminProductListPage = () => {
+  const location = useLocation();
+  
   // 상태
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,17 @@ const AdminProductListPage = () => {
   const [sortKey, setSortKey] = useState('updatedAt');     // 기본값: 등록일 순
   const [sortOrder, setSortOrder] = useState('desc');      // 기본값: 내림차순 (최신순)
   const [forceSearch, setForceSearch] = useState(0);      // 강제 검색 실행을 위한 카운터
+
+  // 상태 초기화 함수
+  const resetToInitialState = () => {
+    setInputValue('');
+    setSearchTerm('');
+    setSortKey('updatedAt');
+    setSortOrder('desc');
+    setCurrentPage(1);
+    setError('');
+    setForceSearch(prev => prev + 1);
+  };
 
   // 상품 목록 로드 (기본)
   const loadProducts = async () => {
@@ -204,19 +217,12 @@ const AdminProductListPage = () => {
     }
   }, [currentPage, searchTerm, sortKey, sortOrder, forceSearch]);
 
-  // 페이지 새로고침 감지 및 처리
+  // forceRefresh 처리
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      // 페이지가 새로고침될 때 실행될 코드
-      console.log('페이지 새로고침 감지');
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
+    if (location.state?.forceRefresh) {
+      resetToInitialState();
+    }
+  }, [location.state]);
 
   // 검색 버튼 눌렀을 때
   const handleSearch = e => {

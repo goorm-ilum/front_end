@@ -13,6 +13,7 @@ const CommerceList = () => {
   const [search, setSearch] = useState("");
   const [date, setDate] = useState("");
   const [sort, setSort] = useState("latest");
+  const [isAISearch, setIsAISearch] = useState(false);
 
   // 상품 상태 관리
   const [products, setProducts] = useState([]);
@@ -42,6 +43,7 @@ const CommerceList = () => {
   const loadProducts = async (pageNum = 0, keyword = '') => {
     setLoading(true);
     setError('');
+    setIsAISearch(false); // 일반 검색으로 플래그 해제
     
     try {
       console.log('상품 목록 조회 중...', { page: pageNum, size: itemsPerPage, keyword });
@@ -125,15 +127,21 @@ const CommerceList = () => {
     }
   };
 
-  // 컴포넌트 마운트 시 초기 데이터 로드
-  useEffect(() => {
-    loadProducts(0, '');
-  }, []);
+  // 상태 초기화 함수
+  const resetToInitialState = () => {
+    setSearch("");
+    setDate("");
+    setSort("latest");
+    setIsAISearch(false);
+    setPage(1);
+    setError('');
+  };
 
   // AI 검색봇 핸들러
   const handleAISearch = async (query) => {
     console.log('AI 검색 쿼리:', query);
     setSearch(query);
+    setIsAISearch(true); // AI 검색 플래그 설정
 
     try {
       setLoading(true);
@@ -184,23 +192,166 @@ const CommerceList = () => {
     }
   };
 
-  // Home 페이지에서 AI 검색으로 넘어온 경우 처리
+  // 컴포넌트 마운트 시 초기 데이터 로드 (AI 검색 쿼리 고려)
   useEffect(() => {
-    if (location.state?.aiSearchQuery) {
-      handleAISearch(location.state.aiSearchQuery);
+    const aiSearchQuery = location.state?.aiSearchQuery;
+    const forceRefresh = location.state?.forceRefresh;
+    
+    // AI 검색 쿼리가 있는 경우 - 일반 상품 로드 건너뛰고 AI 검색만 실행
+    if (aiSearchQuery) {
+      console.log('AI 검색 모드로 진입:', aiSearchQuery);
+      resetToInitialState();
+      setLoading(true); // AI 검색 대기 중 로딩 표시
+      
+      // AI 검색 직접 실행 (handleAISearch 함수 내용을 여기서 직접 실행)
+      const executeAISearch = async () => {
+        setSearch(aiSearchQuery);
+        setIsAISearch(true);
+        
+        try {
+          const response = await aiSearchProducts(aiSearchQuery);
+          console.log('AI 검색 결과:', response);
+
+          // 백엔드 응답 구조에 맞게 데이터 변환
+          if (Array.isArray(response)) {
+            const transformedProducts = response.map(product => ({
+              id: product.productId,
+              title: product.productName,
+              description: product.productDescription,
+              thumbnail: product.thumbnailImageUrl,
+              price: product.price,
+              discountPrice: product.discountPrice,
+              rating: product.averageReviewStar,
+              like: product.isLiked,
+              reviews: []
+            }));
+            setProducts(transformedProducts);
+            setTotalItems(transformedProducts.length);
+          } else if (response.content) {
+            const transformedProducts = response.content.map(product => ({
+              id: product.productId,
+              title: product.productName,
+              description: product.productDescription,
+              thumbnail: product.thumbnailImageUrl,
+              price: product.price,
+              discountPrice: product.discountPrice,
+              rating: product.averageReviewStar,
+              like: product.isLiked,
+              reviews: []
+            }));
+            setProducts(transformedProducts);
+            setTotalItems(response.totalElements || transformedProducts.length);
+          } else {
+            setProducts([]);
+            setTotalItems(0);
+          }
+          
+          setPage(1);
+        } catch (error) {
+          console.error('AI 검색 중 오류 발생:', error);
+          setError('AI 검색 중 오류가 발생했습니다.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      executeAISearch();
+      
       // state 초기화
       navigate(location.pathname, { replace: true });
+    } 
+    // 강제 새로고침인 경우
+    else if (forceRefresh) {
+      resetToInitialState();
+      loadProducts(0, '');
     }
-  }, [location.state, navigate, location.pathname]);
+    // 일반 진입인 경우 (AI 검색이 아닐 때만 전체 상품 로드)
+    else {
+      resetToInitialState();
+      loadProducts(0, '');
+    }
+  }, []);
+
+  // location.state 변경 감지 (페이지 이동 시 AI 검색 처리)
+  useEffect(() => {
+    const aiSearchQuery = location.state?.aiSearchQuery;
+    
+    if (aiSearchQuery) {
+      console.log('페이지 이동으로 인한 AI 검색:', aiSearchQuery);
+      resetToInitialState();
+      setLoading(true);
+      
+      const executeAISearch = async () => {
+        setSearch(aiSearchQuery);
+        setIsAISearch(true);
+        
+        try {
+          const response = await aiSearchProducts(aiSearchQuery);
+          console.log('AI 검색 결과:', response);
+
+          if (Array.isArray(response)) {
+            const transformedProducts = response.map(product => ({
+              id: product.productId,
+              title: product.productName,
+              description: product.productDescription,
+              thumbnail: product.thumbnailImageUrl,
+              price: product.price,
+              discountPrice: product.discountPrice,
+              rating: product.averageReviewStar,
+              like: product.isLiked,
+              reviews: []
+            }));
+            setProducts(transformedProducts);
+            setTotalItems(transformedProducts.length);
+          } else if (response.content) {
+            const transformedProducts = response.content.map(product => ({
+              id: product.productId,
+              title: product.productName,
+              description: product.productDescription,
+              thumbnail: product.thumbnailImageUrl,
+              price: product.price,
+              discountPrice: product.discountPrice,
+              rating: product.averageReviewStar,
+              like: product.isLiked,
+              reviews: []
+            }));
+            setProducts(transformedProducts);
+            setTotalItems(response.totalElements || transformedProducts.length);
+          } else {
+            setProducts([]);
+            setTotalItems(0);
+          }
+          
+          setPage(1);
+        } catch (error) {
+          console.error('AI 검색 중 오류 발생:', error);
+          setError('AI 검색 중 오류가 발생했습니다.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      executeAISearch();
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state]);
 
   // 검색 필터링 (간단히 제목/설명에 검색어 포함 여부)
   const filteredProducts = useMemo(() => {
+    // AI 검색 결과인 경우 필터링 건너뛰기
+    if (isAISearch) {
+      return products.filter(product =>
+        (!date || product.dates?.includes(date)) &&
+        (!showOnlyLiked || product.like)
+      );
+    }
+    
     return products.filter(product =>
       (!search || product.title?.includes(search) || product.description?.includes(search)) &&
       (!date || product.dates?.includes(date)) &&
       (!showOnlyLiked || product.like)
     );
-  }, [products, search, date, showOnlyLiked]);
+  }, [products, search, date, showOnlyLiked, isAISearch]);
 
   // 좋아요 토글 함수
   const handleToggleLike = async (productId) => {
@@ -250,6 +401,7 @@ const CommerceList = () => {
 
   // 검색 버튼 클릭 시
   const handleSearch = () => {
+    setIsAISearch(false); // 일반 검색으로 플래그 해제
     setPage(1);
     loadProducts(0, search);
   };
@@ -268,7 +420,7 @@ const CommerceList = () => {
         </div>
         <AISearchBot 
           onSearch={handleAISearch}
-          placeholder="예: 서울 근교 당일치기 투어, 제주도 렌터카 상품, 부산 해운대 액티비티..."
+          placeholder="예: 로맨틱한 여행지 추천, 가족과 함께하는 여행, 서울 근교 당일치기 투어"
         />
       </div>
 
@@ -300,8 +452,29 @@ const CommerceList = () => {
       {/* 로딩 상태 */}
       {loading && (
         <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">상품을 불러오는 중...</p>
+          {isAISearch ? (
+            // AI 검색 중일 때 - 밝고 경쾌한 메시지
+            <div>
+              <div className="relative inline-block">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200"></div>
+                <div className="absolute top-0 left-0 animate-spin rounded-full h-12 w-12 border-4 border-transparent border-t-blue-600 border-r-purple-600"></div>
+              </div>
+              <div className="mt-4">
+                <p className="text-xl font-semibold text-blue-600">
+                  🤖 AI가 열심히 검색 중입니다!
+                </p>
+                <p className="mt-1 text-sm text-purple-500 font-medium">
+                  최적의 여행상품을 찾고 있어요 ✨
+                </p>
+              </div>
+            </div>
+          ) : (
+            // 일반 로딩 중일 때
+            <div>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-gray-600">상품을 불러오는 중...</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -312,8 +485,57 @@ const CommerceList = () => {
         </div>
       )}
 
+      {/* 검색 결과 없음 상태 */}
+      {!loading && !error && filteredProducts.length === 0 && (
+        <div className="text-center py-12">
+          {isAISearch ? (
+            // AI 검색 결과 없음
+            <div className="max-w-md mx-auto">
+              <div className="mb-4">
+                <span className="text-6xl">🤖</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                적합한 상품을 찾지 못했어요
+              </h3>
+              <p className="text-gray-600 mb-4">
+                다른 키워드로 다시 검색해보시거나<br/>
+                아래 예시를 참고해보세요
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 mt-4">
+                {[
+                  "로맨틱한 여행지 추천",
+                  "가족과 함께하는 여행",
+                ].map((example, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAISearch(example)}
+                    className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-full text-sm transition-colors"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            // 일반 검색 결과 없음
+            <div className="max-w-md mx-auto">
+              <div className="mb-4">
+                <span className="text-6xl">🔍</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                검색 결과가 없습니다
+              </h3>
+              <p className="text-gray-600">
+                다른 키워드로 검색해보시거나<br/>
+                검색어를 줄여서 시도해보세요
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 카드 리스트 */}
-      {!loading && !error && (
+      {!loading && !error && filteredProducts.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {filteredProducts.map(product => (
             <div

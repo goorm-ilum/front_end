@@ -117,17 +117,17 @@ const Home = () => {
           
           <AISearchBot 
             onSearch={handleAISearch}
-            placeholder="예: 서울 근교 당일치기 투어, 제주도 렌터카 상품, 부산 해운대 액티비티..."
+            placeholder="예: 로맨틱한 여행지 추천, 가족과 함께하는 여행, 서울 근교 당일치기 투어"
             className="mb-8"
           />
 
           {/* 예시 질문들 */}
           <div className="flex flex-wrap justify-center gap-3 mt-8">
             {[
+              "로맨틱한 여행지 추천",
+              "가족과 함께하는 여행",
               "서울 근교 당일치기 투어",
-              "제주도 렌터카 상품",
-              "부산 해운대 액티비티",
-              "경주 문화재 투어"
+              "부산 해운대 액티비티"
             ].map((example, index) => (
               <button
                 key={index}

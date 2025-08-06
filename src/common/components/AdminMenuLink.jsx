@@ -29,11 +29,15 @@ const AdminMenuLink = ({ to, children, className }) => {
       return;
     }
 
-    // 같은 페이지를 클릭한 경우 새로고침
-    if (location.pathname === to) {
+    // 현재 위치와 같은 메뉴 클릭 시 새로고침
+    if (location.pathname === to || location.pathname.startsWith(to + '/')) {
       e.preventDefault();
-      window.location.reload();
-      return;
+      // forceRefresh 상태와 함께 같은 경로로 이동하여 새로고침 효과
+      navigate(to, { 
+        replace: false, 
+        state: { forceRefresh: true, timestamp: Date.now() }
+      });
+    }
     }
   };
 
