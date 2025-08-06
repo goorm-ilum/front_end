@@ -1,6 +1,6 @@
 // src/pages/admin/orders/AdminOrderListPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import Pagination from '../../../common/Pagination';
@@ -8,6 +8,7 @@ import { getAdminOrders } from '../../../common/api/orderApi';
 import { useCustomLogin } from '../../../common/hook/useCustomLogin';
 
 const AdminOrderListPage = () => {
+  const location = useLocation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,6 +31,17 @@ const AdminOrderListPage = () => {
   // 체크박스 선택 상태
   const [selectedOrders, setSelectedOrders] = useState(new Set());
   const [selectAll, setSelectAll] = useState(false);
+
+  // 상태 초기화 함수
+  const resetToInitialState = () => {
+    setInputValue('');
+    setSearchTerm('');
+    setSortKey('date');
+    setPaymentFilter('');
+    setCurrentPage(1);
+    setSelectedOrders(new Set());
+    setSelectAll(false);
+  };
 
   // API에서 주문 데이터 로드
   useEffect(() => {
@@ -63,6 +75,13 @@ const AdminOrderListPage = () => {
 
     fetchOrders();
   }, [isLogin]); // moveToLogin 제거
+
+  // forceRefresh 처리
+  useEffect(() => {
+    if (location.state?.forceRefresh) {
+      resetToInitialState();
+    }
+  }, [location.state]);
 
   // 검색 버튼 클릭
   const handleSearch = e => {

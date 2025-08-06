@@ -32,8 +32,18 @@ const MypageMenu = () => {
 
   // 탭 클릭 핸들러
   const handleTabClick = (tabId) => {
-    setSelectedMenu(tabId);
-    navigate(`/mypage?tab=${tabId}`);
+    // 현재 선택된 탭을 다시 클릭한 경우 강제 새로고침
+    if (selectedMenu === tabId) {
+      // 컴포넌트 재마운트를 위해 잠시 다른 탭으로 이동 후 돌아오기
+      setSelectedMenu('');
+      setTimeout(() => {
+        setSelectedMenu(tabId);
+        navigate(`/mypage?tab=${tabId}`, { replace: false });
+      }, 10);
+    } else {
+      setSelectedMenu(tabId);
+      navigate(`/mypage?tab=${tabId}`);
+    }
   };
 
   const getSelectedComponent = () => {

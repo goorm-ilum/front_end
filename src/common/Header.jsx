@@ -1,10 +1,11 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import KakaoLoginButton from "./components/KakaoLoginButton";
 import AdminMenuLink from "./components/AdminMenuLink";
 
 const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const loginState = useSelector((state) => state.loginSlice);
   const { accessToken, role } = loginState;
   const isLogin = !!accessToken; // accessToken이 있으면 로그인된 것으로 간주
@@ -16,6 +17,19 @@ const Header = () => {
                      role === 1 || role === '1' || role === 'ROLE_ADMIN' || role === 'role_admin' ||
                      normalizedRole === 'a' || normalizedRole === 'admin' || normalizedRole === 'role_admin';
   const isAdminUser = isLogin && isAdminRole;
+
+  // 메뉴 클릭 핸들러 - 현재 위치와 같은 메뉴 클릭 시 새로고침
+  const handleMenuClick = (targetPath, e) => {
+    // 현재 경로가 목표 경로와 같거나 그 하위 경로인 경우
+    if (location.pathname === targetPath || location.pathname.startsWith(targetPath + '/')) {
+      e.preventDefault();
+      // forceRefresh 상태와 함께 같은 경로로 이동하여 새로고침 효과
+      navigate(targetPath, { 
+        replace: false, 
+        state: { forceRefresh: true, timestamp: Date.now() }
+      });
+    }
+  };
 
   console.log('=== Header 디버깅 ===');
   console.log('전체 loginSlice 상태:', loginState);
@@ -82,12 +96,14 @@ const Header = () => {
               <Link
                 to="/commerce"
                 className="text-gray-700 hover:text-blue-600"
+                onClick={(e) => handleMenuClick('/commerce', e)}
               >
                 투어/액티비티
               </Link>
               <Link
                 to="/mypage"
                 className="text-gray-700 hover:text-blue-600"
+                onClick={(e) => handleMenuClick('/mypage', e)}
               >
                 Mypage
               </Link>

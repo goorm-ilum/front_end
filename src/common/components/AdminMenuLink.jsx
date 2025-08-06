@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import MessagePopup from './MessagePopup';
 
 const AdminMenuLink = ({ to, children, className }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const loginState = useSelector((state) => state.loginSlice);
   const { accessToken, role } = loginState;
   const isLogin = !!accessToken;
@@ -26,6 +27,16 @@ const AdminMenuLink = ({ to, children, className }) => {
       e.preventDefault();
       setShowMessagePopup(true);
       return;
+    }
+
+    // 현재 위치와 같은 메뉴 클릭 시 새로고침
+    if (location.pathname === to || location.pathname.startsWith(to + '/')) {
+      e.preventDefault();
+      // forceRefresh 상태와 함께 같은 경로로 이동하여 새로고침 효과
+      navigate(to, { 
+        replace: false, 
+        state: { forceRefresh: true, timestamp: Date.now() }
+      });
     }
   };
 
