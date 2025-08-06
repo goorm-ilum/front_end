@@ -4,6 +4,8 @@ import { Link, useLocation } from 'react-router-dom';
 import Pagination from '../../../common/Pagination';
 import { getAdminProducts, searchAdminProducts, sortAdminProducts, deleteAdminProduct } from '../../../common/api/adminApi';
 import MessagePopup from '../../../common/components/MessagePopup';
+import SuccessModal from '../../../components/SuccessModal';
+import ConfirmModal from '../../../common/components/ConfirmModal';
 
 const AdminProductListPage = () => {
   const location = useLocation();
@@ -14,6 +16,10 @@ const AdminProductListPage = () => {
   const [error, setError] = useState('');
   const [showMessagePopup, setShowMessagePopup] = useState(false);
   const [messageData, setMessageData] = useState({ message: '', type: 'info' });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmData, setConfirmData] = useState({ productId: null, message: '' });
 
   // 페이징
   const [currentPage, setCurrentPage] = useState(1);
@@ -250,16 +256,25 @@ const AdminProductListPage = () => {
 
 
 
-  // 삭제 핸들러
-  const handleDelete = async (id) => {
-    if (!window.confirm('정말 삭제하시겠습니까?')) return;
+  // 삭제 확인 모달 표시
+  const showDeleteConfirm = (id) => {
+    setConfirmData({ 
+      productId: id, 
+      message: '정말 삭제하시겠습니까?' 
+    });
+    setShowConfirmModal(true);
+  };
+
+  // 삭제 실행
+  const handleDeleteConfirm = async () => {
+    const { productId } = confirmData;
     
     try {
-      await deleteAdminProduct(id);
+      await deleteAdminProduct(productId);
       
-      // 삭제 성공 시 목록 새로고침
-      setMessageData({ message: '상품이 성공적으로 삭제되었습니다.', type: 'success' });
-      setShowMessagePopup(true);
+      // 삭제 성공 시 성공 모달 표시
+      setSuccessMessage('상품이 성공적으로 삭제되었습니다.');
+      setShowSuccessModal(true);
       
       // 현재 상태에 맞게 목록 다시 로드
       if (searchTerm) {
@@ -289,6 +304,8 @@ const AdminProductListPage = () => {
       
       setMessageData({ message: errorMessage, type: 'error' });
       setShowMessagePopup(true);
+    } finally {
+      setShowConfirmModal(false);
     }
   };
 
@@ -296,8 +313,32 @@ const AdminProductListPage = () => {
     return <div className="p-6 text-center">로딩중…</div>;
   }
 
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    // 현재 상태에 맞게 목록 다시 로드
+    if (searchTerm) {
+      searchProducts();
+    } else {
+      sortProducts();
+    }
+  };
+
   return (
     <div className="p-6 space-y-4">
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessModalClose}
+        message={successMessage}
+      />
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleDeleteConfirm}
+        title="삭제 확인"
+        message={confirmData.message}
+        confirmText="삭제"
+        cancelText="취소"
+      />
       {/* 헤더 */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">상품 관리</h1>
@@ -393,7 +434,7 @@ const AdminProductListPage = () => {
                   <Link to={`/admin/products/detail/${p.id}`} className="text-blue-600 hover:underline">
                     수정
                   </Link>
-                  <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:underline">
+                  <button onClick={() => showDeleteConfirm(p.id)} className="text-red-600 hover:underline">
                     삭제
                   </button>
                 </td>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SuccessModal from '../../../components/SuccessModal';
 import { useNavigate } from 'react-router-dom';
 
 const AdminProfilePage = () => {
@@ -20,6 +21,7 @@ const AdminProfilePage = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // 전화번호에서 국가코드와 나머지 번호 분리하는 함수 (하이픈 제거)
   const splitPhoneNumber = (phoneNum) => {
@@ -137,7 +139,7 @@ const AdminProfilePage = () => {
       });
 
       if (!res.ok) throw new Error('프로필 업데이트 실패');
-      alert('프로필이 성공적으로 수정되었습니다.');
+      setShowSuccessModal(true);
     } catch (err) {
       console.error(err);
       alert('프로필 수정 중 오류가 발생했습니다.');
@@ -150,8 +152,17 @@ const AdminProfilePage = () => {
     return <div className="p-6 text-center">로딩 중…</div>;
   }
 
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+  };
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessModalClose}
+        message="프로필이 성공적으로 수정되었습니다."
+      />
       <h1 className="text-2xl font-semibold mb-6">내 정보 수정</h1>
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-6">

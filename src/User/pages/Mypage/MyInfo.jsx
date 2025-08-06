@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCustomLogin } from '../../../common/hook/useCustomLogin';
 import MessagePopup from '../../../common/components/MessagePopup';
+import SuccessModal from '../../../components/SuccessModal';
 
 const MyInfo = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const MyInfo = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showMessagePopup, setShowMessagePopup] = useState(false);
   const [messageData, setMessageData] = useState({ message: '', type: 'info' });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // 전화번호에서 국가코드와 나머지 번호 분리하는 함수 (하이픈 제거)
   const splitPhoneNumber = (phoneNum) => {
@@ -152,8 +154,7 @@ const MyInfo = () => {
       });
 
       if (!res.ok) throw new Error('프로필 업데이트 실패');
-      setMessageData({ message: '프로필이 성공적으로 수정되었습니다.', type: 'success' });
-      setShowMessagePopup(true);
+      setShowSuccessModal(true);
     } catch (err) {
       console.error(err);
       setMessageData({ message: '프로필 수정 중 오류가 발생했습니다.', type: 'error' });
@@ -167,8 +168,17 @@ const MyInfo = () => {
     return <div className="p-6 text-center">로딩 중…</div>;
   }
 
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+  };
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessModalClose}
+        message="프로필이 성공적으로 수정되었습니다."
+      />
       <h1 className="text-2xl font-semibold mb-6">내 정보 수정</h1>
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-6">

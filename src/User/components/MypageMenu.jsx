@@ -23,6 +23,20 @@ const MypageMenu = () => {
     }
   }, [searchParams, location.pathname]);
 
+  // 페이지 새로고침 감지 및 처리
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // 페이지가 새로고침될 때 실행될 코드
+      console.log('마이페이지 새로고침 감지');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   const menuItems = [
     { id: 'info', label: '내 정보', component: MyInfo },
     { id: 'order', label: '내 구매내역', component: MyOrder },

@@ -1,8 +1,23 @@
 import AISearchBot from '../../common/AISearchBot';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const Home = () => {
   const navigate = useNavigate();
+  
+  // 페이지 새로고침 감지 및 처리
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // 페이지가 새로고침될 때 실행될 코드
+      console.log('홈 페이지 새로고침 감지');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
   
   const handleAISearch = (query) => {
     console.log('AI 검색 쿼리:', query);

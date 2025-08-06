@@ -3,6 +3,30 @@ import { useSelector } from 'react-redux';
 import KakaoLoginButton from "./components/KakaoLoginButton";
 import AdminMenuLink from "./components/AdminMenuLink";
 
+// 일반 메뉴 링크 컴포넌트 (새로고침 기능 포함)
+const MenuLink = ({ to, children, className }) => {
+  const location = useLocation();
+
+  const handleClick = (e) => {
+    // 같은 페이지를 클릭한 경우 새로고침
+    if (location.pathname === to) {
+      e.preventDefault();
+      window.location.reload();
+      return;
+    }
+  };
+
+  return (
+    <Link
+      to={to}
+      className={className}
+      onClick={handleClick}
+    >
+      {children}
+    </Link>
+  );
+};
+
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -60,18 +84,19 @@ const Header = () => {
       <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* 왼쪽 로고 */}
         <div className="flex items-center min-w-[120px]">
-          <Link 
+          <MenuLink 
             to={isAdmin ? "/admin" : "/"} 
             className="text-2xl font-extrabold text-blue-600"
           >
             TalkTrip
-          </Link>
+          </MenuLink>
         </div>
 
         {/* nav: user / admin 분기 */}
         <nav className="flex-1 flex justify-center gap-8">
           {isAdmin ? (
             <>
+
               <AdminMenuLink
                 to="/admin/products"
                 className="text-gray-700 hover:text-blue-600"
@@ -93,20 +118,20 @@ const Header = () => {
             </>
           ) : (
             <>
-              <Link
+              <MenuLink
                 to="/commerce"
                 className="text-gray-700 hover:text-blue-600"
                 onClick={(e) => handleMenuClick('/commerce', e)}
               >
                 투어/액티비티
-              </Link>
-              <Link
+              </MenuLink>
+              <MenuLink
                 to="/mypage"
                 className="text-gray-700 hover:text-blue-600"
                 onClick={(e) => handleMenuClick('/mypage', e)}
               >
                 Mypage
-              </Link>
+              </MenuLink>
               {/* 사용자용 추가 메뉴들... */}
             </>
           )}
