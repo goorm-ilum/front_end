@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MessagePopup from '../../../common/components/MessagePopup';
+import { getAuthHeaders } from '../../../common/util/jwtUtil';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -22,9 +23,7 @@ const MyOrder = () => {
         setLoading(true);
         const response = await fetch('/api/orders/me', {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: getAuthHeaders(),
           credentials: 'include',
         });
 
@@ -99,9 +98,7 @@ const MyOrder = () => {
       // 리뷰 작성 가능 여부를 확인하기 위해 API 호출
       const response = await fetch(`/api/products/${productId}/reviews/form`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         credentials: 'include',
       });
 
@@ -164,6 +161,18 @@ const MyOrder = () => {
     }
   };
 
+  const getPaymentMethodText = (paymentMethod) => {
+    switch (paymentMethod) {
+      case 'CARD': return '카드';
+      case 'ACCOUNT': return '계좌이체';
+      case 'EASY_PAY': return '간편결제';
+      case 'MOBILE': return '휴대폰결제';
+      case 'VIRTUAL_ACCOUNT': return '가상계좌';
+      case 'UNKNOWN': return '알 수 없음';
+      default: return paymentMethod;
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
@@ -223,7 +232,7 @@ const MyOrder = () => {
               <div className="text-lg font-semibold">{order.productName}</div>
               <div className="text-sm text-gray-600">
                 <span className="mr-4">구매일: {formatDate(order.createdAt)}</span>
-                <span className="mr-4">결제: {order.paymentMethod}</span>
+                <span className="mr-4">결제: {getPaymentMethodText(order.paymentMethod)}</span>
               </div>
               <div className="text-lg font-bold text-blue-700">
                 총 결제금액: {order.totalPrice.toLocaleString()}원

@@ -1,6 +1,24 @@
 import axiosInstance, {API_SERVER_HOST} from '../api/mainApi';
 import {getCookie, setCookie} from './cookieUtil';
 
+// fetch 요청용 인증 헤더 추가 함수
+export const getAuthHeaders = () => {
+	const member = getCookie("member");
+	const headers = {
+		'Content-Type': 'application/json',
+	};
+	
+	if (member && member.accessToken) {
+		headers.Authorization = `Bearer ${member.accessToken}`;
+	}
+	
+	if (member && member.refreshToken) {
+		headers["Refresh-Token"] = member.refreshToken;
+	}
+	
+	return headers;
+};
+
 export const refreshJWT = async () => {
 	const member = getCookie("member");
 	if (!member) {
@@ -114,4 +132,4 @@ export const handleAuthError = async (err) => {
 	return Promise.reject(err); // 다른 오류는 그대로 반환
 };
 
-export default { addAuthHeader, handleAuthError };
+export default { addAuthHeader, handleAuthError, getAuthHeaders };

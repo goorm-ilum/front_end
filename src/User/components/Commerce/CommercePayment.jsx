@@ -2,6 +2,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getProductDetail } from '../../../common/api/productApi';
+import { getAuthHeaders } from '../../../common/util/jwtUtil';
 
 // 한국 시간 기준으로 날짜 문자열 생성 (공통 함수)
 const getKoreaDateString = (date) => {
@@ -405,9 +406,8 @@ const CommercePayment = () => {
       const response = await fetch(`/api/orders/${id}`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          productName: product.title, // 상품명 추가
           date: selectedDate,
           options: selectedOptions.map(opt => ({
             optionName: opt.optionName,
