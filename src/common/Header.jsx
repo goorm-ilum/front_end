@@ -58,12 +58,6 @@ const Header = () => {
         <nav className="flex-1 flex justify-center gap-8">
           {isAdmin ? (
             <>
-              <Link
-                to="/admin"
-                className="text-gray-700 hover:text-blue-600"
-              >
-                Home
-              </Link>
               <AdminMenuLink
                 to="/admin/products"
                 className="text-gray-700 hover:text-blue-600"

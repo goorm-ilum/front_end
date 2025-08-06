@@ -13,6 +13,7 @@ const CommerceList = () => {
   const [search, setSearch] = useState("");
   const [date, setDate] = useState("");
   const [sort, setSort] = useState("latest");
+  const [isAISearch, setIsAISearch] = useState(false);
 
   // 상품 상태 관리
   const [products, setProducts] = useState([]);
@@ -28,6 +29,7 @@ const CommerceList = () => {
   const loadProducts = async (pageNum = 0, keyword = '') => {
     setLoading(true);
     setError('');
+    setIsAISearch(false); // 일반 검색으로 플래그 해제
     
     try {
       console.log('상품 목록 조회 중...', { page: pageNum, size: itemsPerPage, keyword });
@@ -120,6 +122,7 @@ const CommerceList = () => {
   const handleAISearch = async (query) => {
     console.log('AI 검색 쿼리:', query);
     setSearch(query);
+    setIsAISearch(true); // AI 검색 플래그 설정
 
     try {
       setLoading(true);
@@ -181,12 +184,20 @@ const CommerceList = () => {
 
   // 검색 필터링 (간단히 제목/설명에 검색어 포함 여부)
   const filteredProducts = useMemo(() => {
+    // AI 검색 결과인 경우 필터링 건너뛰기
+    if (isAISearch) {
+      return products.filter(product =>
+        (!date || product.dates?.includes(date)) &&
+        (!showOnlyLiked || product.like)
+      );
+    }
+    
     return products.filter(product =>
       (!search || product.title?.includes(search) || product.description?.includes(search)) &&
       (!date || product.dates?.includes(date)) &&
       (!showOnlyLiked || product.like)
     );
-  }, [products, search, date, showOnlyLiked]);
+  }, [products, search, date, showOnlyLiked, isAISearch]);
 
   // 좋아요 토글 함수
   const handleToggleLike = async (productId) => {
@@ -236,6 +247,7 @@ const CommerceList = () => {
 
   // 검색 버튼 클릭 시
   const handleSearch = () => {
+    setIsAISearch(false); // 일반 검색으로 플래그 해제
     setPage(1);
     loadProducts(0, search);
   };

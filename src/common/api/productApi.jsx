@@ -20,8 +20,10 @@ export const getProductList = async (params = {}) => {
 // AI 검색 상품 조회
 export const aiSearchProducts = async (query) => {
   try {
-    const response = await axiosInstance.post('/api/products/aisearch', {
-      query: query
+    const response = await axiosInstance.get('/api/products/aisearch', {
+      params: {
+        question: query
+      }
     });
     return response.data;
   } catch (error) {
@@ -29,6 +31,8 @@ export const aiSearchProducts = async (query) => {
     throw error;
   }
 };
+
+
 
 // 상품 상세 조회
 export const getProductDetail = async (productId) => {
