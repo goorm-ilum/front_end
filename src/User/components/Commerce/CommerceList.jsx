@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
-import Pagination from '../../../common/Pagination';
+import Pagination from '../../../common/util/Pagination';
 import AISearchBot from '../../../common/AISearchBot';
 import { getProductList, aiSearchProducts, toggleLike } from '../../../common/api/productApi';
 

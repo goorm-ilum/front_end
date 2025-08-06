@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLikedProducts, toggleLike } from '../../../common/api/productApi';
-import Pagination from '../../../common/Pagination';
+import Pagination from '../../../common/util/Pagination';
+import { MypageCommonStyles, MypageComponents, MypageIcons } from './MypageCommonStyles';
 
 const MyLike = () => {
   const navigate = useNavigate();
@@ -138,44 +139,34 @@ const MyLike = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">내가 좋아요한 상품</h2>
-        <p className="text-gray-600">좋아요한 상품들을 한눈에 확인하세요</p>
-      </div>
+    <div className={MypageCommonStyles.pageContainer}>
+      <MypageComponents.PageHeader 
+        title="내가 좋아요한 상품" 
+        subtitle="좋아요한 상품들을 한눈에 확인하세요"
+      />
 
       {/* 로딩 상태 */}
       {loading && (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">좋아요 목록을 불러오는 중...</p>
-        </div>
+        <MypageComponents.Loading message="좋아요 목록을 불러오는 중..." />
       )}
 
       {/* 에러 상태 */}
       {error && (
-        <div className="text-center py-8">
-          <p className="text-red-600">{error}</p>
-        </div>
+        <MypageComponents.Error 
+          message={error} 
+          onRetry={() => loadLikedProducts(0)}
+        />
       )}
 
       {/* 좋아요 목록이 비어있는 경우 */}
       {!loading && !error && likedProducts.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
-            <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">아직 좋아요한 상품이 없습니다</h3>
-          <p className="text-gray-500 mb-4">마음에 드는 상품에 좋아요를 눌러보세요!</p>
-          <button
-            onClick={() => navigate('/commerce')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            상품 둘러보기
-          </button>
-        </div>
+        <MypageComponents.Empty
+          icon={<MypageIcons.HeartOutline />}
+          title="아직 좋아요한 상품이 없습니다"
+          subtitle="마음에 드는 상품에 좋아요를 눌러보세요!"
+          buttonText="상품 둘러보기"
+          onButtonClick={() => navigate('/commerce')}
+        />
       )}
 
       {/* 좋아요 상품 목록 */}
