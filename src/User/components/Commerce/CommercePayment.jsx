@@ -253,19 +253,20 @@ const CommercePayment = () => {
       const optionsParam = searchParams.get('options');
       const initialOptionCounts = {};
       
-      if (optionsParam) {
-        // "오전 출발:2,오후 출발:1" 형태의 문자열을 파싱
-        optionsParam.split(',').forEach(optionStr => {
-          const [optionName, count] = optionStr.split(':');
-          if (optionName && count) {
-            initialOptionCounts[optionName] = parseInt(count, 10);
-          }
-        });
-      } else {
-        // 기본값 설정
-        transformedProduct.stocks.forEach(stock => {
-          initialOptionCounts[stock.optionName] = 0;
-        });
+             if (optionsParam) {
+         // "오전 출발-2024-01-15:2,오후 출발-2024-01-15:1" 형태의 문자열을 파싱
+         optionsParam.split(',').forEach(optionStr => {
+           const [optionKey, count] = optionStr.split(':');
+           if (optionKey && count) {
+             initialOptionCounts[optionKey] = parseInt(count, 10);
+           }
+         });
+       } else {
+                 // 기본값 설정
+         transformedProduct.stocks.forEach(stock => {
+           const key = `${stock.optionName}-${stock.startDate}`;
+           initialOptionCounts[key] = 0;
+         });
       }
       
       setOptionCounts(initialOptionCounts);
@@ -319,14 +320,20 @@ const CommercePayment = () => {
     }
     
     setSelectedDate(newDate);
-    // 날짜 변경 시 옵션 개수 초기화
-    if (product?.stocks) {
-      const initialCounts = {};
-      product.stocks.forEach(stock => {
-        initialCounts[stock.optionName] = 0;
-      });
-      setOptionCounts(initialCounts);
-    }
+         // 날짜 변경 시 선택된 날짜의 옵션만 초기화
+     if (product?.stocks) {
+       setOptionCounts(prev => {
+         const newCounts = { ...prev };
+         // 선택된 날짜의 옵션들만 초기화
+         product.stocks
+           .filter(stock => stock.startDate === newDate)
+           .forEach(stock => {
+             const key = `${stock.optionName}-${stock.startDate}`;
+             newCounts[key] = 0;
+           });
+         return newCounts;
+       });
+     }
   };
 
   // 재고가 있는 날짜들만 필터링
@@ -382,69 +389,80 @@ const CommercePayment = () => {
 
   const handleBack = () => navigate(`/commerce/${id}`);
 
-  const updateOptionCount = (optionName, change) => {
+  const updateOptionCount = (optionName, startDate, change) => {
+    const key = `${optionName}-${startDate}`;
     setOptionCounts(prev => ({
       ...prev,
-      [optionName]: Math.max(0, (prev[optionName] || 0) + change),
+      [key]: Math.max(0, (prev[key] || 0) + change),
     }));
   };
 
-  const totalCount = Object.values(optionCounts).reduce((sum, count) => sum + count, 0);
-  const totalPrice = product.stocks.reduce((sum, stock) => {
-    const count = optionCounts[stock.optionName] || 0;
-    return sum + ((stock.discountPrice || stock.price) * count);
-  }, 0);
+  const totalCount = product.stocks
+    .filter(stock => stock.startDate === selectedDate)
+    .reduce((sum, stock) => {
+      const key = `${stock.optionName}-${stock.startDate}`;
+      return sum + (optionCounts[key] || 0);
+    }, 0);
+  const totalPrice = product.stocks
+    .filter(stock => stock.startDate === selectedDate)
+    .reduce((sum, stock) => {
+      const key = `${stock.optionName}-${stock.startDate}`;
+      const count = optionCounts[key] || 0;
+      return sum + ((stock.discountPrice || stock.price) * count);
+    }, 0);
 
-  const selectedOptions = product.stocks.filter(stock => (optionCounts[stock.optionName] || 0) > 0);
+  const selectedOptions = product.stocks.filter(stock => 
+    stock.startDate === selectedDate && (optionCounts[`${stock.optionName}-${stock.startDate}`] || 0) > 0
+  );
 
-  // 주문 생성 함수: 백엔드에 주문 생성 요청
-  const createOrder = async () => {
-    if (totalCount === 0 || !selectedDate) return alert('날짜와 옵션을 모두 선택해주세요.');
+       // 주문 생성 함수: 백엔드에 주문 생성 요청
+   const createOrder = async () => {
+     if (totalCount === 0 || !selectedDate) return alert('날짜와 옵션을 모두 선택해주세요.');
 
-    setIsCreatingOrder(true);
-    try {
-      const response = await fetch(`/api/orders/${id}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          date: selectedDate,
-          options: selectedOptions.map(opt => ({
-            optionName: opt.optionName,
-            quantity: optionCounts[opt.optionName],
-          })),
-          totalPrice: totalPrice,
-        }),
-      });
+     setIsCreatingOrder(true);
+     try {
+       const response = await fetch(`/api/orders/${id}`, {
+         method: 'POST',
+         credentials: 'include',
+         headers: getAuthHeaders(),
+         body: JSON.stringify({
+           date: selectedDate,
+                      options: selectedOptions.map(opt => ({
+             optionName: opt.optionName,
+             quantity: optionCounts[`${opt.optionName}-${opt.startDate}`],
+           })),
+           totalPrice: totalPrice,
+         }),
+       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || '주문 생성에 실패했습니다.');
-      }
+       if (!response.ok) {
+         const errorData = await response.json();
+         throw new Error(errorData.message || '주문 생성에 실패했습니다.');
+       }
 
-      const data = await response.json();
-      console.log('주문 생성 응답:', data);
-      
-      // 주문명을 상품명으로 설정 (백엔드에서 생성된 주문명 대신)
-      const orderName = product.title;
-      
-      // 주문 생성 성공 후 Checkout 페이지로 이동
-      const params = new URLSearchParams({
-        orderId: data.orderId,
-        orderName: orderName, // 상품명을 주문명으로 사용
-        amount: data.totalPrice.toString(),
-        customerEmail: data.customerEmail || '',
-        productId: id // productId 추가
-      });
-      
-      navigate(`/commerce/checkout?${params.toString()}`);
-    } catch (err) {
-      console.error(err);
-      alert('주문 생성 중 오류가 발생했습니다: ' + err.message);
-    } finally {
-      setIsCreatingOrder(false);
-    }
-  };
+       const data = await response.json();
+       console.log('주문 생성 응답:', data);
+       
+       // 주문명을 상품명으로 설정 (백엔드에서 생성된 주문명 대신)
+       const orderName = product.title;
+       
+       // 주문 생성 성공 후 Checkout 페이지로 이동
+       const params = new URLSearchParams({
+         orderId: data.orderId,
+         orderName: orderName, // 상품명을 주문명으로 사용
+         amount: data.totalPrice.toString(),
+         customerEmail: data.customerEmail || '',
+         productId: id // productId 추가
+       });
+       
+       navigate(`/commerce/checkout?${params.toString()}`);
+     } catch (err) {
+       console.error(err);
+       alert('주문 생성 중 오류가 발생했습니다: ' + err.message);
+     } finally {
+       setIsCreatingOrder(false);
+     }
+   };
 
   return (
     <section className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
@@ -514,15 +532,15 @@ const CommercePayment = () => {
                         </div>
                         <div className="flex items-center gap-4">
                           <button
-                            onClick={() => updateOptionCount(stock.optionName, -1)}
+                            onClick={() => updateOptionCount(stock.optionName, stock.startDate, -1)}
                             className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-                            disabled={(optionCounts[stock.optionName] || 0) === 0}
+                            disabled={(optionCounts[`${stock.optionName}-${stock.startDate}`] || 0) === 0}
                           >-</button>
-                          <span className="w-12 text-center font-medium">{optionCounts[stock.optionName] || 0}</span>
+                          <span className="w-12 text-center font-medium">{optionCounts[`${stock.optionName}-${stock.startDate}`] || 0}</span>
                           <button
-                            onClick={() => updateOptionCount(stock.optionName, 1)}
+                            onClick={() => updateOptionCount(stock.optionName, stock.startDate, 1)}
                             className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-                            disabled={(optionCounts[stock.optionName] || 0) >= stock.stock}
+                            disabled={(optionCounts[`${stock.optionName}-${stock.startDate}`] || 0) >= stock.stock}
                           >+</button>
                         </div>
                       </div>
@@ -547,10 +565,10 @@ const CommercePayment = () => {
                  </div>
                  <div className="space-y-2">
                    <span className="font-medium">선택한 옵션:</span>
-                   {selectedOptions.map((opt) => (
-                     <div key={opt.optionName} className="flex justify-between ml-4">
+                   {selectedOptions.map((opt, index) => (
+                     <div key={`${opt.optionName}-${index}`} className="flex justify-between ml-4">
                        <span>• {opt.optionName}</span>
-                       <span className="font-medium">{optionCounts[opt.optionName]}개</span>
+                       <span className="font-medium">{optionCounts[`${opt.optionName}-${opt.startDate}`]}개</span>
                      </div>
                    ))}
                  </div>

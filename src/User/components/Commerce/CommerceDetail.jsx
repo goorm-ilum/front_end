@@ -236,7 +236,8 @@ const CommerceDetail = () => {
     // 재고 옵션별 수량 초기화
     const initialCounts = {};
     transformedProduct.stocks.forEach(stock => {
-      initialCounts[stock.optionName] = 0;
+      const key = `${stock.optionName}-${stock.startDate}`;
+      initialCounts[key] = 0;
     });
     setStockCounts(initialCounts);
   }
@@ -312,10 +313,11 @@ const CommerceDetail = () => {
     }
   };
 
-  const updateStockCount = (optionName, change) => {
+  const updateStockCount = (optionName, startDate, change) => {
+    const key = `${optionName}-${startDate}`;
     setStockCounts(prev => ({
       ...prev,
-      [optionName]: Math.max(0, (prev[optionName] || 0) + change),
+      [key]: Math.max(0, (prev[key] || 0) + change),
     }));
   };
 
@@ -336,7 +338,8 @@ const CommerceDetail = () => {
     if (product?.stocks) {
       const initialCounts = {};
       product.stocks.forEach(stock => {
-        initialCounts[stock.optionName] = 0;
+        const key = `${stock.optionName}-${stock.startDate}`;
+        initialCounts[key] = 0;
       });
       setStockCounts(initialCounts);
     }
@@ -352,7 +355,8 @@ const CommerceDetail = () => {
 
   const totalCount = Object.values(stockCounts).reduce((sum, count) => sum + count, 0);
   const totalPrice = product?.stocks ? product.stocks.reduce((sum, stock) => {
-    const count = stockCounts[stock.optionName] || 0;
+    const key = `${stock.optionName}-${stock.startDate}`;
+    const count = stockCounts[key] || 0;
     return sum + ((stock.discountPrice || stock.price) * count);
   }, 0) : 0;
 
@@ -528,15 +532,15 @@ const CommerceDetail = () => {
                             </div>
                             <div className="flex items-center gap-4">
                               <button
-                                onClick={() => updateStockCount(stock.optionName, -1)}
+                                onClick={() => updateStockCount(stock.optionName, stock.startDate, -1)}
                                 className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-                                disabled={(stockCounts[stock.optionName] || 0) === 0}
+                                disabled={(stockCounts[`${stock.optionName}-${stock.startDate}`] || 0) === 0}
                               >-</button>
-                              <span className="w-12 text-center font-medium">{stockCounts[stock.optionName] || 0}</span>
+                              <span className="w-12 text-center font-medium">{stockCounts[`${stock.optionName}-${stock.startDate}`] || 0}</span>
                               <button
-                                onClick={() => updateStockCount(stock.optionName, 1)}
+                                onClick={() => updateStockCount(stock.optionName, stock.startDate, 1)}
                                 className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-                                disabled={(stockCounts[stock.optionName] || 0) >= stock.stock}
+                                disabled={(stockCounts[`${stock.optionName}-${stock.startDate}`] || 0) >= stock.stock}
                               >+</button>
                             </div>
                           </div>
@@ -573,8 +577,8 @@ const CommerceDetail = () => {
               }`}
               onClick={() => {
                 if (totalCount > 0 && selectedDate) {
-                  const selectedOptions = product.stocks.filter(stock => (stockCounts[stock.optionName] || 0) > 0);
-                  const optionsParam = selectedOptions.map(opt => `${opt.optionName}:${stockCounts[opt.optionName]}`).join(',');
+                  const selectedOptions = product.stocks.filter(stock => (stockCounts[`${stock.optionName}-${stock.startDate}`] || 0) > 0);
+                  const optionsParam = selectedOptions.map(opt => `${opt.optionName}-${opt.startDate}:${stockCounts[`${opt.optionName}-${opt.startDate}`]}`).join(',');
                   navigate(`/commerce/${id}/payment?date=${selectedDate}&options=${optionsParam}&totalPrice=${totalPrice}`);
                 }
               }}

@@ -11,7 +11,7 @@ const Pagination = ({
   className = ""
 }) => {
   // 페이지네이션 로직
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   
   // 현재 페이지의 시작/끝 인덱스 계산
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -58,9 +58,18 @@ const Pagination = ({
 
   const pageNumbers = getPageNumbers();
 
-  // 페이지가 없으면 렌더링하지 않음
+  // 페이지가 없거나 1개일 때도 페이지 번호 표시
   if (totalPages <= 1) {
-    return null;
+    return (
+      <div className={`flex justify-center items-center gap-2 ${className}`}>
+        <button
+          className="px-3 py-2 border rounded-lg bg-blue-600 text-white border-blue-600"
+          disabled
+        >
+          1
+        </button>
+      </div>
+    );
   }
 
   return (

@@ -22,8 +22,9 @@ const AdminProductListPage = () => {
 
   // 페이징
   const [currentPage, setCurrentPage] = useState(1);
-  const [pagedProducts, setPagedProducts] = useState([]);
-  const [itemsPerPage, setItemsPerPage] = useState(10); // 페이지당 아이템 개수
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10; // 페이지당 아이템 개수
 
   // 검색/필터/정렬 상태
   const [inputValue, setInputValue] = useState('');    // input 에 타이핑할 값
@@ -39,6 +40,8 @@ const AdminProductListPage = () => {
     setSortKey('updatedAt');
     setSortOrder('desc');
     setCurrentPage(1);
+    setTotalPages(0);
+    setTotalItems(0);
     setError('');
     setForceSearch(prev => prev + 1);
   };
@@ -49,25 +52,33 @@ const AdminProductListPage = () => {
       setLoading(true);
       setError('');
       
-      const params = {
-        page: currentPage - 1 // 백엔드는 0-based pagination
-      };
+             const params = {
+         page: currentPage - 1, // 백엔드는 0-based pagination (1페이지 클릭 시 0 전달)
+         size: 10, // 페이지당 10개 아이템
+         sortBy: sortKey,
+         ascending: sortOrder === 'asc'
+       };
       
-      const response = await getAdminProducts(params);
-      console.log('상품 목록 응답:', response);
-      
-      // 백엔드 응답 구조에 맞게 데이터 변환
-      const transformedProducts = response.map(product => ({
-        id: product.id,
-        name: product.productName,
-        thumbnail: product.thumbnailImageUrl,
-        price: product.price,
-        discountPrice: product.discountPrice,
-        stock: product.totalStock,
-        updatedAt: product.updatedAt
-      }));
-      
-      setProducts(transformedProducts);
+             const response = await getAdminProducts(params);
+       console.log('상품 목록 응답:', response);
+       
+       // 백엔드 응답 구조에 맞게 데이터 변환
+       const productsData = response.content || [];
+       const transformedProducts = productsData.map(product => ({
+         id: product.id,
+         name: product.productName,
+         thumbnail: product.thumbnailImageUrl,
+         price: product.price,
+         discountPrice: product.discountPrice,
+         stock: product.totalStock,
+         updatedAt: product.updatedAt
+       }));
+       
+       setProducts(transformedProducts);
+       
+       // 페이지네이션 정보 설정
+       setTotalPages(response.totalPages || 0);
+       setTotalItems(response.totalElements || 0);
     } catch (error) {
       console.error('상품 목록 로드 실패:', error);
       
@@ -106,24 +117,30 @@ const AdminProductListPage = () => {
         keyword: searchTerm,
         sortBy: sortKey,
         ascending: sortOrder === 'asc',
-        page: currentPage - 1
+        page: currentPage - 1, // 백엔드는 0-based pagination (1페이지 클릭 시 0 전달)
+        size: 10 // 페이지당 10개 아이템
       };
       
-      const response = await searchAdminProducts(params);
-      console.log('상품 검색 응답:', response);
-      
-      // 백엔드 응답 구조에 맞게 데이터 변환
-      const transformedProducts = response.map(product => ({
-        id: product.id,
-        name: product.productName,
-        thumbnail: product.thumbnailImageUrl,
-        price: product.price,
-        discountPrice: product.discountPrice,
-        stock: product.totalStock,
-        updatedAt: product.updatedAt
-      }));
-      
-      setProducts(transformedProducts);
+             const response = await searchAdminProducts(params);
+       console.log('상품 검색 응답:', response);
+       
+       // 백엔드 응답 구조에 맞게 데이터 변환
+       const productsData = response.content || [];
+       const transformedProducts = productsData.map(product => ({
+         id: product.id,
+         name: product.productName,
+         thumbnail: product.thumbnailImageUrl,
+         price: product.price,
+         discountPrice: product.discountPrice,
+         stock: product.totalStock,
+         updatedAt: product.updatedAt
+       }));
+       
+       setProducts(transformedProducts);
+       
+       // 페이지네이션 정보 설정
+       setTotalPages(response.totalPages || 0);
+       setTotalItems(response.totalElements || 0);
     } catch (error) {
       console.error('상품 검색 실패:', error);
       
@@ -161,24 +178,30 @@ const AdminProductListPage = () => {
       const params = {
         sortBy: sortKey,
         ascending: sortOrder === 'asc',
-        page: currentPage - 1
+        page: currentPage - 1, // 백엔드는 0-based pagination (1페이지 클릭 시 0 전달)
+        size: 10 // 페이지당 10개 아이템
       };
       
-      const response = await sortAdminProducts(params);
-      console.log('상품 정렬 응답:', response);
-      
-      // 백엔드 응답 구조에 맞게 데이터 변환
-      const transformedProducts = response.map(product => ({
-        id: product.id,
-        name: product.productName,
-        thumbnail: product.thumbnailImageUrl,
-        price: product.price,
-        discountPrice: product.discountPrice,
-        stock: product.totalStock,
-        updatedAt: product.updatedAt
-      }));
-      
-      setProducts(transformedProducts);
+             const response = await sortAdminProducts(params);
+       console.log('상품 정렬 응답:', response);
+       
+       // 백엔드 응답 구조에 맞게 데이터 변환
+       const productsData = response.content || [];
+       const transformedProducts = productsData.map(product => ({
+         id: product.id,
+         name: product.productName,
+         thumbnail: product.thumbnailImageUrl,
+         price: product.price,
+         discountPrice: product.discountPrice,
+         stock: product.totalStock,
+         updatedAt: product.updatedAt
+       }));
+       
+       setProducts(transformedProducts);
+       
+       // 페이지네이션 정보 설정
+       setTotalPages(response.totalPages || 0);
+       setTotalItems(response.totalElements || 0);
     } catch (error) {
       console.error('상품 정렬 실패:', error);
       
@@ -212,7 +235,7 @@ const AdminProductListPage = () => {
     if (searchTerm) {
       searchProducts();
     } else {
-      sortProducts(); // 기본적으로 정렬된 목록을 보여줌
+      loadProducts(); // 기본적으로 정렬된 목록을 보여줌
     }
   }, [currentPage, searchTerm, sortKey, sortOrder, forceSearch]);
 
@@ -248,12 +271,7 @@ const AdminProductListPage = () => {
     setCurrentPage(1); // 정렬 순서 변경 시 1페이지로 이동
   };
 
-  // 현재 페이지 아이템 설정
-  useEffect(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    setPagedProducts(products.slice(startIndex, endIndex));
-  }, [products, currentPage, itemsPerPage]);
+
 
 
 
@@ -273,16 +291,16 @@ const AdminProductListPage = () => {
     try {
       await deleteAdminProduct(productId);
       
-      // 삭제 성공 시 성공 모달 표시
-      setSuccessMessage('상품이 성공적으로 삭제되었습니다.');
-      setShowSuccessModal(true);
-      
-      // 현재 상태에 맞게 목록 다시 로드
-      if (searchTerm) {
-        searchProducts();
-      } else {
-        sortProducts();
-      }
+             // 삭제 성공 시 성공 모달 표시
+       setSuccessMessage('상품이 성공적으로 삭제되었습니다.');
+       setShowSuccessModal(true);
+       
+       // 현재 상태에 맞게 목록 다시 로드
+       if (searchTerm) {
+         searchProducts();
+       } else {
+         loadProducts();
+       }
     } catch (error) {
       console.error('상품 삭제 실패:', error);
       
@@ -314,15 +332,15 @@ const AdminProductListPage = () => {
     return <div className="p-6 text-center">로딩중…</div>;
   }
 
-  const handleSuccessModalClose = () => {
-    setShowSuccessModal(false);
-    // 현재 상태에 맞게 목록 다시 로드
-    if (searchTerm) {
-      searchProducts();
-    } else {
-      sortProducts();
-    }
-  };
+     const handleSuccessModalClose = () => {
+     setShowSuccessModal(false);
+     // 현재 상태에 맞게 목록 다시 로드
+     if (searchTerm) {
+       searchProducts();
+     } else {
+       loadProducts();
+     }
+   };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -463,9 +481,9 @@ const AdminProductListPage = () => {
                </tr>
              </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {pagedProducts.length > 0 ? (
-                                 pagedProducts.map((p, index) => (
-                   <tr key={p.id} className="hover:bg-gray-50 transition-colors duration-200">
+                             {products.length > 0 ? (
+                                 products.map((p, index) => (
+                   <tr key={`product-${p.id}-${currentPage}-${index}`} className="hover:bg-gray-50 transition-colors duration-200">
                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                        {(currentPage - 1) * itemsPerPage + index + 1}
                      </td>
@@ -525,18 +543,18 @@ const AdminProductListPage = () => {
           </table>
         </div>
 
-        {/* 페이지네이션 */}
-        {products.length > itemsPerPage && (
-          <div className="mt-6">
-            <Pagination
-              totalItems={products.length}
-              itemsPerPage={itemsPerPage}
-              currentPage={currentPage}
-              onPageChange={setCurrentPage}
-              className="flex justify-center"
-            />
-          </div>
-        )}
+                 {/* 페이지네이션 */}
+         <div className="mt-6">
+           <div className="text-center text-sm text-gray-600 mb-2">
+           </div>
+           <Pagination
+             totalItems={totalItems}
+             itemsPerPage={itemsPerPage}
+             currentPage={currentPage}
+             onPageChange={setCurrentPage}
+             className="flex justify-center"
+           />
+         </div>
       </div>
 
       {/* 메시지 팝업 */}
