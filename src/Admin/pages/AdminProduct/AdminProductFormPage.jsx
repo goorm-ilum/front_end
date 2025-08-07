@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SuccessModal from '../../../components/SuccessModal';
+import MessagePopup from '../../../common/components/MessagePopup';
 
 const continentCountryMap = {
   아시아: ['한국', '일본', '중국'],
@@ -27,6 +28,7 @@ const AdminProductFormPage = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
 
+  // 옵션 입력용 상태
   const [options, setOptions] = useState([
     {
       optionName: '',
@@ -35,6 +37,14 @@ const AdminProductFormPage = () => {
       stock: 1
     }
   ]);
+
+  // 날짜별 옵션 데이터 (백엔드로 전송할 최종 데이터)
+  const [dateOptions, setDateOptions] = useState([]);
+  const [selectedDateForView, setSelectedDateForView] = useState('');
+  // 임시 수정 상태 (적용 버튼을 누르기 전까지의 변경사항)
+  const [tempDateOptions, setTempDateOptions] = useState({});
+  // 원본 데이터 백업 (되돌리기용)
+  const [originalDateOptions, setOriginalDateOptions] = useState({});
 
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
@@ -54,6 +64,8 @@ const AdminProductFormPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showMessagePopup, setShowMessagePopup] = useState(false);
+  const [messagePopupText, setMessagePopupText] = useState('');
 
   // 달력 관련 함수들
   const getDaysInMonth = (year, month) => {
@@ -75,9 +87,24 @@ const AdminProductFormPage = () => {
   const handleDateClick = (dateStr) => {
     if (isDateSelected(dateStr)) {
       setStartDates(prev => prev.filter(date => date !== dateStr));
+      // 날짜가 제거되면 해당 날짜의 옵션도 제거
+      setDateOptions(prev => prev.filter(option => option.startDate !== dateStr));
     } else {
       setStartDates(prev => [...prev, dateStr].sort());
+      // 새로운 날짜가 선택되면 날짜별 옵션에서 해당 날짜 표시
+      setSelectedDateForView(dateStr);
     }
+  };
+
+  // 날짜별 옵션에서 날짜 변경
+  const handleDateViewChange = (dateStr) => {
+    setSelectedDateForView(dateStr);
+    // 임시 수정사항 초기화 (다른 날짜로 이동할 때)
+    setTempDateOptions(prev => {
+      const newTemp = { ...prev };
+      delete newTemp[dateStr];
+      return newTemp;
+    });
   };
 
   const renderCalendar = () => {
@@ -184,19 +211,38 @@ const AdminProductFormPage = () => {
           setCountry(data.country);
         }
         
-        // 시작일 정보 설정 - startDates 배열 직접 사용
-        if (data.startDates && Array.isArray(data.startDates)) {
-          setStartDates(data.startDates);
+        // 시작일 정보 설정 - options 배열에서 고유한 startDate 추출
+        if (data.options && Array.isArray(data.options) && data.options.length > 0) {
+          const uniqueStartDates = [...new Set(data.options.map(option => option.startDate))].sort();
+          setStartDates(uniqueStartDates);
         }
         
         // 옵션 정보 설정
-        if (data.optionStocks && Array.isArray(data.optionStocks) && data.optionStocks.length > 0) {
-          setOptions(data.optionStocks.map(option => ({
-            optionName: option.optionName || '',
-            price: option.price || '',
-            discountPrice: option.discountPrice || '',
-            stock: option.stock || 1
-          })));
+        if (data.options && Array.isArray(data.options) && data.options.length > 0) {
+          setDateOptions(data.options);
+          
+          // 고유한 옵션들을 추출하여 옵션 설정에 표시
+          const uniqueOptions = [];
+          const seenOptions = new Set();
+          
+          data.options.forEach(option => {
+            if (!seenOptions.has(option.optionName)) {
+              seenOptions.add(option.optionName);
+              uniqueOptions.push({
+                optionName: option.optionName,
+                price: option.price,
+                discountPrice: option.discountPrice,
+                stock: option.stock
+              });
+            }
+          });
+          
+          setOptions(uniqueOptions.length > 0 ? uniqueOptions : [{
+            optionName: '',
+            price: '',
+            discountPrice: '',
+            stock: 1
+          }]);
         } else {
           // 옵션이 없으면 기본 옵션 하나 생성
           setOptions([{
@@ -205,6 +251,7 @@ const AdminProductFormPage = () => {
             discountPrice: '',
             stock: 1
           }]);
+          setDateOptions([]);
         }
         
         console.log('폼 데이터 설정 완료');
@@ -397,6 +444,25 @@ const AdminProductFormPage = () => {
   const removeOption = (index) => {
     if (options.length > 1) {
       setOptions(prev => prev.filter((_, i) => i !== index));
+      
+      // 모든 날짜에서 해당 인덱스의 옵션 삭제
+      setDateOptions(prev => {
+        const newDateOptions = [...prev];
+        
+        startDates.forEach(date => {
+          const dateOptions = newDateOptions.filter(item => item.startDate === date);
+          if (dateOptions[index]) {
+            const globalIndex = newDateOptions.findIndex(item => 
+              item.startDate === date && item.optionName === dateOptions[index].optionName
+            );
+            if (globalIndex >= 0) {
+              newDateOptions.splice(globalIndex, 1);
+            }
+          }
+        });
+        
+        return newDateOptions;
+      });
     }
   };
 
@@ -404,6 +470,218 @@ const AdminProductFormPage = () => {
     setOptions(prev => prev.map((option, i) => 
       i === index ? { ...option, [field]: value } : option
     ));
+  };
+
+  // 옵션 적용 관련 함수들
+  const applyOptionToDates = (optionIndex, field) => {
+    if (startDates.length === 0) return;
+    
+    const option = options[optionIndex];
+    const value = option[field];
+    
+    setDateOptions(prev => {
+      const newDateOptions = [...prev];
+      
+      startDates.forEach(date => {
+        // 해당 날짜의 옵션들을 가져와서 인덱스로 매칭
+        const dateOptions = newDateOptions.filter(item => item.startDate === date);
+        
+        if (dateOptions[optionIndex]) {
+          // 해당 인덱스의 옵션이 있으면 업데이트
+          const globalIndex = newDateOptions.findIndex(item => 
+            item.startDate === date && item.optionName === dateOptions[optionIndex].optionName
+          );
+          
+          if (globalIndex >= 0) {
+            newDateOptions[globalIndex] = {
+              ...newDateOptions[globalIndex],
+              [field]: value
+            };
+          }
+        } else {
+          // 해당 인덱스의 옵션이 없으면 새로 추가
+          newDateOptions.push({
+            startDate: date,
+            optionName: option.optionName,
+            stock: option.stock,
+            price: option.price,
+            discountPrice: option.discountPrice,
+            [field]: value
+          });
+        }
+      });
+      
+      return newDateOptions;
+    });
+    
+    setMessagePopupText(`${field === 'optionName' ? '옵션명' : field === 'stock' ? '재고' : field === 'price' ? '정상가' : '할인가'}이 적용되었습니다.`);
+    setShowMessagePopup(true);
+  };
+
+  const applyAllOptionsToDates = () => {
+    if (startDates.length === 0) return;
+    
+    const validOptions = options.filter(option => 
+      option.optionName.trim() && 
+      parseInt(option.price) > 0
+    );
+    
+    if (validOptions.length === 0) {
+      alert('적용할 옵션을 먼저 입력해주세요.');
+      return;
+    }
+    
+    setDateOptions(prev => {
+      const newDateOptions = [...prev];
+      
+      startDates.forEach(date => {
+        validOptions.forEach(option => {
+          const existingIndex = newDateOptions.findIndex(item => 
+            item.startDate === date && item.optionName === option.optionName
+          );
+          
+          if (existingIndex >= 0) {
+            // 기존 옵션 업데이트
+            newDateOptions[existingIndex] = {
+              startDate: date,
+              optionName: option.optionName,
+              stock: parseInt(option.stock) || 0,
+              price: parseInt(option.price) || 0,
+              discountPrice: parseInt(option.discountPrice) || parseInt(option.price) || 0
+            };
+          } else {
+            // 새 옵션 추가
+            newDateOptions.push({
+              startDate: date,
+              optionName: option.optionName,
+              stock: parseInt(option.stock) || 0,
+              price: parseInt(option.price) || 0,
+              discountPrice: parseInt(option.discountPrice) || parseInt(option.price) || 0
+            });
+          }
+        });
+      });
+      
+      return newDateOptions;
+    });
+    
+    setMessagePopupText('모든 옵션이 적용되었습니다.');
+    setShowMessagePopup(true);
+  };
+
+  // 특정 날짜의 옵션들 가져오기 (임시 수정사항 포함)
+  const getOptionsForDate = (date) => {
+    const originalOptions = dateOptions.filter(option => option.startDate === date);
+    const tempOptions = tempDateOptions[date];
+    
+    if (!tempOptions) {
+      return originalOptions;
+    }
+    
+    return originalOptions.map((option, index) => {
+      // 임시 수정사항에서 해당 인덱스의 옵션을 찾기
+      const tempOption = tempOptions[index];
+      if (tempOption) {
+        return { ...option, ...tempOption };
+      }
+      return option;
+    });
+  };
+
+  // 특정 날짜의 옵션 임시 업데이트
+  const updateDateOption = (date, optionIndex, field, value) => {
+    const originalOptions = dateOptions.filter(option => option.startDate === date);
+    const option = originalOptions[optionIndex];
+    
+    if (!option) return;
+    
+    // 원본 데이터 백업 (처음 수정할 때만)
+    if (!originalDateOptions[date]) {
+      setOriginalDateOptions(prev => ({
+        ...prev,
+        [date]: originalOptions
+      }));
+    }
+    
+    setTempDateOptions(prev => {
+      const currentTemp = prev[date] || [];
+      
+      // 인덱스로 임시 데이터 찾기
+      let newTemp = [...currentTemp];
+      
+      if (newTemp[optionIndex]) {
+        // 기존 임시 데이터 업데이트
+        newTemp[optionIndex] = { ...newTemp[optionIndex], [field]: value };
+      } else {
+        // 새로운 임시 데이터 추가
+        newTemp[optionIndex] = { optionName: option.optionName, [field]: value };
+      }
+      
+      return {
+        ...prev,
+        [date]: newTemp
+      };
+    });
+  };
+
+  // 특정 날짜의 옵션 삭제
+  const removeDateOption = (date, optionIndex) => {
+    setDateOptions(prev => {
+      const newDateOptions = [...prev];
+      const dateOptions = newDateOptions.filter(option => option.startDate === date);
+      const globalIndex = newDateOptions.findIndex(option => 
+        option.startDate === date && option.optionName === dateOptions[optionIndex]?.optionName
+      );
+      
+      if (globalIndex >= 0) {
+        newDateOptions.splice(globalIndex, 1);
+      }
+      
+      return newDateOptions;
+    });
+    
+    setMessagePopupText('옵션이 삭제되었습니다.');
+    setShowMessagePopup(true);
+  };
+
+  // 특정 날짜의 모든 옵션 삭제
+  const removeAllDateOptions = (date) => {
+    setDateOptions(prev => prev.filter(option => option.startDate !== date));
+    
+    setMessagePopupText('모든 옵션이 삭제되었습니다.');
+    setShowMessagePopup(true);
+  };
+
+  // 특정 날짜의 옵션 적용
+  const applyOptionsToDate = (date) => {
+    const validOptions = options.filter(option => 
+      option.optionName.trim() && 
+      parseInt(option.price) > 0
+    );
+    
+    if (validOptions.length === 0) {
+      alert('적용할 옵션을 먼저 입력해주세요.');
+      return;
+    }
+    
+    setDateOptions(prev => {
+      const newDateOptions = prev.filter(option => option.startDate !== date);
+      
+      validOptions.forEach(option => {
+        newDateOptions.push({
+          startDate: date,
+          optionName: option.optionName,
+          stock: parseInt(option.stock) || 0,
+          price: parseInt(option.price) || 0,
+          discountPrice: parseInt(option.discountPrice) || parseInt(option.price) || 0
+        });
+      });
+      
+      return newDateOptions;
+    });
+    
+    setMessagePopupText('옵션이 적용되었습니다.');
+    setShowMessagePopup(true);
   };
 
   const handleSubmit = async (e) => {
@@ -428,15 +706,9 @@ const AdminProductFormPage = () => {
       errors.push('시작일을 최소 하나 이상 선택해주세요.');
     }
     
-    // 옵션 검증 - 최소 하나 이상의 옵션이 있어야 하고, 각 옵션의 필수 필드 검증
-    const validOptions = options.filter(option => 
-      option.optionName.trim() && 
-      parseInt(option.stock) > 0 && 
-      parseInt(option.price) > 0
-    );
-    
-    if (validOptions.length === 0) {
-      errors.push('옵션을 최소 하나 이상 등록해주세요. (옵션명, 재고, 정상가 필수)');
+    // 날짜별 옵션 검증
+    if (dateOptions.length === 0) {
+      errors.push('날짜별 옵션을 최소 하나 이상 적용해주세요.');
     }
     
     // 에러가 있으면 알림 표시
@@ -453,19 +725,8 @@ const AdminProductFormPage = () => {
          productName: form.productName.trim(),
          description: form.description.trim(),
          countryName: form.countryName,
-         startDates: startDates,
-         optionStocks: validOptions.map(option => {
-           const optionPrice = parseInt(option.price) || 0;
-           const optionDiscountPrice = parseInt(option.discountPrice) || optionPrice; // 옵션 할인가가 없으면 옵션 정상가와 동일하게 설정
-           
-           return {
-             optionName: option.optionName.trim(),
-             stock: parseInt(option.stock) || 0,
-             price: optionPrice,
-             discountPrice: optionDiscountPrice
-           };
-         }),
-         hashtags: tags
+         hashtags: tags,
+         options: dateOptions
        };
 
        // 수정 시 기존 이미지 정보 추가
@@ -667,7 +928,7 @@ const AdminProductFormPage = () => {
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
               <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
             </div>
             <div>
@@ -830,6 +1091,163 @@ const AdminProductFormPage = () => {
           </div>
         </div>
 
+        {/* 옵션 설정 섹션 */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">옵션 설정</h3>
+                <p className="text-sm text-gray-600">옵션을 입력하고 날짜에 적용하세요</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={addOption}
+              className="flex items-center space-x-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>옵션 추가</span>
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            {options.map((option, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-medium text-gray-900">옵션 {index + 1}</h4>
+                  {options.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeOption(index)}
+                      className="text-red-500 hover:text-red-700 transition-all duration-200"
+                    >
+                      삭제
+                    </button>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      옵션명 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={option.optionName}
+                        onChange={(e) => updateOption(index, 'optionName', e.target.value)}
+                        className="flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        placeholder="옵션명을 입력하세요"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => applyOptionToDates(index, 'optionName')}
+                        disabled={startDates.length === 0}
+                        className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+                      >
+                        적용하기
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      재고 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="number"
+                        value={option.stock}
+                        onChange={(e) => updateOption(index, 'stock', parseInt(e.target.value) || 0)}
+                        min="1"
+                        className="flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => applyOptionToDates(index, 'stock')}
+                        disabled={startDates.length === 0}
+                        className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+                      >
+                        적용하기
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      정상가 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="number"
+                        value={option.price}
+                        onChange={(e) => updateOption(index, 'price', e.target.value)}
+                        className="flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        placeholder="정상가"
+                        min="1"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => applyOptionToDates(index, 'price')}
+                        disabled={startDates.length === 0}
+                        className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+                      >
+                        적용하기
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">할인가</label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="number"
+                        value={option.discountPrice}
+                        onChange={(e) => updateOption(index, 'discountPrice', e.target.value)}
+                        className="flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        placeholder="할인가"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => applyOptionToDates(index, 'discountPrice')}
+                        disabled={startDates.length === 0}
+                        className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+                      >
+                        적용하기
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {/* 모두 적용하기 버튼 */}
+            <div className="flex justify-center pt-4">
+              <button
+                type="button"
+                onClick={applyAllOptionsToDates}
+                disabled={startDates.length === 0}
+                className="flex items-center space-x-2 bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span>모든 옵션 적용하기</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* 시작일 선택 섹션 */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center space-x-3 mb-6">
@@ -890,13 +1308,21 @@ const AdminProductFormPage = () => {
                 {startDates.map((date, index) => (
                   <span
                     key={index}
-                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center hover:bg-blue-200 transition-all duration-200"
+                    className={`px-3 py-1 rounded-full text-sm flex items-center transition-all duration-200 cursor-pointer ${
+                      selectedDateForView === date
+                        ? 'bg-blue-500 text-white hover:bg-blue-600'
+                        : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                    }`}
+                    onClick={() => handleDateViewChange(date)}
                   >
                     {date}
                     <button
                       type="button"
-                      onClick={() => handleDateClick(date)}
-                      className="ml-2 text-blue-600 hover:text-blue-900"
+                      onClick={(e) => {
+                        e.stopPropagation(); // 클릭 이벤트 전파 방지
+                        handleDateClick(date);
+                      }}
+                      className="ml-2 hover:opacity-70 text-blue-600"
                     >
                       ×
                     </button>
@@ -907,106 +1333,182 @@ const AdminProductFormPage = () => {
           </div>
         </div>
 
-        {/* 옵션 설정 섹션 */}
+        {/* 날짜별 옵션 표시 섹션 */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">옵션 설정</h3>
-                <p className="text-sm text-gray-600">상품의 옵션과 가격을 설정하세요</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={addOption}
-              className="flex items-center space-x-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all duration-200"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span>옵션 추가</span>
-            </button>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">날짜별 옵션</h3>
+              <p className="text-sm text-gray-600">날짜를 클릭하여 해당 날짜의 옵션을 확인하세요</p>
+            </div>
           </div>
           
-          <div className="space-y-4">
-            {options.map((option, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="font-medium text-gray-900">옵션 {index + 1}</h4>
-                  {options.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeOption(index)}
-                      className="text-red-500 hover:text-red-700 transition-all duration-200"
-                    >
-                      삭제
-                    </button>
-                  )}
+          {startDates.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              시작일을 먼저 선택해주세요.
+            </div>
+          ) : !selectedDateForView ? (
+            <div className="text-center py-8 text-gray-500">
+              위의 시작일 선택에서 날짜를 클릭하여 해당 날짜의 옵션을 확인하세요.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* 선택된 날짜의 옵션 표시 */}
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-medium text-gray-900 text-lg">
+                      {selectedDateForView} 옵션
+                    </h4>
+                  </div>
+                  
+                  {(() => {
+                    const dateOptionsList = getOptionsForDate(selectedDateForView);
+                    return dateOptionsList.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">
+                        이 날짜에 적용된 옵션이 없습니다.
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {dateOptionsList.map((option, index) => (
+                          <div key={index} className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                            <div className="flex justify-between items-center mb-4">
+                              <h4 className="font-medium text-gray-900">옵션 {index + 1}</h4>
+                              <div className="flex space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    // 임시 수정사항을 실제 dateOptions에 적용
+                                    const tempOption = tempDateOptions[selectedDateForView]?.[index];
+                                    if (tempOption) {
+                                      setDateOptions(prev => {
+                                        const newDateOptions = [...prev];
+                                        const originalOptions = prev.filter(option => option.startDate === selectedDateForView);
+                                        const originalOption = originalOptions[index];
+                                        
+                                        if (originalOption) {
+                                          const globalIndex = newDateOptions.findIndex(item => 
+                                            item.startDate === selectedDateForView && item.optionName === originalOption.optionName
+                                          );
+                                          
+                                          if (globalIndex >= 0) {
+                                            newDateOptions[globalIndex] = {
+                                              ...newDateOptions[globalIndex],
+                                              ...tempOption
+                                            };
+                                          }
+                                        }
+                                        
+                                        return newDateOptions;
+                                      });
+                                      
+                                      // 임시 수정사항 제거
+                                      setTempDateOptions(prev => {
+                                        const newTemp = { ...prev };
+                                        if (newTemp[selectedDateForView]) {
+                                          newTemp[selectedDateForView][index] = undefined;
+                                          // 빈 슬롯 제거
+                                          newTemp[selectedDateForView] = newTemp[selectedDateForView].filter(temp => temp !== undefined);
+                                          if (newTemp[selectedDateForView].length === 0) {
+                                            delete newTemp[selectedDateForView];
+                                          }
+                                        }
+                                        return newTemp;
+                                      });
+                                    }
+                                    
+                                    setMessagePopupText('옵션이 적용되었습니다.');
+                                    setShowMessagePopup(true);
+                                  }}
+                                  className="flex items-center space-x-1 bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-all duration-200"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                  </svg>
+                                  <span>적용</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeDateOption(selectedDateForView, index)}
+                                  className="flex items-center space-x-1 bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition-all duration-200"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  <span>삭제</span>
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                              <div>
+                                <label className="block text-sm font-medium mb-2 text-gray-700">
+                                  옵션명 <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  value={option.optionName}
+                                  onChange={(e) => updateDateOption(selectedDateForView, index, 'optionName', e.target.value)}
+                                  className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                  placeholder="옵션명을 입력하세요"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium mb-2 text-gray-700">
+                                  재고 <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  value={option.stock}
+                                  onChange={(e) => updateDateOption(selectedDateForView, index, 'stock', parseInt(e.target.value) || 0)}
+                                  min="1"
+                                  className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                  required
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium mb-2 text-gray-700">
+                                  정상가 <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  value={option.price}
+                                  onChange={(e) => updateDateOption(selectedDateForView, index, 'price', parseInt(e.target.value) || 0)}
+                                  min="1"
+                                  className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                  placeholder="정상가"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium mb-2 text-gray-700">할인가</label>
+                                <input
+                                  type="number"
+                                  value={option.discountPrice}
+                                  onChange={(e) => updateDateOption(selectedDateForView, index, 'discountPrice', parseInt(e.target.value) || 0)}
+                                  min="0"
+                                  className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                  placeholder="할인가"
+                                />
+                              </div>
+                            </div>
+                            
+
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                      옵션명 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={option.optionName}
-                      onChange={(e) => updateOption(index, 'optionName', e.target.value)}
-                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      placeholder="옵션명을 입력하세요"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                      재고 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={option.stock}
-                      onChange={(e) => updateOption(index, 'stock', parseInt(e.target.value) || 0)}
-                      min="1"
-                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                      정상가 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={option.price}
-                      onChange={(e) => updateOption(index, 'price', e.target.value)}
-                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      placeholder="정상가"
-                      min="1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">할인가</label>
-                    <input
-                      type="number"
-                      value={option.discountPrice}
-                      onChange={(e) => updateOption(index, 'discountPrice', e.target.value)}
-                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      placeholder="할인가"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* 상세 이미지 섹션 */}
@@ -1170,6 +1672,21 @@ const AdminProductFormPage = () => {
           </div>
         </div>
       </form>
+      
+      {/* 성공 모달 */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessModalClose}
+        message={successMessage}
+      />
+      
+      {/* 메시지 팝업 */}
+      <MessagePopup
+        isOpen={showMessagePopup}
+        onClose={() => setShowMessagePopup(false)}
+        message={messagePopupText}
+        type="success"
+      />
     </div>
   );
 };
