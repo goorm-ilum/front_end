@@ -64,6 +64,11 @@ const FloatingChatIcon = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // chat 페이지에서는 FloatingChatIcon을 숨김
+  if (location.pathname.startsWith('/chat')) {
+    return null;
+  }
+
   return (
     <Link
       to={getChatLink()}
