@@ -192,6 +192,9 @@ const MyLike = () => {
                   alt="썸네일" 
                   className="w-full h-40 object-cover rounded-t-lg bg-gray-100 cursor-pointer" 
                   onClick={() => navigate(`/commerce/${product.id}`)}
+                  onError={(e) => {
+                    e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                  }}
                 />
                 
                 {/* 좋아요 버튼 */}

@@ -424,6 +424,9 @@ const CommerceDetail = () => {
             src={product.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'} 
             alt={product.title} 
             className="w-full h-96 object-cover rounded-lg shadow-lg"
+            onError={(e) => {
+              e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+            }}
           />
           {/* 좋아요 버튼 */}
           <button
@@ -595,6 +598,9 @@ const CommerceDetail = () => {
                     src={image} 
                     alt={`${product.title} ${index + 1}`}
                     className="w-full h-64 object-cover rounded-lg shadow-md"
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                    }}
                   />
                 </div>
               ))}

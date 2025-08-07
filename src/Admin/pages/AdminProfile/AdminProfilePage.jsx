@@ -170,7 +170,15 @@ const AdminProfilePage = () => {
           <div className="flex flex-col items-center">
             <div className="relative w-32 h-32 rounded-full overflow-hidden border">
               {previewUrl ? (
-                <img src={previewUrl} alt="프로필 미리보기" className="w-full h-full object-cover" />
+                <img 
+                  src={previewUrl} 
+                  alt="프로필 미리보기" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextElementSibling.style.display = 'flex';
+                  }}
+                />
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
                   이미지 없음

@@ -637,423 +637,531 @@ const AdminProductFormPage = () => {
     navigate('/admin/products');
   };
 
-  const handleDelete = async () => {
-    if (!isEdit) return;
-    
-    if (!window.confirm('정말로 이 상품을 삭제하시겠습니까?')) {
-      return;
-    }
 
-    try {
-      const res = await fetch(`/api/admin/products/${productId}`, {
-        method: 'DELETE'
-      });
-
-      if (!res.ok) {
-        throw new Error('상품 삭제 실패');
-      }
-
-      setSuccessMessage('상품이 삭제되었습니다.');
-      setShowSuccessModal(true);
-    } catch (err) {
-      console.error('상품 삭제 중 오류:', err);
-      alert('상품 삭제 중 오류가 발생했습니다.');
-    }
-  };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-6">
       <SuccessModal
         isOpen={showSuccessModal}
         onClose={handleSuccessModalClose}
         message={successMessage}
       />
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">
+
+      {/* 페이지 제목 */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
           {isEdit ? '상품 수정' : '상품 등록'}
         </h1>
-        <div className="flex gap-2">
-          {isEdit && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-            >
-              삭제
-            </button>
-          )}
+        <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto rounded"></div>
+      </div>
+
+      {/* 뒤로가기 버튼 */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">상품 관리</h3>
+              <p className="text-sm text-gray-600">상품 정보를 {isEdit ? '수정' : '등록'}합니다</p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="text-gray-600 hover:text-gray-800"
+            className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-all duration-200"
           >
-            ← 뒤로가기
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>뒤로가기</span>
           </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded shadow">
-        {/* 상품명 */}
-        <div>
-          <label className="block mb-1 font-medium">
-            상품명 <span className="text-red-500">*</span>
-          </label>
-          <input
-            name="productName"
-            value={form.productName}
-            onChange={handleChange}
-            required
-            className="w-full border px-3 py-2 rounded"
-            placeholder="상품명을 입력해주세요"
-          />
-        </div>
-
-        {/* 상품 설명 */}
-        <div>
-          <label className="block mb-1 font-medium">
-            상품 설명 <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            rows={4}
-            className="w-full border px-3 py-2 rounded"
-            placeholder="상품에 대한 설명을 입력해주세요..."
-            required
-          />
-        </div>
-
-                 {/* 대륙/국가와 썸네일 이미지를 한 줄에 배치 */}
-         <div className="grid grid-cols-3 gap-4">
-           <div>
-             <label className="block mb-1 font-medium">대륙</label>
-             <select
-               value={continent}
-               onChange={handleContinentChange}
-               className="w-full border px-3 py-2 rounded"
-             >
-               <option value="">대륙 선택</option>
-               {Object.keys(continentCountryMap).map((cont) => (
-                 <option key={cont} value={cont}>
-                   {cont}
-                 </option>
-               ))}
-             </select>
-           </div>
-           <div>
-             <label className="block mb-1 font-medium">
-               국가 <span className="text-red-500">*</span>
-             </label>
-             <select
-               value={country}
-               onChange={handleCountryChange}
-               disabled={!continent}
-               className="w-full border px-3 py-2 rounded"
-               required
-             >
-               <option value="">국가 선택</option>
-               {continent &&
-                 continentCountryMap[continent].map((c) => (
-                   <option key={c} value={c}>
-                     {c}
-                   </option>
-                 ))}
-             </select>
-           </div>
-           <div>
-             <label className="block mb-1 font-medium">썸네일 이미지</label>
-             <input
-               type="file"
-               accept="image/*"
-               onChange={handleThumbnailChange}
-               className="block"
-             />
-             {thumbnailPreview && (
-               <div className="mt-2 relative inline-block">
-                 <img
-                   src={thumbnailPreview}
-                   alt="썸네일 미리보기"
-                   className="w-40 h-40 object-cover rounded"
-                 />
-                 <button
-                   type="button"
-                   onClick={removeThumbnail}
-                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
-                   title="삭제"
-                 >
-                   ×
-                 </button>
-               </div>
-             )}
-           </div>
-         </div>
-
-                 {/* 시작일 선택 */}
-         <div>
-           <div className="flex items-center mb-1">
-             <label className="font-medium">
-               시작일 선택 <span className="text-red-500">*</span>
-             </label>
-           </div>
-           <div className="relative">
-             <button
-               type="button"
-               onClick={() => setShowCalendar(!showCalendar)}
-               className="w-full border px-3 py-2 rounded text-left bg-white"
-             >
-               {startDates.length > 0 
-                 ? `${startDates.length}개 날짜 선택됨` 
-                 : '날짜를 선택해주세요'}
-             </button>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* 썸네일 이미지 섹션 */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">썸네일 이미지</h3>
+              <p className="text-sm text-gray-600">상품을 대표하는 메인 이미지를 업로드하세요</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition-all duration-200 cursor-pointer">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span>파일 선택</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleThumbnailChange}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-sm text-gray-600">
+                {thumbnailFile ? `선택된 파일: ${thumbnailFile.name}` : 
+                 thumbnailPreview ? '기존 이미지 사용 중' : '선택된 파일 없음'}
+              </span>
+            </div>
             
-            {showCalendar && (
-              <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg z-10 p-4">
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {['일', '월', '화', '수', '목', '금', '토'].map(day => (
-                    <div key={day} className="p-2 text-center font-medium text-gray-600">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 gap-1">
-                  {renderCalendar()}
-                </div>
-                <div className="mt-4 flex justify-between items-center">
-                  <div className="text-sm text-gray-600">
-                    선택된 날짜: {startDates.length}개
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCalendar(false)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded text-sm"
-                  >
-                    닫기
-                  </button>
-                </div>
+            {thumbnailPreview && (
+              <div className="relative inline-block">
+                <img
+                  src={thumbnailPreview}
+                  alt="썸네일 미리보기"
+                  className="w-40 h-40 object-cover rounded-lg shadow-md border-2 border-gray-200"
+                />
+                <button
+                  type="button"
+                  onClick={removeThumbnail}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-all duration-200"
+                  title="삭제"
+                >
+                  ×
+                </button>
               </div>
             )}
           </div>
-          
-          {/* 선택된 날짜들 표시 */}
-          {startDates.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {startDates.map((date, index) => (
-                <span
-                  key={index}
-                  className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm flex items-center"
+        </div>
+
+        {/* 상품 기본 정보 섹션 */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">상품 기본 정보</h3>
+              <p className="text-sm text-gray-600">상품의 기본적인 정보를 입력하세요</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* 상품명 */}
+            <div>
+              <label className="block mb-2 font-medium text-gray-700">
+                상품명 <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="productName"
+                value={form.productName}
+                onChange={handleChange}
+                required
+                className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                placeholder="상품명을 입력해주세요"
+              />
+            </div>
+
+            {/* 상품 설명 */}
+            <div>
+              <label className="block mb-2 font-medium text-gray-700">
+                상품 설명 <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                rows={4}
+                className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+                placeholder="상품에 대한 설명을 입력해주세요..."
+                required
+              />
+            </div>
+
+            {/* 대륙/국가 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block mb-2 font-medium text-gray-700">대륙</label>
+                <select
+                  value={continent}
+                  onChange={handleContinentChange}
+                  className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
-                  {date}
+                  <option value="">대륙 선택</option>
+                  {Object.keys(continentCountryMap).map((cont) => (
+                    <option key={cont} value={cont}>
+                      {cont}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-2 font-medium text-gray-700">
+                  국가 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={country}
+                  onChange={handleCountryChange}
+                  disabled={!continent}
+                  className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  required
+                >
+                  <option value="">국가 선택</option>
+                  {continent &&
+                    continentCountryMap[continent].map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 시작일 선택 섹션 */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">시작일 선택</h3>
+              <p className="text-sm text-gray-600">상품의 시작 가능한 날짜를 선택하세요</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="w-full border border-gray-300 px-4 py-3 rounded-lg text-left bg-white hover:bg-gray-50 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {startDates.length > 0 
+                  ? `${startDates.length}개 날짜 선택됨` 
+                  : '날짜를 선택해주세요'}
+              </button>
+              
+              {showCalendar && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 p-4 min-w-[300px]">
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['일', '월', '화', '수', '목', '금', '토'].map(day => (
+                      <div key={day} className="p-2 text-center font-medium text-gray-600 text-sm">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {renderCalendar()}
+                  </div>
+                  <div className="mt-4 flex justify-between items-center">
+                    <div className="text-sm text-gray-600">
+                      선택된 날짜: {startDates.length}개
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowCalendar(false)}
+                      className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-all duration-200"
+                    >
+                      닫기
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* 선택된 날짜들 표시 */}
+            {startDates.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {startDates.map((date, index) => (
+                  <span
+                    key={index}
+                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center hover:bg-blue-200 transition-all duration-200"
+                  >
+                    {date}
+                    <button
+                      type="button"
+                      onClick={() => handleDateClick(date)}
+                      className="ml-2 text-blue-600 hover:text-blue-900"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 옵션 설정 섹션 */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">옵션 설정</h3>
+                <p className="text-sm text-gray-600">상품의 옵션과 가격을 설정하세요</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={addOption}
+              className="flex items-center space-x-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>옵션 추가</span>
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            {options.map((option, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-medium text-gray-900">옵션 {index + 1}</h4>
+                  {options.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeOption(index)}
+                      className="text-red-500 hover:text-red-700 transition-all duration-200"
+                    >
+                      삭제
+                    </button>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      옵션명 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={option.optionName}
+                      onChange={(e) => updateOption(index, 'optionName', e.target.value)}
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      placeholder="옵션명을 입력하세요"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      재고 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={option.stock}
+                      onChange={(e) => updateOption(index, 'stock', parseInt(e.target.value) || 0)}
+                      min="1"
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      정상가 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={option.price}
+                      onChange={(e) => updateOption(index, 'price', e.target.value)}
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      placeholder="정상가"
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">할인가</label>
+                    <input
+                      type="number"
+                      value={option.discountPrice}
+                      onChange={(e) => updateOption(index, 'discountPrice', e.target.value)}
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      placeholder="할인가"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 상세 이미지 섹션 */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">상세설명 이미지</h3>
+              <p className="text-sm text-gray-600">상품의 상세 정보를 보여주는 이미지들을 업로드하세요</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center space-x-2 bg-pink-50 text-pink-700 px-4 py-2 rounded-lg hover:bg-pink-100 transition-all duration-200 cursor-pointer">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span>파일 선택</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleDetailImagesChange}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-sm text-gray-600">
+                {detailFiles.filter(f => f).length > 0 ? 
+                  `${detailFiles.filter(f => f).length}개 파일 선택됨` : 
+                  detailPreviews.length > 0 ? 
+                    `${detailPreviews.length}개 이미지 사용 중` : 
+                    '선택된 파일 없음'}
+              </span>
+            </div>
+            
+            <div className="flex flex-wrap gap-3">
+              {detailPreviews.map((url, idx) => (
+                <div key={idx} className="relative inline-block group">
+                  <img
+                    src={url}
+                    alt={`상세 이미지 ${idx + 1}`}
+                    className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-lg flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveImageUp(idx)}
+                        disabled={idx === 0}
+                        className="bg-white text-gray-800 rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                        title="위로 이동"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveImageDown(idx)}
+                        disabled={idx === detailPreviews.length - 1}
+                        className="bg-white text-gray-800 rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                        title="아래로 이동"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeDetailImage(idx)}
+                        className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200"
+                        title="삭제"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                  <div className="absolute -top-1 -left-1 bg-blue-500 text-white text-xs px-1 rounded">
+                    {idx + 1}
+                  </div>
+                  {detailImageTypes[idx] === 'existing' && (
+                    <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 rounded">
+                      기존
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 태그 섹션 */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">태그</h3>
+              <p className="text-sm text-gray-600">상품을 검색하기 쉽게 태그를 추가하세요</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              {tags.map(tag => (
+                <span
+                  key={tag}
+                  className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm hover:bg-blue-200 transition-all duration-200"
+                >
+                  #{tag}
                   <button
                     type="button"
-                    onClick={() => handleDateClick(date)}
-                    className="ml-1 text-blue-600 hover:text-blue-900"
+                    onClick={() => removeTag(tag)}
+                    className="ml-2 text-blue-600 hover:text-blue-900"
                   >
                     ×
                   </button>
                 </span>
               ))}
             </div>
-          )}
+            <input
+              type="text"
+              value={tagInput}
+              onChange={handleTagInputChange}
+              onKeyDown={handleTagKeyDown}
+              placeholder="Enter 또는 쉼표로 태그 추가"
+              className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            />
+          </div>
         </div>
 
-        {/* 옵션 설정 */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <label className="block font-medium">
-              옵션 설정 <span className="text-red-500">*</span>
-            </label>
+        {/* 저장 버튼 */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-end">
             <button
-              type="button"
-              onClick={addOption}
-              className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+              type="submit"
+              disabled={submitting}
+              className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              옵션 추가
+              {submitting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>{isEdit ? '수정중…' : '등록중…'}</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{isEdit ? '수정하기' : '등록하기'}</span>
+                </>
+              )}
             </button>
           </div>
-          
-          {options.map((option, index) => (
-            <div key={index} className="border rounded-lg p-4 mb-4">
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="font-medium">옵션 {index + 1}</h4>
-                {options.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeOption(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    삭제
-                  </button>
-                )}
-              </div>
-              
-                             <div className="grid grid-cols-2 gap-4 mb-3">
-                 <div>
-                   <label className="block text-sm font-medium mb-1">
-                     옵션명 <span className="text-red-500">*</span>
-                   </label>
-                   <input
-                     type="text"
-                     value={option.optionName}
-                     onChange={(e) => updateOption(index, 'optionName', e.target.value)}
-                     className="w-full border px-3 py-2 rounded text-sm"
-                     placeholder="옵션명을 입력하세요"
-                     required
-                   />
-                 </div>
-                 <div>
-                   <label className="block text-sm font-medium mb-1">
-                     재고 <span className="text-red-500">*</span>
-                   </label>
-                   <input
-                     type="number"
-                     value={option.stock}
-                     onChange={(e) => updateOption(index, 'stock', parseInt(e.target.value) || 0)}
-                     min="1"
-                     className="w-full border px-3 py-2 rounded text-sm"
-                     required
-                   />
-                 </div>
-               </div>
-               
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <label className="block text-sm font-medium mb-1">
-                     정상가 <span className="text-red-500">*</span>
-                   </label>
-                   <input
-                     type="number"
-                     value={option.price}
-                     onChange={(e) => updateOption(index, 'price', e.target.value)}
-                     className="w-full border px-3 py-2 rounded text-sm"
-                     placeholder="정상가"
-                     min="1"
-                     required
-                   />
-                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">할인가</label>
-                  <input
-                    type="number"
-                    value={option.discountPrice}
-                    onChange={(e) => updateOption(index, 'discountPrice', e.target.value)}
-                    className="w-full border px-3 py-2 rounded text-sm"
-                    placeholder="할인가"
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-                          {/* 상세 이미지 */}
-          <div>
-            <label className="block mb-1 font-medium">상세설명 이미지</label>
-                         <input
-               type="file"
-               accept="image/*"
-               multiple
-               onChange={handleDetailImagesChange}
-               className="block"
-             />
-                                      <div className="mt-2">
-               <div className="flex flex-wrap gap-2">
-                {detailPreviews.map((url, idx) => (
-                  <div key={idx} className="relative inline-block group">
-                    <img
-                      src={url}
-                      alt={`상세 이미지 ${idx + 1}`}
-                      className="w-24 h-24 object-cover rounded border-2 border-gray-200"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1">
-                        <button
-                          type="button"
-                          onClick={() => moveImageUp(idx)}
-                          disabled={idx === 0}
-                          className="bg-white text-gray-800 rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="위로 이동"
-                        >
-                          ↑
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveImageDown(idx)}
-                          disabled={idx === detailPreviews.length - 1}
-                          className="bg-white text-gray-800 rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="아래로 이동"
-                        >
-                          ↓
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeDetailImage(idx)}
-                          className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
-                          title="삭제"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                    <div className="absolute -top-1 -left-1 bg-blue-500 text-white text-xs px-1 rounded">
-                      {idx + 1}
-                    </div>
-                    {detailImageTypes[idx] === 'existing' && (
-                      <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 rounded">
-                        기존
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-        {/* 태그 */}
-        <div>
-          <label className="block mb-1 font-medium">태그</label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {tags.map(tag => (
-              <span
-                key={tag}
-                className="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm"
-              >
-                #{tag}
-                <button
-                  type="button"
-                  onClick={() => removeTag(tag)}
-                  className="ml-1 text-blue-600 hover:text-blue-900"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-          <input
-            type="text"
-            value={tagInput}
-            onChange={handleTagInputChange}
-            onKeyDown={handleTagKeyDown}
-            placeholder="Enter 또는 쉼표로 태그 추가"
-            className="w-full border px-3 py-2 rounded"
-          />
-        </div>
-
-        {/* 저장 */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            {submitting
-              ? isEdit
-                ? '수정중…'
-                : '등록중…'
-              : isEdit
-              ? '수정하기'
-              : '등록하기'}
-          </button>
         </div>
       </form>
     </div>

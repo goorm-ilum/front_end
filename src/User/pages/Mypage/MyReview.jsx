@@ -235,10 +235,14 @@ const MyReview = () => {
                 <div className="flex items-start space-x-4">
                   {/* 상품 썸네일 */}
                   <div className="flex-shrink-0">
-                    <img
-                      src={review.thumbnailImageUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'}
-                      alt={review.productName}
-                      className="w-16 h-16 object-cover rounded-lg bg-gray-100"
+                    <img 
+                      src={review.thumbnailImageUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'} 
+                      alt="썸네일" 
+                      className="w-full h-40 object-cover rounded-t-lg bg-gray-100 cursor-pointer" 
+                      onClick={() => navigate(`/commerce/${review.productId}`)}
+                      onError={(e) => {
+                        e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                      }}
                     />
                   </div>
                   

@@ -38,7 +38,6 @@ const AdminMenuLink = ({ to, children, className }) => {
         state: { forceRefresh: true, timestamp: Date.now() }
       });
     }
-    }
   };
 
   const handleClosePopup = () => {

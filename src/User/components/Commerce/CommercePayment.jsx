@@ -457,7 +457,11 @@ const CommercePayment = () => {
 
       <div className="flex gap-6 mb-8 p-4 bg-gray-50 rounded-lg">
         {product?.thumbnail ? (
-          <img src={product.thumbnail} alt={product.title} className="w-24 h-24 object-cover rounded-lg" />
+          <img src={product.thumbnail} alt={product.title} className="w-24 h-24 object-cover rounded-lg" 
+            onError={(e) => {
+              e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+            }}
+          />
         ) : (
           <div className="w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center">
             <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
