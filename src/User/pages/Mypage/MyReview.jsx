@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyReviews, updateReview, deleteReview } from '../../../common/api/productApi';
-import Pagination from '../../../common/Pagination';
+import Pagination from '../../../common/util/Pagination';
 import MessagePopup from '../../../common/components/MessagePopup';
 import ConfirmPopup from '../../../common/components/ConfirmPopup';
+import { MypageCommonStyles, MypageComponents, MypageIcons } from './MypageCommonStyles';
 
 const MyReview = () => {
   const navigate = useNavigate();

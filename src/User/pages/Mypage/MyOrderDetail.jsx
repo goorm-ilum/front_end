@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getAuthHeaders } from '../../../common/util/jwtUtil';
 
 const MyOrderDetail = () => {
   const navigate = useNavigate();
@@ -23,9 +24,7 @@ const MyOrderDetail = () => {
         setLoading(true);
         const response = await fetch(`/api/orders/${orderId}`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: getAuthHeaders(),
           credentials: 'include',
         });
 
@@ -45,6 +44,8 @@ const MyOrderDetail = () => {
 
         const data = await response.json();
         console.log('주문 상세 데이터:', data);
+        console.log('Payment Info:', data.paymentInfo);
+        console.log('Order Items:', data.orderItems);
         setOrderDetail(data);
       } catch (err) {
         console.error('주문 상세 조회 오류:', err);
@@ -94,6 +95,80 @@ const MyOrderDetail = () => {
       return '0원';
     }
     return price.toLocaleString() + '원';
+  };
+
+  const formatDateTime = (dateTimeString) => {
+    if (!dateTimeString) return '날짜 없음';
+    
+    try {
+      let date;
+      
+      if (Array.isArray(dateTimeString)) {
+        const [year, month, day, hour = 0, minute = 0, second = 0] = dateTimeString;
+        date = new Date(year, month - 1, day, hour, minute, second);
+      } else if (typeof dateTimeString === 'string') {
+        date = new Date(dateTimeString);
+      } else {
+        date = new Date(dateTimeString);
+      }
+      
+      if (isNaN(date.getTime())) {
+        return '날짜 오류';
+      }
+      
+      return date.toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return '날짜 오류';
+    }
+  };
+
+  const getPaymentMethodText = (paymentMethod) => {
+    switch (paymentMethod) {
+      case 'CARD': return '카드';
+      case 'ACCOUNT': return '계좌이체';
+      case 'EASY_PAY': return '간편결제';
+      case 'MOBILE': return '휴대폰결제';
+      case 'VIRTUAL_ACCOUNT': return '가상계좌';
+      case 'UNKNOWN': return '알 수 없음';
+      default: return paymentMethod;
+    }
+  };
+
+  const getDetailedPaymentMethodText = (paymentMethod, paymentInfo) => {
+    if (!paymentInfo) return getPaymentMethodText(paymentMethod);
+    
+    switch (paymentMethod) {
+      case 'CARD':
+        return paymentInfo.cardCompany ? `${paymentInfo.cardCompany} 카드` : '카드';
+      case 'EASY_PAY':
+        return paymentInfo.easyPayProvider ? `${paymentInfo.easyPayProvider}` : '간편결제';
+      case 'ACCOUNT':
+        return paymentInfo.accountBank ? `${paymentInfo.accountBank} 계좌이체` : '계좌이체';
+      default:
+        return getPaymentMethodText(paymentMethod);
+    }
+  };
+
+  const getCardTypeText = (cardType) => {
+    switch (cardType) {
+      case '신용': return '신용카드';
+      case '체크': return '체크카드';
+      default: return cardType;
+    }
+  };
+
+  const getOwnerTypeText = (ownerType) => {
+    switch (ownerType) {
+      case '개인': return '개인';
+      case '법인': return '법인';
+      default: return ownerType;
+    }
   };
 
   if (loading) {
@@ -235,61 +310,125 @@ const MyOrderDetail = () => {
            </div>
          </div>
 
-                                   {/* 결제 정보 */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">결제 정보</h2>
-            {(() => {
-              // 할인 전 총 금액 계산 (옵션 가격들의 합)
-              const originalTotalPrice = orderDetail.orderItems?.reduce((sum, item) => {
-                return sum + (item.unitPrice * item.quantity);
-              }, 0) || 0;
-              
-              // 실제 결제 금액
-              const actualPaymentPrice = orderDetail.totalPrice || 0;
-              
-              // 할인 금액 계산
-              const discountAmount = originalTotalPrice - actualPaymentPrice;
-              
-              // 할인이 적용되었는지 확인 (할인 금액이 0보다 큰 경우)
-              const hasDiscount = discountAmount > 0;
-              
-              return (
-                <div className="space-y-3">
-                                     {hasDiscount ? (
-                     // 할인이 있는 경우: 총 금액, 할인 금액, 최종 결제 금액 표시
-                     <>
-                       <div className="flex justify-between items-center py-2">
-                         <span className="text-gray-600">총 금액 (할인 전)</span>
-                         <span className="text-lg font-medium line-through text-gray-500">
-                           {formatPrice(originalTotalPrice)}
-                         </span>
-                       </div>
-                       <div className="flex justify-between items-center py-2 border-b">
-                         <span className="text-gray-600">할인 적용 금액</span>
-                         <span className="text-lg font-medium text-red-600">
-                           -{formatPrice(discountAmount)}
-                         </span>
-                       </div>
-                       <div className="flex justify-between items-center py-4">
-                         <span className="text-lg font-semibold">총 결제금액</span>
-                         <span className="text-2xl font-bold text-blue-600">
-                           {formatPrice(actualPaymentPrice)}
-                         </span>
-                       </div>
-                     </>
-                  ) : (
-                    // 할인이 없는 경우: 총 결제 금액만 표시
-                    <div className="flex justify-between items-center py-4 border-t">
-                      <span className="text-lg font-semibold">총 결제금액</span>
-                      <span className="text-2xl font-bold text-blue-600">
-                        {formatPrice(actualPaymentPrice)}
-                      </span>
+        {/* 결제 정보 */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">결제 정보</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 기본 결제 정보 */}
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">결제 수단:</span>
+                <span className="font-medium">{getDetailedPaymentMethodText(orderDetail.paymentMethod, orderDetail.paymentInfo)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">총 결제 금액:</span>
+                <span className="font-bold text-blue-600 text-lg">{formatPrice(orderDetail.totalPrice)}</span>
+              </div>
+              {orderDetail.paymentInfo && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">결제 키:</span>
+                    <span className="font-mono text-sm">{orderDetail.paymentInfo.paymentKey}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">승인 일시:</span>
+                    <span>{formatDateTime(orderDetail.paymentInfo.approvedAt)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">결제 상태:</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      orderDetail.paymentInfo.status === 'DONE' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {orderDetail.paymentInfo.status === 'DONE' ? '결제 완료' : orderDetail.paymentInfo.status}
+                    </span>
+                  </div>
+                  {orderDetail.paymentInfo.receiptUrl && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">영수증:</span>
+                      <a 
+                        href={orderDetail.paymentInfo.receiptUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        영수증 보기
+                      </a>
                     </div>
                   )}
+                </>
+              )}
+            </div>
+
+            {/* 상세 결제 정보 */}
+            {orderDetail.paymentInfo && (
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">공급가액:</span>
+                  <span>{formatPrice(orderDetail.paymentInfo.suppliedAmount)}</span>
                 </div>
-              );
-            })()}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">부가세:</span>
+                  <span>{formatPrice(orderDetail.paymentInfo.vat)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">부분취소 가능:</span>
+                  <span className={orderDetail.paymentInfo.isPartialCancelable ? 'text-green-600' : 'text-red-600'}>
+                    {orderDetail.paymentInfo.isPartialCancelable ? '가능' : '불가능'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* 카드 결제 정보 */}
+          {orderDetail.paymentInfo?.cardInfo && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-md font-semibold mb-3 text-gray-800">카드 결제 상세</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">카드번호:</span>
+                    <span className="font-mono">{orderDetail.paymentInfo.cardInfo.cardNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">발행사:</span>
+                    <span>{orderDetail.paymentInfo.cardInfo.issuerCode}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">승인번호:</span>
+                    <span className="font-mono">{orderDetail.paymentInfo.cardInfo.approveNo}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">할부:</span>
+                    <span>
+                      {orderDetail.paymentInfo.cardInfo.installmentMonths === 0 
+                        ? '일시불' 
+                        : `${orderDetail.paymentInfo.cardInfo.installmentMonths}개월`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">무이자:</span>
+                    <span className={orderDetail.paymentInfo.cardInfo.isInterestFree ? 'text-green-600' : 'text-gray-600'}>
+                      {orderDetail.paymentInfo.cardInfo.isInterestFree ? '무이자' : '일반'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">카드 타입:</span>
+                    <span>{getCardTypeText(orderDetail.paymentInfo.cardInfo.cardType)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">소유자:</span>
+                    <span>{getOwnerTypeText(orderDetail.paymentInfo.cardInfo.ownerType)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
                    {/* 하단 버튼 */}
           <div className="flex justify-start">

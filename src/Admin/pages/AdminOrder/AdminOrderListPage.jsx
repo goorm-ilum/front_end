@@ -3,30 +3,33 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import Pagination from '../../../common/Pagination';
-import { getAdminOrders } from '../../../common/api/orderApi';
+import Pagination from '../../../common/util/Pagination';
+import useOrderPagination from '../../../common/hook/useOrderPagination';
 import { useCustomLogin } from '../../../common/hook/useCustomLogin';
 
 const AdminOrderListPage = () => {
   const location = useLocation();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const { isLogin, moveToLogin } = useCustomLogin();
   const navigate = useNavigate();
 
+  // 새로운 페이지네이션 훅 사용
+  const {
+    data: orders,
+    loading,
+    error,
+    totalItems,
+    filters,
+    updateSort,
+    updatePaymentFilter,
+    updateKeyword,
+    updateOrderStatus,
+    updatePageSize,
+    resetFilters,
+    changePage
+  } = useOrderPagination();
+
   // 검색 input 상태, 실제 검색어
   const [inputValue, setInputValue] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // 정렬 / 필터
-  const [sortKey, setSortKey] = useState('date');        // date / amount / id
-  const [paymentFilter, setPaymentFilter] = useState(''); // '' / 카드 / 토스 / 계좌이체
-
-  // 페이징
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pagedOrders, setPagedOrders] = useState([]);
-  const [itemsPerPage, setItemsPerPage] = useState(15); // 페이지당 아이템 개수
 
   // 체크박스 선택 상태
   const [selectedOrders, setSelectedOrders] = useState(new Set());
@@ -35,46 +38,18 @@ const AdminOrderListPage = () => {
   // 상태 초기화 함수
   const resetToInitialState = () => {
     setInputValue('');
-    setSearchTerm('');
-    setSortKey('date');
-    setPaymentFilter('');
-    setCurrentPage(1);
+    resetFilters();
     setSelectedOrders(new Set());
     setSelectAll(false);
   };
 
-  // API에서 주문 데이터 로드
+  // 로그인 체크
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        if (!isLogin) {
-          setError('로그인이 필요합니다.');
-          return;
-        }
-        
-        const data = await getAdminOrders();
-        setOrders(data);
-      } catch (err) {
-        console.error('주문 데이터 로드 실패:', err);
-        
-        if (err.message === '로그인이 필요합니다.') {
-          setError('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
-          setTimeout(() => moveToLogin(), 2000);
-        } else if (err.message === '관리자 권한이 필요합니다.') {
-          setError('관리자 권한이 필요합니다. 관리자 계정으로 로그인해주세요.');
-        } else {
-          setError('주문 데이터를 불러오는데 실패했습니다.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, [isLogin]); // moveToLogin 제거
+    if (!isLogin) {
+      // 로그인 상태가 아니면 에러 처리
+      return;
+    }
+  }, [isLogin]);
 
   // forceRefresh 처리
   useEffect(() => {
@@ -86,7 +61,7 @@ const AdminOrderListPage = () => {
   // 검색 버튼 클릭
   const handleSearch = e => {
     e.preventDefault();
-    setSearchTerm(inputValue.trim());
+    updateKeyword(inputValue.trim());
   };
 
   // 행 클릭 핸들러
@@ -216,48 +191,8 @@ const AdminOrderListPage = () => {
     }
   };
 
-  // 검색/필터/정렬 적용
-  const processedOrders = useMemo(() => {
-    let filtered = [...orders];
-
-    if (searchTerm !== '') {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(o =>
-        o.productName.toLowerCase().includes(term)
-      );
-    }
-
-    if (paymentFilter) {
-      const paymentText = getPaymentMethodText(paymentFilter);
-      filtered = filtered.filter(o => getPaymentMethodText(o.paymentMethod) === paymentText);
-    }
-
-    filtered.sort((a, b) => {
-      switch (sortKey) {
-        case 'amount':
-          return b.totalPrice - a.totalPrice;
-        case 'id':
-          return a.orderCode.localeCompare(b.orderCode);
-        case 'date':
-        default:
-          return new Date(b.createdAt) - new Date(a.createdAt);
-      }
-    });
-
-    return filtered;
-  }, [orders, searchTerm, paymentFilter, sortKey]);
-
-  // 조건 바뀌면 페이지 초기화
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, paymentFilter, sortKey, itemsPerPage]);
-
-  // processedOrders가 변경될 때마다 현재 페이지 아이템 업데이트
-  useEffect(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    setPagedOrders(processedOrders.slice(startIndex, endIndex));
-  }, [processedOrders, currentPage, itemsPerPage]);
+  // 현재 페이지의 주문들
+  const pagedOrders = orders;
 
   // 페이지가 변경될 때마다 전체 선택 상태 업데이트
   useEffect(() => {
@@ -339,13 +274,61 @@ const AdminOrderListPage = () => {
 
         {/* 검색 및 필터 영역 */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300">
-          <div className="flex items-center mb-6">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-4">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-4">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">검색 및 필터</h2>
             </div>
-            <h2 className="text-xl font-bold text-gray-900">검색 및 필터</h2>
+            
+            {/* 현재 필터 상태 표시 */}
+            {(filters.paymentMethod || filters.keyword || filters.orderStatus) && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">적용된 필터:</span>
+                {filters.paymentMethod && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    결제수단: {getPaymentMethodText(filters.paymentMethod)}
+                    <button
+                      onClick={() => updatePaymentFilter('')}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {filters.keyword && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    검색: {filters.keyword}
+                    <button
+                      onClick={() => updateKeyword('')}
+                      className="ml-1 text-green-600 hover:text-green-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {filters.orderStatus && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    상태: {getOrderStatusText(filters.orderStatus)}
+                    <button
+                      onClick={() => updateOrderStatus('')}
+                      className="ml-1 text-yellow-600 hover:text-yellow-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                <button
+                  onClick={resetFilters}
+                  className="text-sm text-red-600 hover:text-red-800 font-medium"
+                >
+                  모든 필터 초기화
+                </button>
+              </div>
+            )}
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -372,10 +355,10 @@ const AdminOrderListPage = () => {
             {/* 필터 영역 */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-gray-700">정렬 및 필터</label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <select
-                  value={sortKey}
-                  onChange={e => setSortKey(e.target.value)}
+                  value={filters.sort}
+                  onChange={e => updateSort(e.target.value)}
                   className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50 font-medium"
                 >
                   <option value="date">주문일순</option>
@@ -383,8 +366,8 @@ const AdminOrderListPage = () => {
                   <option value="id">주문번호순</option>
                 </select>
                 <select
-                  value={paymentFilter}
-                  onChange={e => setPaymentFilter(e.target.value)}
+                  value={filters.paymentMethod}
+                  onChange={e => updatePaymentFilter(e.target.value)}
                   className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50 font-medium"
                 >
                   <option value="">결제수단 전체</option>
@@ -397,8 +380,19 @@ const AdminOrderListPage = () => {
                   <option value="MOBILE">휴대폰결제</option>
                 </select>
                 <select
-                  value={itemsPerPage}
-                  onChange={e => setItemsPerPage(Number(e.target.value))}
+                  value={filters.orderStatus}
+                  onChange={e => updateOrderStatus(e.target.value)}
+                  className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50 font-medium"
+                >
+                  <option value="">주문상태 전체</option>
+                  <option value="PENDING">결제대기</option>
+                  <option value="SUCCESS">예약확정</option>
+                  <option value="FAILED">결제실패</option>
+                  <option value="CANCELLED">예약취소</option>
+                </select>
+                <select
+                  value={filters.size}
+                  onChange={e => updatePageSize(e.target.value)}
                   className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50 font-medium"
                 >
                   <option value={15}>15개씩 보기</option>
@@ -519,14 +513,14 @@ const AdminOrderListPage = () => {
         </div>
 
         {/* 페이징 - 전체 아이템 수가 페이지 크기보다 클 때만 표시 */}
-        {processedOrders.length > itemsPerPage && (
+        {totalItems > filters.size && (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
             <div className="flex items-center justify-center">
               <Pagination
-                totalItems={processedOrders.length}
-                itemsPerPage={itemsPerPage}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
+                totalItems={totalItems}
+                itemsPerPage={filters.size}
+                currentPage={filters.page}
+                onPageChange={changePage}
                 className="pagination-modern"
               />
             </div>

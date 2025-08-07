@@ -2,7 +2,7 @@ import axiosInstance from './mainApi';
 import { getCookie } from '../util/cookieUtil';
 
 // 관리자 주문 목록 조회
-export const getAdminOrders = async () => {
+export const getAdminOrders = async (params = {}) => {
   try {
     const member = getCookie("member");
     
@@ -10,7 +10,18 @@ export const getAdminOrders = async () => {
       throw new Error("로그인이 필요합니다.");
     }
 
-    const response = await axiosInstance.get('/api/admin/orders/me');
+    // 쿼리 파라미터 구성
+    const queryParams = new URLSearchParams();
+    
+    if (params.page !== undefined) queryParams.append('page', params.page);
+    if (params.size !== undefined) queryParams.append('size', params.size);
+    if (params.sort !== undefined) queryParams.append('sort', params.sort);
+    if (params.paymentMethod !== undefined) queryParams.append('paymentMethod', params.paymentMethod);
+    if (params.keyword !== undefined) queryParams.append('keyword', params.keyword);
+    if (params.orderStatus !== undefined) queryParams.append('orderStatus', params.orderStatus);
+
+    const url = `/api/admin/orders/me${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const response = await axiosInstance.get(url);
     return response.data;
   } catch (error) {
     console.error('관리자 주문 목록 조회 실패:', error);

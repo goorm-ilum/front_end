@@ -1,7 +1,6 @@
-// src/pages/admin/products/AdminProductListPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import Pagination from '../../../common/Pagination';
+import Pagination from '../../../common/util/Pagination';
 import { getAdminProducts, searchAdminProducts, sortAdminProducts, deleteAdminProduct } from '../../../common/api/adminApi';
 import MessagePopup from '../../../common/components/MessagePopup';
 import SuccessModal from '../../../components/SuccessModal';

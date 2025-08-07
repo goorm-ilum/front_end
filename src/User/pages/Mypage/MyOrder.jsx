@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MessagePopup from '../../../common/components/MessagePopup';
+import Pagination from '../../../common/util/Pagination';
+import { MypageCommonStyles, MypageComponents, MypageIcons } from './MypageCommonStyles';
 
-const ITEMS_PER_PAGE = 5;
+
 
 const MyOrder = () => {
-  const [currentPage, setCurrentPage] = useState(1);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,83 +16,70 @@ const MyOrder = () => {
   const [messageData, setMessageData] = useState({ message: '', type: 'info' });
   const navigate = useNavigate();
 
+  // 페이지네이션 설정
+  const [page, setPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 5;
+
   // 주문 내역 조회
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/orders/me', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        });
+  const loadOrders = async (pageNum = 0) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/orders/me?page=${pageNum}&size=${itemsPerPage}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
 
-        if (!response.ok) {
-          if (response.status === 401) {
-            setMessageData({ message: '로그인이 필요합니다.', type: 'warning' });
-            setShowMessagePopup(true);
-            navigate('/');
-            return;
-          }
-          throw new Error('주문 내역 조회에 실패했습니다.');
+      if (!response.ok) {
+        if (response.status === 401) {
+          setMessageData({ message: '로그인이 필요합니다.', type: 'warning' });
+          setShowMessagePopup(true);
+          navigate('/');
+          return;
         }
-
-        const data = await response.json();
-        console.log('주문 데이터:', data); // 날짜 형식 확인용 로그
-        // 배열 형태의 날짜를 Date 객체로 변환하는 함수
-        const parseDateFromArray = (dateArray) => {
-          if (Array.isArray(dateArray)) {
-            // [year, month, day, hour, minute, second, nano] 형태
-            const [year, month, day, hour = 0, minute = 0, second = 0] = dateArray;
-            return new Date(year, month - 1, day, hour, minute, second); // month는 0-based
-          }
-          return new Date(dateArray);
-        };
-
-        // 최신순으로 정렬 (createdAt 기준 내림차순)
-        console.log('정렬 전 데이터:', data.map(item => ({ 
-          productName: item.productName, 
-          createdAt: item.createdAt,
-          parsedDate: parseDateFromArray(item.createdAt)
-        })));
-        
-        const sortedOrders = data.sort((a, b) => {
-          const dateA = parseDateFromArray(a.createdAt);
-          const dateB = parseDateFromArray(b.createdAt);
-          
-          // 날짜가 유효하지 않은 경우 처리
-          if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
-            console.error('Invalid date detected:', { a: a.createdAt, b: b.createdAt });
-            return 0;
-          }
-          
-          return dateB.getTime() - dateA.getTime(); // 최신순 (내림차순)
-        });
-        
-        console.log('정렬 후 데이터:', sortedOrders.map(item => ({ 
-          productName: item.productName, 
-          createdAt: item.createdAt,
-          parsedDate: parseDateFromArray(item.createdAt)
-        })));
-        setOrders(sortedOrders);
-      } catch (err) {
-        console.error('주문 내역 조회 오류:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        throw new Error('주문 내역 조회에 실패했습니다.');
       }
-    };
 
-    fetchOrders();
+      const data = await response.json();
+      
+      // 백엔드 응답 구조에 맞게 데이터 처리
+      if (data.content) {
+        // 페이지네이션 응답 구조
+        setOrders(data.content);
+        setTotalItems(data.totalElements || 0);
+      } else if (Array.isArray(data)) {
+        // 배열 형태 응답
+        setOrders(data);
+        setTotalItems(data.length);
+      } else {
+        setOrders([]);
+        setTotalItems(0);
+      }
+      
+    } catch (err) {
+      console.error('주문 내역 조회 오류:', err);
+      setError(err.message);
+      setOrders([]);
+      setTotalItems(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 데이터 로드
+  useEffect(() => {
+    loadOrders(0);
   }, [navigate]);
 
-  const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
-  const paginatedOrders = orders.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  // 페이지 변경 시 API 호출
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    const pageIndex = newPage - 1;
+    loadOrders(pageIndex);
+  };
 
   // 리뷰 작성 버튼 클릭 핸들러
   const handleReviewClick = async (productId) => {
@@ -99,9 +87,7 @@ const MyOrder = () => {
       // 리뷰 작성 가능 여부를 확인하기 위해 API 호출
       const response = await fetch(`/api/products/${productId}/reviews/form`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         credentials: 'include',
       });
 
@@ -164,51 +150,62 @@ const MyOrder = () => {
     }
   };
 
+  const getPaymentMethodText = (paymentMethod) => {
+    switch (paymentMethod) {
+      case 'CARD': return '카드';
+      case 'ACCOUNT': return '계좌이체';
+      case 'EASY_PAY': return '간편결제';
+      case 'MOBILE': return '휴대폰결제';
+      case 'VIRTUAL_ACCOUNT': return '가상계좌';
+      case 'UNKNOWN': return '알 수 없음';
+      default: return paymentMethod;
+    }
+  };
+
   if (loading) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">내 구매내역</h1>
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">주문 내역을 불러오는 중...</p>
-        </div>
+      <div className={MypageCommonStyles.pageContainer}>
+        <MypageComponents.PageHeader 
+          title="내 구매내역" 
+          subtitle="구매한 상품들의 내역을 확인하세요"
+        />
+        <MypageComponents.Loading message="주문 내역을 불러오는 중..." />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">내 구매내역</h1>
-        <div className="text-center py-8">
-          <p className="text-red-600 mb-4">오류가 발생했습니다: {error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            다시 시도
-          </button>
-        </div>
+      <div className={MypageCommonStyles.pageContainer}>
+        <MypageComponents.PageHeader 
+          title="내 구매내역" 
+          subtitle="구매한 상품들의 내역을 확인하세요"
+        />
+        <MypageComponents.Error 
+          message={`오류가 발생했습니다: ${error}`} 
+          onRetry={() => loadOrders(0)}
+        />
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">내 구매내역</h1>
+    <div className={MypageCommonStyles.pageContainer}>
+      <MypageComponents.PageHeader 
+        title="내 구매내역" 
+        subtitle="구매한 상품들의 내역을 확인하세요"
+      />
 
       {orders.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-gray-500 text-lg mb-4">구매 내역이 없습니다.</div>
-          <button 
-            onClick={() => navigate('/commerce')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-          >
-            쇼핑하러 가기
-          </button>
-        </div>
+        <MypageComponents.Empty
+          icon={<MypageIcons.Order />}
+          title="구매 내역이 없습니다"
+          subtitle="아직 구매한 상품이 없어요. 다양한 상품을 둘러보세요!"
+          buttonText="쇼핑하러 가기"
+          onButtonClick={() => navigate('/commerce')}
+        />
       ) : (
-        paginatedOrders.map((order, index) => (
+        orders.map((order, index) => (
           <div
             key={index}
             className="border rounded-lg p-4 mb-6 shadow-sm flex gap-4"
@@ -223,7 +220,7 @@ const MyOrder = () => {
               <div className="text-lg font-semibold">{order.productName}</div>
               <div className="text-sm text-gray-600">
                 <span className="mr-4">구매일: {formatDate(order.createdAt)}</span>
-                <span className="mr-4">결제: {order.paymentMethod}</span>
+                <span className="mr-4">결제: {getPaymentMethodText(order.paymentMethod)}</span>
               </div>
               <div className="text-lg font-bold text-blue-700">
                 총 결제금액: {order.totalPrice.toLocaleString()}원
@@ -252,34 +249,14 @@ const MyOrder = () => {
               )}
 
       {/* 페이지네이션 */}
-      {orders.length > 0 && totalPages > 1 && (
-        <div className="flex justify-center mt-6 space-x-2">
-          <button
-            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
-          >
-            이전
-          </button>
-          {Array.from({ length: totalPages }).map((_, idx) => (
-            <button
-              key={idx + 1}
-              onClick={() => setCurrentPage(idx + 1)}
-              className={`px-3 py-1 border rounded hover:bg-gray-100 ${
-                currentPage === idx + 1 ? 'bg-blue-100 font-bold' : ''
-              }`}
-            >
-              {idx + 1}
-            </button>
-          ))}
-          <button
-            onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
-          >
-            다음
-          </button>
-        </div>
+      {totalItems > 0 && (
+        <Pagination
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          currentPage={page}
+          onPageChange={handlePageChange}
+          className="mt-6"
+        />
       )}
 
 
