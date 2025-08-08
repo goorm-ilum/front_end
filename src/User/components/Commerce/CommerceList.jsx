@@ -720,7 +720,9 @@ const CommerceList = () => {
               
               <div className="p-4 flex-1 flex flex-col justify-between">
                 <div>
-                  <div className="text-lg font-semibold mb-1 cursor-pointer text-gray-900 hover:text-blue-600" onClick={() => navigate(`${product.id}`)}>{product.title}</div>
+                  <div className="text-lg font-semibold mb-1 cursor-pointer text-gray-900 hover:text-blue-600" onClick={() => navigate(`${product.id}`)}>
+                    {product.title.length > 20 ? `${product.title.substring(0, 20)}...` : product.title}
+                  </div>
                   <div className="text-gray-600 text-sm mb-2">{product.description}</div>
                 </div>
                 <div className="flex items-center justify-between mt-2">

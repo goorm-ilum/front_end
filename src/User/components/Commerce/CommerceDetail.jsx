@@ -476,9 +476,11 @@ const CommerceDetail = () => {
             )}
             
             {/* 제목과 좋아요, 국가 정보를 한 줄에 배치 */}
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-3xl font-bold text-gray-900">{product.title}</h2>
-              <div className="flex items-center gap-3">
+            <div className="flex items-start justify-between mb-2">
+              <h2 className="text-3xl font-bold text-gray-900 flex-1 min-w-0 mr-4 break-words">
+                {product.title}
+              </h2>
+              <div className="flex items-center gap-3 flex-shrink-0">
                 <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">❤️ {isLiked ? '1' : '0'}</span>
                 <span className="text-sm text-gray-500 border border-gray-300 rounded-full px-3 py-1">📍 {product.countryName}</span>
               </div>
