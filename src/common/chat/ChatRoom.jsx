@@ -130,10 +130,10 @@ const dummyMessages = {
   ],
 };
 
-const ChatRoom = () => {
+const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
   const { roomId } = useParams();
-  // 하드코딩으로 ROOM001 사용
-  const actualRoomId = 'ROOM001';
+  // URL에서 가져온 roomId 사용
+  const actualRoomId = roomId || 'ROOM001';
   const scrollRef = useRef();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -143,87 +143,168 @@ const ChatRoom = () => {
   // 현재 사용자 ID (실제로는 로그인한 사용자 ID를 가져와야 함)
   const currentUserId = 'dhrdbs';
 
-  console.log('=== ChatRoom 컴포넌트 렌더링 ===');
+  // 날짜를 yyyy-mm-dd hh:mm:ss 형식으로 변환하는 함수
+  const formatDateTime = (dateInput) => {
+    if (!dateInput) return '';
+    
+
+    
+    try {
+      let date;
+      
+      // Date 객체인 경우
+      if (dateInput instanceof Date) {
+
+        date = dateInput;
+      }
+      // 배열 형태인 경우 (예: [2025, 7, 7, 16, 59, 9] - 월은 0부터 시작)
+      else if (Array.isArray(dateInput)) {
+
+        const [year, month, day, hours = 0, minutes = 0, seconds = 0] = dateInput;
+        date = new Date(year, month - 1, day, hours, minutes, seconds); // 반드시 month - 1
+      }
+      // 콤마로 구분된 문자열인 경우 (예: "2025,8,7,16,59,9")
+      else if (typeof dateInput === 'string' && dateInput.includes(',')) {
+
+        const parts = dateInput.split(',').map(part => parseInt(part.trim()));
+        const [year, month, day, hours = 0, minutes = 0, seconds = 0] = parts;
+        // 월은 0부터 시작하므로 1을 빼줌
+        date = new Date(year, month - 1, day, hours, minutes, seconds);
+      }
+      // 타임스탬프 숫자인 경우 (13자리 밀리초 또는 10자리 초)
+      else if (typeof dateInput === 'number') {
+
+        // 10자리면 초 단위이므로 1000을 곱해서 밀리초로 변환
+        const timestamp = dateInput.toString().length === 10 ? dateInput * 1000 : dateInput;
+        date = new Date(timestamp);
+      }
+      // 문자열 숫자인 경우 (예: "1736939200000")
+      else if (typeof dateInput === 'string' && /^\d+$/.test(dateInput)) {
+
+        const timestamp = parseInt(dateInput);
+        // 10자리면 초 단위이므로 1000을 곱해서 밀리초로 변환
+        const finalTimestamp = dateInput.length === 10 ? timestamp * 1000 : timestamp;
+        date = new Date(finalTimestamp);
+      }
+      // 일반 문자열 날짜인 경우
+      else {
+
+        date = new Date(dateInput);
+      }
+      
+      // 유효한 날짜인지 확인
+      if (isNaN(date.getTime())) {
+
+        return String(dateInput); // 파싱 실패 시 문자열로 반환
+      }
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      
+      const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+      return formatted;
+    } catch (error) {
+
+      return String(dateInput); // 에러 시 문자열로 반환
+    }
+  };
+
+
 
 
   // 로그인 상태 확인
   const checkAuthStatus = () => {
     const member = getCookie("member");
-    console.log('=== 인증 상태 확인 ===');
-    console.log('member 쿠키:', member);
+
+
     
     if (member) {
-      console.log('accessToken 존재:', !!member.accessToken);
-      console.log('refreshToken 존재:', !!member.refreshToken);
+
+
       return true;
     } else {
-      console.log('로그인이 필요합니다.');
+
       return false;
     }
   };
 
-  const stompClientRef = useRef(null);
-
+  // ChatPage.jsx에서 WebSocket 메시지를 받아 처리하는 콜백 등록
   useEffect(() => {
-    const initWebSocket = async () => {
-      try {
-        const SockJS = (await import('sockjs-client')).default;
-        const socket = new SockJS('http://localhost:8080/ws');
-        const client = new Client({
-          webSocketFactory: () => socket,
-          reconnectDelay: 5000,
-          heartbeatIncoming: 4000,
-          heartbeatOutgoing: 4000,
-          debug: (msg) => console.log('STOMP DEBUG:', msg),
-        });
+    if (onMessageUpdate) {
+      const handleNewMessage = (chatMessage) => {
 
-        client.onConnect = () => {
-          console.log('✅ WebSocket 연결 성공');
-          client.subscribe(`/topic/chat/${actualRoomId}`, (message) => {
-            const newMessage = JSON.parse(message.body);
-            // createdAt 필드가 없으면 현재 시간 추가
-            if (!newMessage.createdAt) {
-              const now = new Date();
-              newMessage.createdAt = now.toISOString().slice(0, 19).replace('T', ' ');
+        
+        // createdAt 필드가 없으면 현재 시간 추가
+        if (!chatMessage.createdAt) {
+          const now = new Date();
+          chatMessage.createdAt = formatDateTime(now); // formatDateTime 함수 사용
+
+        }
+        
+        // 중복 메시지 방지
+        setMessages((prev) => {
+          let isDuplicate = false;
+          
+          if (chatMessage.messageId) {
+            // messageId가 있는 경우
+            isDuplicate = prev.some(msg => msg.messageId === chatMessage.messageId);
+            if (isDuplicate) {
+  
+              return prev;
             }
-            setMessages((prev) => [...prev, newMessage]);
-          });
-          stompClientRef.current = client;
-        };
+          } else {
+            // messageId가 없는 경우 - 메시지 내용, 발신자로 중복 체크 (시간은 5초 이내면 같은 메시지로 인식)
+            const currentTime = new Date(chatMessage.createdAt).getTime();
+            isDuplicate = prev.some(msg => {
+              if (msg.message === chatMessage.message && msg.memberId === chatMessage.memberId) {
+                // 시간이 5초 이내인지 확인
+                if (msg.createdAt) {
+                  const msgTime = new Date(msg.createdAt).getTime();
+                  const timeDiff = Math.abs(currentTime - msgTime);
+                  if (timeDiff < 5000) { // 5초 이내
+                    return true;
+                  }
+                }
+              }
+              return false;
+            });
+            
+            if (isDuplicate) {
 
-        client.onStompError = (frame) => {
-          console.error('❌ STOMP 에러:', frame);
-        };
+              return prev;
+            }
+          }
+          
 
-        client.activate();
-      } catch (error) {
-        console.error('WebSocket 초기화 실패:', error);
-      }
-    };
 
-    initWebSocket();
-
-    return () => {
-      if (stompClientRef.current) {
-        stompClientRef.current.deactivate();
-      }
-    };
-  }, [actualRoomId]);
+          return [...prev, chatMessage];
+        });
+      };
+      
+      // 콜백 등록
+      onMessageUpdate(handleNewMessage);
+    }
+  }, [onMessageUpdate]);
   
 
 
   useEffect(() => {
-    console.log('=== ChatRoom useEffect 실행 ===');
-    console.log('useEffect - actualRoomId:', actualRoomId);
-    console.log('useEffect - actualRoomId 타입:', typeof actualRoomId);
+
+
+
     
     const fetchChatMessages = async () => {
-      console.log('=== fetchChatMessages 함수 시작 ===');
-      console.log('actualRoomId 값:', actualRoomId);
-      console.log('actualRoomId 타입:', typeof actualRoomId);
+
+
+
       
       if (!actualRoomId) {
-        console.log('actualRoomId가 없어서 더미 데이터를 사용합니다.');
+
         const roomMessages = dummyMessages[actualRoomId] || [];
         setMessages(roomMessages);
         setLoading(false);
@@ -231,36 +312,36 @@ const ChatRoom = () => {
       }
 
       // 개발 단계에서는 인증 체크를 건너뛰고 API 호출
-      console.log('개발 단계: 인증 체크를 건너뛰고 API 호출을 진행합니다.');
+
 
       try {
         setLoading(true);
         setError(null);
         
-        console.log('=== 채팅방 메시지 API 호출 시작 ===');
+
         const apiUrl = `/api/chat/me/chatRooms/${roomId}`;
-        console.log('호출 URL:', apiUrl);
-        console.log('axiosInstance 설정:', axiosInstance.defaults);
-        console.log('baseURL:', axiosInstance.defaults.baseURL);
-        console.log('전체 URL:', `${axiosInstance.defaults.baseURL}${apiUrl}`);
+
+
+
+
         
         // API 호출 전 로그
-        console.log('API 호출 직전...');
+
         const response = await axiosInstance.get(apiUrl);
-        console.log('API 호출 완료!');
-        console.log('채팅방 메시지 API 응답:', response);
-        console.log('응답 데이터:', response.data);
+
+
+
         
         if (response.data && Array.isArray(response.data)) {
-          console.log('API에서 메시지 데이터를 받았습니다:', response.data);
+
           setMessages(response.data);
         } else {
-          console.log('API 응답이 배열이 아니거나 비어있어서 더미 데이터를 사용합니다.');
+
           const roomMessages = dummyMessages[roomId] || [];
           setMessages(roomMessages);
         }
       } catch (error) {
-        console.error('채팅방 메시지 가져오기 실패:', error);
+
         
         setError('메시지를 불러오는데 실패했습니다.');
         
@@ -269,11 +350,11 @@ const ChatRoom = () => {
         setMessages(roomMessages);
       } finally {
         setLoading(false);
-        console.log('=== fetchChatMessages 함수 종료 ===');
+
       }
     };
 
-    console.log('fetchChatMessages 함수 호출...');
+
     fetchChatMessages();
   }, [roomId]);
 
@@ -284,54 +365,52 @@ const ChatRoom = () => {
     }
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const messageDto = {
       roomId: actualRoomId,
       memberId: 'dhrdbs',
-      message: input,
+      receiverId: 'JTRweb',
+      message: input
     };
 
-    if (stompClientRef.current) {
+    // 즉시 로컬 상태에 메시지 추가 (즉시 화면에 표시)
+    const now = new Date();
+    const createdAt = formatDateTime(now); // formatDateTime 함수 사용
+    const newMessage = {
+      messageId: `msg${Date.now()}`,
+      memberId: 'dhrdbs',
+      message: input,
+      createdAt,
+    };
+    
+    // 즉시 메시지를 화면에 추가
+    setMessages((prev) => [...prev, newMessage]);
+    setInput('');
+
+    // ChatPage.jsx의 WebSocket을 통한 메시지 전송
+
+
+    
+    if (onSendMessage) {
       try {
-        console.log('📨 WebSocket 전송 시도:', messageDto);
-        console.log('🔍 stompClientRef.current:', stompClientRef.current);
-        console.log('🔍 사용 가능한 메서드:', Object.getOwnPropertyNames(stompClientRef.current));
+        const result = onSendMessage(messageDto);
         
-        // publish 메서드 사용
-        stompClientRef.current.publish({
-          destination: "/app/chat/message",
-          body: JSON.stringify(messageDto),
-        });
+        if (result.success) {
+
+        } else {
+
+          console.warn('메시지는 화면에 추가되었지만 서버 전송에 실패했습니다.');
+        }
         
-        setInput('');
       } catch (error) {
-        console.error('❌ WebSocket 전송 실패:', error);
-        // 전송 실패 시 로컬에 추가
-        const now = new Date();
-        const createdAt = now.toISOString().slice(0, 19).replace('T', ' ');
-        const fallbackMsg = {
-          messageId: `msg${Date.now()}`,
-          memberId: 'dhrdbs',
-          message: input,
-          createdAt,
-        };
-        setMessages((prev) => [...prev, fallbackMsg]);
-        setInput('');
+        console.error('❌ 메시지 전송 콜백 실행 실패:', error);
+        console.warn('메시지는 화면에 추가되었지만 서버 전송에 실패했습니다.');
       }
     } else {
-      console.warn('⚠️ WebSocket 연결 안됨 - 로컬 메시지만 추가');
-      const now = new Date();
-      const createdAt = now.toISOString().slice(0, 19).replace('T', ' ');
-      const fallbackMsg = {
-        messageId: `msg${Date.now()}`,
-        memberId: 'dhrdbs',
-        message: input,
-        createdAt,
-      };
-      setMessages((prev) => [...prev, fallbackMsg]);
-      setInput('');
+      console.warn('⚠️ onSendMessage 콜백이 없어서 서버 전송을 건너뜀');
+      console.warn('⚠️ 로컬 메시지만 추가됨');
     }
   };
   
@@ -346,8 +425,13 @@ const ChatRoom = () => {
     <div className="flex flex-col h-full bg-white rounded-lg shadow">
       {/* 채팅방 헤더 */}
       <div className="px-4 py-3 border-b bg-gray-50 rounded-t-lg">
-        <h3 className="font-semibold text-gray-900">채팅방 {roomId}</h3>
-        <p className="text-sm text-gray-500">총 {messages.length}개의 메시지</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900">채팅방 {roomId}</h3>
+            <p className="text-sm text-gray-500">총 {messages.length}개의 메시지</p>
+          </div>
+
+        </div>
       </div>
 
       {/* 메시지 리스트 */}
@@ -377,7 +461,7 @@ const ChatRoom = () => {
                 <p className={`text-xs mt-1 ${
                   m.memberId === currentUserId ? 'text-blue-100' : 'text-gray-500'
                 }`}>
-                  {m.createdAt}
+                  {formatDateTime(m.createdAt)}
                 </p>
               </div>
             </div>
@@ -394,13 +478,13 @@ const ChatRoom = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-main focus:border-transparent"
             placeholder="메시지를 입력하세요..."
           />
           <div className={`transition-all duration-500 ease-in-out ${input.trim() ? 'opacity-100 scale-100 w-auto' : 'opacity-0 scale-95 w-0 overflow-hidden'}`}>
             <button
               onClick={handleSend}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+              className="btn-main px-4 py-2 rounded-lg hover:opacity-90 transition-colors whitespace-nowrap"
             >
               전송
             </button>
