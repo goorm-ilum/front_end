@@ -290,6 +290,12 @@ const AdminProductFormPage = () => {
   const handleDetailImagesChange = (e) => {
     const files = Array.from(e.target.files);
     console.log('=== handleDetailImagesChange 디버깅 ===');
+    console.log('handleDetailImagesChange 호출됨');
+    console.log('이벤트 객체:', e);
+    console.log('e.target:', e?.target);
+    console.log('e.target.files:', e?.target?.files);
+    console.log('=== handleDetailImagesChange 디버깅 ===');
+
     console.log('선택된 파일들:', files);
     console.log('파일 개수:', files.length);
     

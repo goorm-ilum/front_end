@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MessagePopup from '../../../common/components/MessagePopup';
 import Pagination from '../../../common/util/Pagination';
+import { getAuthHeaders } from '../../../common/util/jwtUtil';
 import { MypageCommonStyles, MypageComponents, MypageIcons } from './MypageCommonStyles';
 
 
@@ -29,7 +30,7 @@ const MyOrder = () => {
       
       const response = await fetch(`/api/orders/me?page=${pageNum}&size=${itemsPerPage}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         credentials: 'include',
       });
 

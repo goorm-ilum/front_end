@@ -1,6 +1,32 @@
 import axiosInstance from './mainApi';
 import { getCookie } from '../util/cookieUtil';
 
+// 주문 생성
+export const createOrder = async (productId, orderData) => {
+  try {
+    const member = getCookie("member");
+    
+    if (!member || !member.accessToken) {
+      throw new Error("로그인이 필요합니다.");
+    }
+
+    const response = await axiosInstance.post(`/api/orders/${productId}`, orderData);
+    return response.data;
+  } catch (error) {
+    console.error('주문 생성 실패:', error);
+    
+    if (error.response?.status === 401) {
+      throw new Error('로그인이 필요합니다.');
+    }
+    
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    
+    throw new Error('주문 생성에 실패했습니다.');
+  }
+};
+
 // 관리자 주문 목록 조회
 export const getAdminOrders = async (params = {}) => {
   try {

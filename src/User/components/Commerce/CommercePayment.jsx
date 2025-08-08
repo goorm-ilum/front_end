@@ -2,6 +2,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getProductDetail } from '../../../common/api/productApi';
+import { createOrder as createOrderApi } from '../../../common/api/orderApi';
 import { getAuthHeaders } from '../../../common/util/jwtUtil';
 
 // 한국 시간 기준으로 날짜 문자열 생성 (공통 함수)
@@ -421,43 +422,49 @@ const CommercePayment = () => {
 
      setIsCreatingOrder(true);
      try {
-       const response = await fetch(`/api/orders/${id}`, {
-         method: 'POST',
-         credentials: 'include',
-         headers: getAuthHeaders(),
-         body: JSON.stringify({
+       const orderData = {
            date: selectedDate,
-                      options: selectedOptions.map(opt => ({
+           options: selectedOptions.map(opt => ({
+             productOptionId: opt.productOptionId, // 옵션 ID 추가
              optionName: opt.optionName,
              quantity: optionCounts[`${opt.optionName}-${opt.startDate}`],
+             price: opt.discountPrice || opt.price, // 실제 결제 가격
+             discountPrice: opt.discountPrice,
+             startDate: opt.startDate
            })),
            totalPrice: totalPrice,
-         }),
-       });
+       };
 
-       if (!response.ok) {
-         const errorData = await response.json();
-         throw new Error(errorData.message || '주문 생성에 실패했습니다.');
+       console.log('주문 생성 요청 데이터:', orderData);
+       const response = await createOrderApi(id, orderData);
+       console.log('주문 생성 응답:', response);
+       
+       // 응답 검증
+       if (!response || !response.orderId) {
+         throw new Error('주문 생성 응답이 올바르지 않습니다. 응답: ' + JSON.stringify(response));
        }
-
-       const data = await response.json();
-       console.log('주문 생성 응답:', data);
        
        // 주문명을 상품명으로 설정 (백엔드에서 생성된 주문명 대신)
        const orderName = product.title;
        
        // 주문 생성 성공 후 Checkout 페이지로 이동
        const params = new URLSearchParams({
-         orderId: data.orderId,
+         orderId: response.orderId,
          orderName: orderName, // 상품명을 주문명으로 사용
-         amount: data.totalPrice.toString(),
-         customerEmail: data.customerEmail || '',
+         amount: response.totalPrice.toString(),
+         customerEmail: response.customerEmail || '',
          productId: id // productId 추가
        });
        
        navigate(`/commerce/checkout?${params.toString()}`);
      } catch (err) {
-       console.error(err);
+       console.error('주문 생성 에러:', err);
+       console.error('에러 상세 정보:', {
+         message: err.message,
+         response: err.response,
+         status: err.response?.status,
+         data: err.response?.data
+       });
        alert('주문 생성 중 오류가 발생했습니다: ' + err.message);
      } finally {
        setIsCreatingOrder(false);
@@ -608,3 +615,5 @@ const CommercePayment = () => {
 };
 
 export default CommercePayment;
+
+
