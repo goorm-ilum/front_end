@@ -418,8 +418,7 @@ const AdminProductListPage = () => {
             >
               <option value="updatedAt">등록일순</option>
               <option value="productName">상품명순</option>
-              <option value="price">정상가순</option>
-              <option value="discountPrice">할인가순</option>
+              
               <option value="totalStock">재고순</option>
             </select>
           </div>
@@ -464,13 +463,7 @@ const AdminProductListPage = () => {
                    상품명
                  </th>
                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                   정상가
-                 </th>
-                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                   할인가
-                 </th>
-                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                   재고
+                   총 재고
                  </th>
                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                    상품등록일
@@ -497,13 +490,9 @@ const AdminProductListPage = () => {
                          }}
                        />
                      </td>
-                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{p.name}</td>
-                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
-                       ₩{p.price?.toLocaleString() || '0'}
-                     </td>
-                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
-                       {p.discountPrice ? `₩${p.discountPrice.toLocaleString()}` : '-'}
-                     </td>
+                                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {p.name && p.name.length > 20 ? `${p.name.substring(0, 20)}...` : p.name}
+                      </td>
                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">{p.stock || 0}</td>
                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
                        {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('ko-KR') : '-'}
@@ -526,7 +515,7 @@ const AdminProductListPage = () => {
                  ))
               ) : (
                                  <tr>
-                   <td colSpan="8" className="px-6 py-12 text-center">
+                   <td colSpan="6" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center space-y-4">
                       <svg className="w-16 h-16 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />

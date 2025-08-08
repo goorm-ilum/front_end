@@ -17,25 +17,17 @@ const MypageMenu = () => {
     
     if (tab && ['info', 'order', 'like', 'review'].includes(tab)) {
       setSelectedMenu(tab);
-    } else if (location.pathname === '/mypage') {
-      // 기본 경로일 때는 내 정보 탭으로 설정
+    } else {
+      // 탭 파라미터가 없거나 유효하지 않은 경우 내 정보 탭으로 설정
       setSelectedMenu('info');
+      // URL도 업데이트 (navigate를 의존성에서 제거하여 무한 루프 방지)
+      if (location.pathname === '/mypage') {
+        navigate('/mypage?tab=info', { replace: true });
+      }
     }
   }, [searchParams, location.pathname]);
 
-  // 페이지 새로고침 감지 및 처리
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      // 페이지가 새로고침될 때 실행될 코드
-      console.log('마이페이지 새로고침 감지');
-    };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
 
   const menuItems = [
     { id: 'info', label: '내 정보', component: MyInfo },

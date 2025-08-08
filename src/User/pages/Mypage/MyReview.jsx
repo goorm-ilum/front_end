@@ -108,8 +108,14 @@ const MyReview = () => {
   const handleEditReview = (review) => {
     console.log('리뷰 수정:', review.id);
     
-    // 리뷰 수정 페이지로 이동 (reviewId만 필요)
-    navigate(`/mypage/review/edit/${review.id}`);
+    try {
+      // 리뷰 수정 페이지로 이동 (reviewId만 필요)
+      navigate(`/mypage/review/edit/${review.id}`);
+    } catch (error) {
+      console.error('리뷰 수정 페이지 이동 오류:', error);
+      setMessageData({ message: '리뷰 수정 페이지로 이동할 수 없습니다.', type: 'error' });
+      setShowMessagePopup(true);
+    }
   };
 
   // 리뷰 삭제 확인 핸들러

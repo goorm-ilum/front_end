@@ -85,21 +85,35 @@ const MyOrder = () => {
   // 리뷰 작성 버튼 클릭 핸들러
   const handleReviewClick = async (productId) => {
     try {
-      // 리뷰 작성 가능 여부를 확인하기 위해 API 호출
-      const response = await fetch(`/api/products/${productId}/reviews/form`, {
+      // 리뷰 작성 가능 여부를 먼저 확인
+      const reviewResponse = await fetch(`/api/products/${productId}/reviews/form`, {
         method: 'GET',
         headers: getAuthHeaders(),
         credentials: 'include',
       });
 
-      if (response.status === 403) {
+      if (reviewResponse.status === 403 || reviewResponse.status === 409) {
         // 이미 작성한 리뷰인 경우 팝업 표시
-        setErrorMessage('이미 작성한 리뷰입니다.');
+        setErrorMessage('이미 작성한 리뷰입니다. 내 리뷰에서 수정할 수 있습니다.');
         setShowErrorPopup(true);
         return;
       }
 
-      if (!response.ok) {
+      if (reviewResponse.status === 404) {
+        // 상품이 삭제된 경우 팝업 표시
+        setErrorMessage('존재하지 않는 상품입니다.');
+        setShowErrorPopup(true);
+        return;
+      }
+
+      if (reviewResponse.status === 401) {
+        // 로그인이 필요한 경우
+        setErrorMessage('로그인이 필요합니다.');
+        setShowErrorPopup(true);
+        return;
+      }
+
+      if (!reviewResponse.ok) {
         throw new Error('리뷰 작성 페이지 접근에 실패했습니다.');
       }
 
@@ -107,7 +121,8 @@ const MyOrder = () => {
       navigate(`/mypage/review/create/${productId}`);
     } catch (error) {
       console.error('리뷰 작성 버튼 클릭 오류:', error);
-      setErrorMessage('리뷰 작성 페이지 접근에 실패했습니다.');
+      // 네트워크 오류나 기타 오류의 경우에도 상품이 존재하지 않을 가능성이 높음
+      setErrorMessage('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
       setShowErrorPopup(true);
     }
   };

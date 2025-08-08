@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useCustomLogin } from '../../../common/hook/useCustomLogin';
 import MessagePopup from '../../../common/components/MessagePopup';
 import SuccessModal from '../../../components/SuccessModal';
 
 const MyInfo = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { memberId, isLogin } = useCustomLogin();
 
   const [countryCode, setCountryCode] = useState('+82');
@@ -91,6 +92,45 @@ const MyInfo = () => {
       fetchProfile();
     }
   }, [memberId, isLogin, navigate]);
+
+  // forceRefresh 상태 감지 및 데이터 재로드
+  useEffect(() => {
+    if (location.state?.forceRefresh && memberId && isLogin) {
+      console.log('MyInfo 컴포넌트 새로고침 감지');
+      const fetchProfile = async () => {
+        try {
+          const res = await fetch('/api/member/me', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+          });
+          if (!res.ok) throw new Error('프로필 조회 실패');
+          const data = await res.json();
+
+          const { countryCode, localNumber } = splitPhoneNumber(data.phoneNum || '');
+
+          setCountryCode(countryCode);
+          setLocalPhoneNumber(localNumber);
+
+          setForm({
+            memberId: data.memberId || '',
+            account_email: data.accountEmail || '',
+            gender: data.gender || '',
+            birthday: data.birthday || '',
+            name: data.name || '',
+            nickname: data.nickname || '',
+          });
+          setPreviewUrl(data.profileImage || '');
+        } catch (err) {
+          console.error(err);
+          setMessageData({ message: '프로필 정보를 불러오는 데 실패했습니다.', type: 'error' });
+          setShowMessagePopup(true);
+        }
+      };
+      
+      fetchProfile();
+    }
+  }, [location.state, memberId, isLogin]);
 
   // 입력값 변경 처리 (전화번호는 따로 처리)
   const handleChange = (e) => {

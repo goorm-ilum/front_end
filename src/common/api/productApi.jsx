@@ -93,14 +93,20 @@ export const updateReview = async (reviewId, reviewData) => {
   try {
     console.log('리뷰 수정 요청:', { reviewId, reviewData });
     
+    // ReviewRequest DTO에 맞는 형식으로 데이터 준비
     const requestData = {
-      comment: reviewData.comment,
-      reviewStar: parseInt(reviewData.reviewStar)
+      comment: reviewData.comment.trim(),
+      reviewStar: parseFloat(reviewData.reviewStar) // float 타입으로 변환
     };
     
     console.log('전송할 데이터:', requestData);
     
-    const response = await axiosInstance.patch(`/api/reviews/${reviewId}`, requestData);
+    // PUT 메서드로 변경하여 /api/reviews/{reviewId} 엔드포인트 사용
+    const response = await axiosInstance.put(`/api/reviews/${reviewId}`, requestData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     
     console.log('리뷰 수정 응답:', response);
     console.log('응답 상태:', response.status);
@@ -112,6 +118,24 @@ export const updateReview = async (reviewId, reviewData) => {
     console.error('에러 응답:', error.response);
     console.error('에러 상태:', error.response?.status);
     console.error('에러 데이터:', error.response?.data);
+    
+    // 더 구체적인 에러 메시지 제공
+    if (error.response) {
+      const status = error.response.status;
+      if (status === 401) {
+        throw new Error('로그인이 필요합니다.');
+      } else if (status === 403) {
+        throw new Error('리뷰를 수정할 권한이 없습니다.');
+      } else if (status === 404) {
+        throw new Error('수정하려는 리뷰를 찾을 수 없습니다.');
+      } else if (status === 400) {
+        const message = error.response.data?.message || '잘못된 요청입니다.';
+        throw new Error(message);
+      } else if (status >= 500) {
+        throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      }
+    }
+    
     throw error;
   }
 };

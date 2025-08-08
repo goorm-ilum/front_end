@@ -55,6 +55,24 @@ const Header = () => {
     }
   };
 
+  // Mypage 버튼 클릭 핸들러 - 항상 내 정보 탭으로 이동
+  const handleMypageClick = (e) => {
+    e.preventDefault();
+    
+    // 현재 마이페이지에 있는 경우 내 정보 탭으로 강제 이동
+    if (location.pathname === '/mypage') {
+      navigate('/mypage?tab=info', { 
+        replace: true
+      });
+      return;
+    }
+    
+    // 다른 페이지에서 마이페이지로 이동하는 경우
+    navigate('/mypage?tab=info', { 
+      replace: false
+    });
+  };
+
   console.log('=== Header 디버깅 ===');
   console.log('전체 loginSlice 상태:', loginState);
   console.log('location.pathname:', location.pathname);
@@ -128,7 +146,7 @@ const Header = () => {
               <MenuLink
                 to="/mypage"
                 className="text-gray-700 hover:text-blue-600"
-                onClick={(e) => handleMenuClick('/mypage', e)}
+                onClick={handleMypageClick}
               >
                 Mypage
               </MenuLink>

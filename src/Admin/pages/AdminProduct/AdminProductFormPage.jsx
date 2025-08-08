@@ -66,6 +66,7 @@ const AdminProductFormPage = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [showMessagePopup, setShowMessagePopup] = useState(false);
   const [messagePopupText, setMessagePopupText] = useState('');
+  const [messagePopupType, setMessagePopupType] = useState('info');
 
   // 달력 관련 함수들
   const getDaysInMonth = (year, month) => {
@@ -257,7 +258,9 @@ const AdminProductFormPage = () => {
         console.log('폼 데이터 설정 완료');
       } catch (err) {
         console.error('상품 정보 불러오기 실패:', err);
-        alert('상품 정보를 불러오는 데 실패했습니다.');
+        setMessagePopupText('상품 정보를 불러오는 데 실패했습니다.');
+        setMessagePopupType('error');
+        setShowMessagePopup(true);
       } finally {
         setLoading(false);
       }
@@ -479,6 +482,26 @@ const AdminProductFormPage = () => {
     const option = options[optionIndex];
     const value = option[field];
     
+    // 각 필드별 유효성 검사
+    if (field === 'optionName' && !value.trim()) {
+              setMessagePopupText('옵션명을 입력해주세요.');
+        setMessagePopupType('error');
+        setShowMessagePopup(true);
+      return;
+    }
+    if (field === 'stock' && (value === '' || parseInt(value) < 1)) {
+              setMessagePopupText('재고는 최소 1 이상 입력해주세요.');
+        setMessagePopupType('error');
+        setShowMessagePopup(true);
+      return;
+    }
+    if (field === 'price' && (value === '' || parseInt(value) < 1)) {
+              setMessagePopupText('정상가는 최소 1 이상 입력해주세요.');
+        setMessagePopupType('error');
+        setShowMessagePopup(true);
+      return;
+    }
+    
     setDateOptions(prev => {
       const newDateOptions = [...prev];
       
@@ -514,20 +537,57 @@ const AdminProductFormPage = () => {
       return newDateOptions;
     });
     
-    setMessagePopupText(`${field === 'optionName' ? '옵션명' : field === 'stock' ? '재고' : field === 'price' ? '정상가' : '할인가'}이 적용되었습니다.`);
-    setShowMessagePopup(true);
+    // 문법에 맞는 성공 메시지 설정
+    let successMessage = '';
+    if (field === 'optionName') {
+      successMessage = '옵션명이 적용되었습니다.';
+    } else if (field === 'stock') {
+      successMessage = '재고가 적용되었습니다.';
+    } else if (field === 'price') {
+      successMessage = '정상가가 적용되었습니다.';
+    } else if (field === 'discountPrice') {
+      successMessage = '할인가가 적용되었습니다.';
+    }
+    
+            setMessagePopupText(successMessage);
+        setMessagePopupType('success');
+        setShowMessagePopup(true);
   };
 
   const applyAllOptionsToDates = () => {
     if (startDates.length === 0) return;
     
+    // 모든 옵션에 대해 옵션명, 재고, 정상가가 비어있거나 1 미만인지 확인
+    const emptyFields = [];
+    options.forEach((option, index) => {
+      if (!option.optionName.trim()) {
+        emptyFields.push(`${index + 1}번 옵션의 옵션명`);
+      }
+      if (option.stock === '' || parseInt(option.stock) < 1) {
+        emptyFields.push(`${index + 1}번 옵션의 재고 (최소 1 이상)`);
+      }
+      if (option.price === '' || parseInt(option.price) < 1) {
+        emptyFields.push(`${index + 1}번 옵션의 정상가 (최소 1 이상)`);
+      }
+    });
+    
+    if (emptyFields.length > 0) {
+      setMessagePopupText(`다음 항목들을 입력해주세요:\n\n${emptyFields.join('\n')}`);
+      setMessagePopupType('error');
+      setShowMessagePopup(true);
+      return;
+    }
+    
     const validOptions = options.filter(option => 
       option.optionName.trim() && 
-      parseInt(option.price) > 0
+      option.price !== '' && parseInt(option.price) >= 1 &&
+      option.stock !== '' && parseInt(option.stock) >= 1
     );
     
     if (validOptions.length === 0) {
-      alert('적용할 옵션을 먼저 입력해주세요.');
+      setMessagePopupText('적용할 옵션을 먼저 입력해주세요.');
+      setMessagePopupType('error');
+      setShowMessagePopup(true);
       return;
     }
     
@@ -553,8 +613,9 @@ const AdminProductFormPage = () => {
       return newDateOptions;
     });
     
-    setMessagePopupText('모든 옵션이 적용되었습니다.');
-    setShowMessagePopup(true);
+            setMessagePopupText('모든 옵션이 적용되었습니다.');
+        setMessagePopupType('success');
+        setShowMessagePopup(true);
   };
 
   // 특정 날짜의 옵션들 가져오기 (임시 수정사항 포함)
@@ -628,27 +689,53 @@ const AdminProductFormPage = () => {
       return newDateOptions;
     });
     
-    setMessagePopupText('옵션이 삭제되었습니다.');
-    setShowMessagePopup(true);
+            setMessagePopupText('옵션이 삭제되었습니다.');
+        setMessagePopupType('success');
+        setShowMessagePopup(true);
   };
 
   // 특정 날짜의 모든 옵션 삭제
   const removeAllDateOptions = (date) => {
     setDateOptions(prev => prev.filter(option => option.startDate !== date));
     
-    setMessagePopupText('모든 옵션이 삭제되었습니다.');
-    setShowMessagePopup(true);
+            setMessagePopupText('모든 옵션이 삭제되었습니다.');
+        setMessagePopupType('success');
+        setShowMessagePopup(true);
   };
 
   // 특정 날짜의 옵션 적용
   const applyOptionsToDate = (date) => {
+    // 모든 옵션에 대해 옵션명, 재고, 정상가가 비어있거나 1 미만인지 확인
+    const emptyFields = [];
+    options.forEach((option, index) => {
+      if (!option.optionName.trim()) {
+        emptyFields.push(`${index + 1}번 옵션의 옵션명`);
+      }
+      if (option.stock === '' || parseInt(option.stock) < 1) {
+        emptyFields.push(`${index + 1}번 옵션의 재고 (최소 1 이상)`);
+      }
+      if (option.price === '' || parseInt(option.price) < 1) {
+        emptyFields.push(`${index + 1}번 옵션의 정상가 (최소 1 이상)`);
+      }
+    });
+    
+    if (emptyFields.length > 0) {
+      setMessagePopupText(`다음 항목들을 입력해주세요:\n\n${emptyFields.join('\n')}`);
+      setMessagePopupType('error');
+      setShowMessagePopup(true);
+      return;
+    }
+    
     const validOptions = options.filter(option => 
       option.optionName.trim() && 
-      parseInt(option.price) > 0
+      option.price !== '' && parseInt(option.price) >= 1 &&
+      option.stock !== '' && parseInt(option.stock) >= 1
     );
     
     if (validOptions.length === 0) {
-      alert('적용할 옵션을 먼저 입력해주세요.');
+      setMessagePopupText('적용할 옵션을 먼저 입력해주세요.');
+      setMessagePopupType('error');
+      setShowMessagePopup(true);
       return;
     }
     
@@ -669,6 +756,7 @@ const AdminProductFormPage = () => {
     });
     
     setMessagePopupText('옵션이 적용되었습니다.');
+    setMessagePopupType('success');
     setShowMessagePopup(true);
   };
 
@@ -701,7 +789,9 @@ const AdminProductFormPage = () => {
     
     // 에러가 있으면 알림 표시
     if (errors.length > 0) {
-      alert('다음 항목들을 확인해주세요:\n\n' + errors.join('\n'));
+      setMessagePopupText('다음 항목들을 확인해주세요:\n\n' + errors.join('\n'));
+      setMessagePopupType('error');
+      setShowMessagePopup(true);
       return;
     }
     
@@ -877,7 +967,9 @@ const AdminProductFormPage = () => {
       console.error('=== 에러 정보 ===');
       console.error('에러 객체:', err);
       console.error('에러 메시지:', err.message);
-      alert('상품 저장 중 오류가 발생했습니다.');
+              setMessagePopupText('상품 저장 중 오류가 발생했습니다.');
+        setMessagePopupType('error');
+        setShowMessagePopup(true);
     } finally {
       setSubmitting(false);
     }
@@ -1154,7 +1246,6 @@ const AdminProductFormPage = () => {
                         type="number"
                         value={option.stock}
                         onChange={(e) => updateOption(index, 'stock', parseInt(e.target.value) || 0)}
-                        min="1"
                         className="flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         required
                       />
@@ -1182,7 +1273,6 @@ const AdminProductFormPage = () => {
                         onChange={(e) => updateOption(index, 'price', e.target.value)}
                         className="flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         placeholder="정상가"
-                        min="1"
                         required
                       />
                       <button
@@ -1409,6 +1499,7 @@ const AdminProductFormPage = () => {
                                     }
                                     
                                     setMessagePopupText('옵션이 적용되었습니다.');
+                                    setMessagePopupType('success');
                                     setShowMessagePopup(true);
                                   }}
                                   className="flex items-center space-x-1 bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-all duration-200"
@@ -1453,7 +1544,6 @@ const AdminProductFormPage = () => {
                                   type="number"
                                   value={option.stock}
                                   onChange={(e) => updateDateOption(selectedDateForView, index, 'stock', parseInt(e.target.value) || 0)}
-                                  min="1"
                                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                                   required
                                 />
@@ -1469,7 +1559,6 @@ const AdminProductFormPage = () => {
                                   type="number"
                                   value={option.price}
                                   onChange={(e) => updateDateOption(selectedDateForView, index, 'price', parseInt(e.target.value) || 0)}
-                                  min="1"
                                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                                   placeholder="정상가"
                                   required
@@ -1673,7 +1762,7 @@ const AdminProductFormPage = () => {
         isOpen={showMessagePopup}
         onClose={() => setShowMessagePopup(false)}
         message={messagePopupText}
-        type="success"
+        type={messagePopupType}
       />
     </div>
   );

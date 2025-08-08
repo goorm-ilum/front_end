@@ -82,8 +82,15 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
           if (status === 401) {
             errorMessage = '로그인이 필요합니다.';
             shouldNavigate = true;
-          } else if (status === 403) {
-            errorMessage = '이미 작성한 리뷰입니다.';
+          } else if (status === 403 || status === 409) {
+            // 백엔드에서 더 구체적인 오류 메시지를 제공하는 경우 사용
+            if (error.response?.data?.message) {
+              errorMessage = error.response.data.message;
+            } else if (isEditing) {
+              errorMessage = '리뷰 수정 권한이 없습니다.';
+            } else {
+              errorMessage = '이미 작성한 리뷰입니다.';
+            }
             setErrorMessage(errorMessage);
             setShowErrorPopup(true);
             return;
@@ -107,7 +114,7 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
           shouldNavigate = true;
         }
         
-        if (status !== 403) {
+        if (status !== 403 && status !== 409) {
           setMessageData({ message: errorMessage, type: 'error' });
           setShowMessagePopup(true);
           
@@ -176,6 +183,19 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
       return;
     }
 
+    // 리뷰 내용 길이 검증
+    if (formData.comment.trim().length < 10) {
+      setMessageData({ message: '리뷰 내용은 최소 10자 이상 작성해주세요.', type: 'warning' });
+      setShowMessagePopup(true);
+      return;
+    }
+
+    if (formData.comment.trim().length > 1000) {
+      setMessageData({ message: '리뷰 내용은 최대 1000자까지 작성 가능합니다.', type: 'warning' });
+      setShowMessagePopup(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -239,8 +259,15 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
         const status = error.response.status;
         if (status === 401) {
           errorMessage = '로그인이 필요합니다. 로그인 후 다시 시도해주세요.';
-        } else if (status === 403) {
-          errorMessage = '이미 작성한 리뷰입니다.';
+        } else if (status === 403 || status === 409) {
+          // 백엔드에서 더 구체적인 오류 메시지를 제공하는 경우 사용
+          if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+          } else if (isEditing) {
+            errorMessage = '리뷰 수정 권한이 없습니다.';
+          } else {
+            errorMessage = '이미 작성한 리뷰입니다.';
+          }
           setErrorMessage(errorMessage);
           setShowErrorPopup(true);
           return;
@@ -252,6 +279,10 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
           }
         } else if (status === 500) {
           errorMessage = '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        } else if (status >= 400 && status < 500) {
+          errorMessage = '요청이 잘못되었습니다. 다시 시도해주세요.';
+        } else if (status >= 500) {
+          errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
         } else {
           errorMessage = `서버 오류: ${status}`;
         }
@@ -262,11 +293,11 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
         errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
       }
       
-      if (error.response && error.response.status !== 403) {
+      if (error.response && error.response.status !== 403 && error.response.status !== 409) {
         setMessageData({ message: errorMessage, type: 'error' });
         setShowMessagePopup(true);
       }
-      // 403 오류는 팝업으로 처리되므로 여기서는 이동하지 않음
+      // 403, 409 오류는 팝업으로 처리되므로 여기서는 이동하지 않음
     } finally {
       setLoading(false);
     }
@@ -276,8 +307,14 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
   const handleClosePopup = () => {
     setShowErrorPopup(false);
     setErrorMessage('');
-    // 팝업 닫기 후 구매내역 페이지로 이동
-    navigate('/mypage?tab=order');
+    // 팝업 닫기 후 적절한 페이지로 이동
+    if (isEditing) {
+      // 리뷰 수정 모드인 경우 리뷰 목록 페이지로 이동
+      navigate('/mypage?tab=review');
+    } else {
+      // 리뷰 작성 모드인 경우 구매내역 페이지로 이동
+      navigate('/mypage?tab=order');
+    }
   };
 
   // 별점 표시 컴포넌트
