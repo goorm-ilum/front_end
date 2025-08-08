@@ -109,12 +109,6 @@ const Header = () => {
               >
                 주문관리
               </AdminMenuLink>
-              <AdminMenuLink
-                to="/admin/chats"
-                className="text-gray-700 hover:text-blue-600"
-              >
-                채팅관리
-              </AdminMenuLink>
             </>
           ) : (
             <>

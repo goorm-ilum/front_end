@@ -14,8 +14,8 @@ const FloatingChatIcon = () => {
 
   // 현재 경로에 따라 채팅 링크 결정
   const getChatLink = () => {
-    if (location.pathname.startsWith('/admin') && isAdminUser) {
-      return '/admin/chats'; // 관리자 페이지에서는 관리자 채팅
+    if (location.pathname.startsWith('/admin')) {
+      return '/admin/chat'; // 관리자 페이지에서는 관리자 채팅
     } else {
       return '/chat'; // 사용자 페이지에서는 일반 채팅
     }
@@ -23,7 +23,7 @@ const FloatingChatIcon = () => {
 
   // 현재 경로에 따라 제목 결정
   const getChatTitle = () => {
-    if (location.pathname.startsWith('/admin') && isAdminUser) {
+    if (location.pathname.startsWith('/admin')) {
       return '채팅 관리'; // 관리자용 제목
     } else {
       return '채팅 상담'; // 사용자용 제목
@@ -64,8 +64,8 @@ const FloatingChatIcon = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // chat 페이지에서는 FloatingChatIcon을 숨김
-  if (location.pathname.startsWith('/chat')) {
+  // chat 페이지 또는 admin/chat 페이지에서는 FloatingChatIcon을 숨김
+  if (location.pathname.startsWith('/chat') || location.pathname.startsWith('/admin/chat')) {
     return null;
   }
 
