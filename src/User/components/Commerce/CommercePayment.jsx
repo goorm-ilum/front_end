@@ -484,7 +484,7 @@ const CommercePayment = () => {
         {product?.thumbnail ? (
           <img src={product.thumbnail} alt={product.title} className="w-24 h-24 object-cover rounded-lg" 
             onError={(e) => {
-              e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+              e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
             }}
           />
         ) : (

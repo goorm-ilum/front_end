@@ -425,11 +425,11 @@ const CommerceDetail = () => {
         {/* 썸네일 이미지 */}
         <div className="relative">
           <img 
-            src={product.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'} 
+            src={product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png'} 
             alt={product.title} 
             className="w-full h-96 object-cover rounded-lg shadow-lg"
             onError={(e) => {
-              e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+              e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
             }}
           />
           {/* 좋아요 버튼 */}
@@ -603,7 +603,7 @@ const CommerceDetail = () => {
                     alt={`${product.title} ${index + 1}`}
                     className="w-full h-64 object-cover rounded-lg shadow-md"
                     onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                      e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
                     }}
                   />
                 </div>

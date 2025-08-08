@@ -498,8 +498,8 @@ const CommerceList = () => {
                 적합한 상품을 찾지 못했어요
               </h3>
               <p className="text-gray-600 mb-4">
-                다른 키워드로 다시 검색해보시거나<br/>
-                아래 예시를 참고해보세요
+                여행과 관련된 질문으로 다시 검색해보시거나<br/>
+                아래 예시를 참고해보세요!
               </p>
               <div className="flex flex-wrap justify-center gap-2 mt-4">
                 {[
@@ -543,12 +543,12 @@ const CommerceList = () => {
               className="border rounded-lg shadow hover:shadow-lg transition flex flex-col relative"
             >
               <img 
-                src={product.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'} 
+                src={product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png'} 
                 alt="썸네일" 
                 className="w-full h-40 object-cover rounded-t-lg bg-gray-100 cursor-pointer" 
                 onClick={() => navigate(`${product.id}`)}
                 onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                  e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
                 }}
               />
               
