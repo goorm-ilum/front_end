@@ -418,7 +418,6 @@ const AdminProductListPage = () => {
             >
               <option value="updatedAt">등록일순</option>
               <option value="productName">상품명순</option>
-              
               <option value="totalStock">재고순</option>
             </select>
           </div>

@@ -3,13 +3,20 @@ import axiosInstance from './mainApi';
 // 상품 목록 조회
 export const getProductList = async (params = {}) => {
   try {
-    const response = await axiosInstance.get('/api/products', {
-      params: {
-        page: params.page || 0,
-        size: params.size || 9,
-        keyword: params.keyword || ''
-      }
-    });
+    // URLSearchParams를 사용하여 중복된 sort 파라미터를 정확히 전송
+    const searchParams = new URLSearchParams();
+    searchParams.append('page', params.page || 0);
+    searchParams.append('size', params.size || 9);
+    searchParams.append('keyword', params.keyword || '');
+    searchParams.append('sort', params.sort || 'updatedAt');
+    searchParams.append('sort', params.sortOrder || 'desc');
+    
+    // 국가 필터 추가 (전체가 아닌 경우에만)
+    if (params.country && params.country !== '전체') {
+      searchParams.append('countryName', params.country);
+    }
+    
+    const response = await axiosInstance.get(`/api/products?${searchParams.toString()}`);
     return response.data;
   } catch (error) {
     console.error('상품 목록 조회 실패:', error);
@@ -31,8 +38,6 @@ export const aiSearchProducts = async (query) => {
     throw error;
   }
 };
-
-
 
 // 상품 상세 조회
 export const getProductDetail = async (productId) => {
@@ -214,4 +219,4 @@ export const createReview = async (productId, reviewData) => {
     console.error('에러 데이터:', error.response?.data);
     throw error;
   }
-}; 
+};

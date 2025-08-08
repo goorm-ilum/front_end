@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getProductDetail, toggleLike } from '../../../common/api/productApi';
+import SellerInfo from '../../../common/components/SellerInfo';
 
 // 한국 시간 기준으로 날짜 문자열 생성 (공통 함수)
 const getKoreaDateString = (date) => {
@@ -195,7 +196,11 @@ const CommerceDetail = () => {
         stocks: response.stocks || [],
         rating: response.averageReviewStar,
         reviews: response.reviews || [],
-        like: response.isLiked
+        like: response.isLiked,
+        sellerId: response.sellerId || response.memberId || response.userId, // 판매자 ID 추가 (다양한 필드명 지원)
+        sellerName: response.sellerName, // 판매자 이름
+        email: response.email, // 판매자 이메일
+        phoneNum: response.phoneNum // 판매자 전화번호
       };
       
       setProduct(transformedProduct);
@@ -611,6 +616,14 @@ const CommerceDetail = () => {
             </div>
           </div>
         )}
+
+        {/* 판매자 정보 */}
+        <SellerInfo 
+          sellerId={product?.sellerId}
+          sellerName={product?.sellerName}
+          email={product?.email}
+          phoneNum={product?.phoneNum}
+        />
 
         {/* 리뷰 목록 */}
         <div>

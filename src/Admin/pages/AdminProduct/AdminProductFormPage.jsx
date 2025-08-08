@@ -489,14 +489,14 @@ const AdminProductFormPage = () => {
         setShowMessagePopup(true);
       return;
     }
-    if (field === 'stock' && (value === '' || parseInt(value) < 1)) {
-              setMessagePopupText('재고는 최소 1 이상 입력해주세요.');
+    if (field === 'stock' && value === '') {
+              setMessagePopupText('재고를 입력해주세요.');
         setMessagePopupType('error');
         setShowMessagePopup(true);
       return;
     }
-    if (field === 'price' && (value === '' || parseInt(value) < 1)) {
-              setMessagePopupText('정상가는 최소 1 이상 입력해주세요.');
+    if (field === 'price' && value === '') {
+              setMessagePopupText('정상가를 입력해주세요.');
         setMessagePopupType('error');
         setShowMessagePopup(true);
       return;
@@ -557,17 +557,17 @@ const AdminProductFormPage = () => {
   const applyAllOptionsToDates = () => {
     if (startDates.length === 0) return;
     
-    // 모든 옵션에 대해 옵션명, 재고, 정상가가 비어있거나 1 미만인지 확인
+    // 모든 옵션에 대해 옵션명, 재고, 정상가가 비어있는지 확인
     const emptyFields = [];
     options.forEach((option, index) => {
       if (!option.optionName.trim()) {
         emptyFields.push(`${index + 1}번 옵션의 옵션명`);
       }
-      if (option.stock === '' || parseInt(option.stock) < 1) {
-        emptyFields.push(`${index + 1}번 옵션의 재고 (최소 1 이상)`);
+      if (option.stock === '') {
+        emptyFields.push(`${index + 1}번 옵션의 재고`);
       }
-      if (option.price === '' || parseInt(option.price) < 1) {
-        emptyFields.push(`${index + 1}번 옵션의 정상가 (최소 1 이상)`);
+      if (option.price === '') {
+        emptyFields.push(`${index + 1}번 옵션의 정상가`);
       }
     });
     
@@ -580,8 +580,8 @@ const AdminProductFormPage = () => {
     
     const validOptions = options.filter(option => 
       option.optionName.trim() && 
-      option.price !== '' && parseInt(option.price) >= 1 &&
-      option.stock !== '' && parseInt(option.stock) >= 1
+      option.price !== '' &&
+      option.stock !== ''
     );
     
     if (validOptions.length === 0) {
@@ -705,17 +705,17 @@ const AdminProductFormPage = () => {
 
   // 특정 날짜의 옵션 적용
   const applyOptionsToDate = (date) => {
-    // 모든 옵션에 대해 옵션명, 재고, 정상가가 비어있거나 1 미만인지 확인
+    // 모든 옵션에 대해 옵션명, 재고, 정상가가 비어있는지 확인
     const emptyFields = [];
     options.forEach((option, index) => {
       if (!option.optionName.trim()) {
         emptyFields.push(`${index + 1}번 옵션의 옵션명`);
       }
-      if (option.stock === '' || parseInt(option.stock) < 1) {
-        emptyFields.push(`${index + 1}번 옵션의 재고 (최소 1 이상)`);
+      if (option.stock === '') {
+        emptyFields.push(`${index + 1}번 옵션의 재고`);
       }
-      if (option.price === '' || parseInt(option.price) < 1) {
-        emptyFields.push(`${index + 1}번 옵션의 정상가 (최소 1 이상)`);
+      if (option.price === '') {
+        emptyFields.push(`${index + 1}번 옵션의 정상가`);
       }
     });
     
@@ -728,8 +728,8 @@ const AdminProductFormPage = () => {
     
     const validOptions = options.filter(option => 
       option.optionName.trim() && 
-      option.price !== '' && parseInt(option.price) >= 1 &&
-      option.stock !== '' && parseInt(option.stock) >= 1
+      option.price !== '' &&
+      option.stock !== ''
     );
     
     if (validOptions.length === 0) {
@@ -1509,16 +1509,7 @@ const AdminProductFormPage = () => {
                                   </svg>
                                   <span>적용</span>
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => removeDateOption(selectedDateForView, index)}
-                                  className="flex items-center space-x-1 bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition-all duration-200"
-                                >
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                  <span>삭제</span>
-                                </button>
+
                               </div>
                             </div>
                             
