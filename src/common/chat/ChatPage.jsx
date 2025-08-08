@@ -759,18 +759,32 @@ const ChatPage = () => {
     }
   };
 
-  // 방 삭제 함수 (더미 삭제)
-  const handleDeleteRoom = (id) => {
-    if (!window.confirm('정말 이 채팅방을 삭제하시겠습니까?')) return;
-    // 실제 API 호출 → 목록에서 제거
-    console.log('delete room', id);
-    // 삭제 후, 다른 방 또는 목록으로 이동
-    if (id === roomId) {
-      if (location.pathname.startsWith('/admin')) {
-        navigate('/admin/chat');
+  // 방 삭제(나가기) 함수 - 백엔드 API 연동
+  const handleDeleteRoom = async (id) => {
+    if (!window.confirm('정말 이 채팅방을 나가시겠습니까? (삭제 처리)')) return;
+    try {
+      console.log('채팅방 나가기 요청 시작:', id);
+      const url = `/api/chat/me/chatRooms/${id}`;
+      const res = await axiosInstance.patch(url);
+      console.log('채팅방 나가기 응답 상태:', res.status);
+      if (res.status === 204) {
+        // 목록에서 제거
+        setRooms(prev => prev.filter(r => r.id !== id));
+        console.log('채팅방 목록에서 제거 완료:', id);
+        // 현재 보고 있던 방이면 목록으로 이동
+        if (id === roomId) {
+          if (location.pathname.startsWith('/admin')) {
+            navigate('/admin/chat');
+          } else {
+            navigate('/chat');
+          }
+        }
       } else {
-        navigate('/chat');
+        console.warn('예상치 못한 상태 코드:', res.status);
       }
+    } catch (error) {
+      console.error('채팅방 나가기 요청 실패:', error);
+      alert('채팅방 나가기에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }
   };
 
