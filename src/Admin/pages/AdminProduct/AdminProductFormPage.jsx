@@ -447,7 +447,7 @@ const AdminProductFormPage = () => {
           const dateOptions = newDateOptions.filter(item => item.startDate === date);
           if (dateOptions[index]) {
             const globalIndex = newDateOptions.findIndex(item => 
-              item.startDate === date && item.optionName === dateOptions[index].optionName
+              item.startDate === date && item === dateOptions[index]
             );
             if (globalIndex >= 0) {
               newDateOptions.splice(globalIndex, 1);
@@ -483,7 +483,7 @@ const AdminProductFormPage = () => {
         if (dateOptions[optionIndex]) {
           // 해당 인덱스의 옵션이 있으면 업데이트
           const globalIndex = newDateOptions.findIndex(item => 
-            item.startDate === date && item.optionName === dateOptions[optionIndex].optionName
+            item.startDate === date && item === dateOptions[optionIndex]
           );
           
           if (globalIndex >= 0) {
@@ -526,33 +526,21 @@ const AdminProductFormPage = () => {
     }
     
     setDateOptions(prev => {
-      const newDateOptions = [...prev];
+      let newDateOptions = [...prev];
       
       startDates.forEach(date => {
-        validOptions.forEach(option => {
-          const existingIndex = newDateOptions.findIndex(item => 
-            item.startDate === date && item.optionName === option.optionName
-          );
-          
-          if (existingIndex >= 0) {
-            // 기존 옵션 업데이트
-            newDateOptions[existingIndex] = {
-              startDate: date,
-              optionName: option.optionName,
-              stock: parseInt(option.stock) || 0,
-              price: parseInt(option.price) || 0,
-              discountPrice: parseInt(option.discountPrice) || parseInt(option.price) || 0
-            };
-          } else {
-            // 새 옵션 추가
-            newDateOptions.push({
-              startDate: date,
-              optionName: option.optionName,
-              stock: parseInt(option.stock) || 0,
-              price: parseInt(option.price) || 0,
-              discountPrice: parseInt(option.discountPrice) || parseInt(option.price) || 0
-            });
-          }
+        // 해당 날짜의 기존 옵션들을 모두 제거
+        newDateOptions = newDateOptions.filter(item => item.startDate !== date);
+        
+        // 새로운 옵션들을 인덱스 순서대로 추가
+        validOptions.forEach((option, index) => {
+          newDateOptions.push({
+            startDate: date,
+            optionName: option.optionName,
+            stock: parseInt(option.stock) || 0,
+            price: parseInt(option.price) || 0,
+            discountPrice: parseInt(option.discountPrice) || parseInt(option.price) || 0
+          });
         });
       });
       
