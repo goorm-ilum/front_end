@@ -34,7 +34,7 @@ const ChatPage = () => {
   const isLogin = !!accessToken; // accessToken이 있으면 로그인된 것으로 간주
   const isAdminRole = role === 'A' || role === 'A' || role === 'ADMIN' || role === 'admin' || role === 1;
   const isAdminUser = isLogin && isAdminRole;
-  const [rooms, setRooms] = useState(dummyRooms);
+  const [rooms, setRooms] = useState([]);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false); // WebSocket 연결 상태
   const stompClientRef = useRef(null);
   const subscriptionsRef = useRef(new Set());
@@ -56,11 +56,10 @@ const ChatPage = () => {
         console.log('📅 Date 객체 감지');
         date = dateInput;
       }
-      // 배열 형태인 경우 (예: [2025, 7, 7, 16, 59, 9] - 월은 0부터 시작)
+      // 배열 형태인 경우 (예: [2025, 8, 6, ...])
       else if (Array.isArray(dateInput)) {
-        console.log('📋 배열 형태 날짜 감지:', dateInput);
         const [year, month, day, hours = 0, minutes = 0, seconds = 0] = dateInput;
-        date = new Date(year, month, day, hours, minutes, seconds);
+        date = new Date(year, month - 1, day, hours, minutes, seconds); // 반드시 month - 1
       }
       // 콤마로 구분된 문자열인 경우 (예: "2025,8,7,16,59,9")
       else if (typeof dateInput === 'string' && dateInput.includes(',')) {
@@ -433,14 +432,21 @@ const ChatPage = () => {
                         ...r,
                         lastMessage: chatMessage.message,
                         updatedAt: formatDate(chatMessage.createdAt || new Date()),
-                        notReadMessageCount: (r.notReadMessageCount || 0) + 1
+                        notReadMessageCount: chatMessage.notReadMessageCount || chatMessage.unreadCount || r.notReadMessageCount || 0
                       };
                     }
                     return r;
                   });
                   
-                  console.log(`✅ 업데이트된 rooms:`, updatedRooms.map(r => ({ id: r.id, lastMessage: r.lastMessage })));
-                  return updatedRooms;
+                  // updatedAt 내림차순으로 정렬 (최신 메시지가 있는 채팅방이 위로)
+                  const sortedRooms = updatedRooms.sort((a, b) => {
+                    const dateA = new Date(a.updatedAt);
+                    const dateB = new Date(b.updatedAt);
+                    return dateB - dateA; // 내림차순 (최신순)
+                  });
+                  
+                  console.log(`✅ 업데이트된 rooms:`, sortedRooms.map(r => ({ id: r.id, lastMessage: r.lastMessage, updatedAt: r.updatedAt })));
+                  return sortedRooms;
                 });
               }, 0);
             } else {
@@ -610,15 +616,26 @@ const ChatPage = () => {
             
             return mappedRoom;
           });
-          console.log('처리된 데이터:', processedData);
-          console.log('첫 번째 방 처리 결과:', {
-            id: processedData[0]?.id,
-            title: processedData[0]?.title,
-            lastMessage: processedData[0]?.lastMessage,
-            updatedAt: processedData[0]?.updatedAt,
-            notReadMessageCount: processedData[0]?.notReadMessageCount
+          // updatedAt 내림차순으로 정렬
+          const sortedData = processedData.sort((a, b) => {
+            const dateA = new Date(a.updatedAt);
+            const dateB = new Date(b.updatedAt);
+            return dateB - dateA; // 내림차순 (최신순)
           });
-          setRooms(processedData);
+          
+          console.log('처리된 데이터:', sortedData);
+          console.log('첫 번째 방 처리 결과:', {
+            id: sortedData[0]?.id,
+            title: sortedData[0]?.title,
+            lastMessage: sortedData[0]?.lastMessage,
+            updatedAt: sortedData[0]?.updatedAt,
+            notReadMessageCount: sortedData[0]?.notReadMessageCount
+          });
+          console.log('🔍 setRooms 직전 sortedData 확인:', sortedData);
+          console.log('🔍 첫 번째 방의 notReadMessageCount:', sortedData[0]?.notReadMessageCount);
+          console.log('🔍 첫 번째 방의 notReadMessageCount 타입:', typeof sortedData[0]?.notReadMessageCount);
+          console.log('🔍 첫 번째 방의 notReadMessageCount > 0:', sortedData[0]?.notReadMessageCount > 0);
+          setRooms(sortedData);
         } else if (response.data && response.data.content && Array.isArray(response.data.content)) {
           // 페이지네이션 응답 구조인 경우
           console.log('페이지네이션 데이터로 업데이트:', response.data.content);
@@ -668,15 +685,22 @@ const ChatPage = () => {
             
             return mappedRoom;
           });
-          console.log('처리된 페이지네이션 데이터:', processedData);
-          console.log('첫 번째 방 페이지네이션 처리 결과:', {
-            id: processedData[0]?.id,
-            title: processedData[0]?.title,
-            lastMessage: processedData[0]?.lastMessage,
-            updatedAt: processedData[0]?.updatedAt,
-            notReadMessageCount: processedData[0]?.notReadMessageCount
+          // updatedAt 내림차순으로 정렬
+          const sortedData = processedData.sort((a, b) => {
+            const dateA = new Date(a.updatedAt);
+            const dateB = new Date(b.updatedAt);
+            return dateB - dateA; // 내림차순 (최신순)
           });
-          setRooms(processedData);
+          
+          console.log('처리된 페이지네이션 데이터:', sortedData);
+          console.log('첫 번째 방 페이지네이션 처리 결과:', {
+            id: sortedData[0]?.id,
+            title: sortedData[0]?.title,
+            lastMessage: sortedData[0]?.lastMessage,
+            updatedAt: sortedData[0]?.updatedAt,
+            notReadMessageCount: sortedData[0]?.notReadMessageCount
+          });
+          setRooms(sortedData);
         } else {
           console.log('API 응답이 배열이 아니거나 비어있어서 더미 데이터를 사용합니다.');
           console.log('API 응답 상태:', {
@@ -710,13 +734,10 @@ const ChatPage = () => {
 
   // 현재 경로에 따라 채팅방 링크 결정
   const getChatLink = (roomId) => {
-    
-    if (location.pathname.startsWith('/admin') && isAdminUser) {
-      const link = `/admin/chats/${roomId}`;
-      return link;
+    if (location.pathname.startsWith('/admin')) {
+      return `/admin/chat/${roomId}`;
     } else {
-      const link = `/chat/${roomId}`;
-      return link;
+      return `/chat/${roomId}`;
     }
   };
 
@@ -745,20 +766,24 @@ const ChatPage = () => {
     console.log('delete room', id);
     // 삭제 후, 다른 방 또는 목록으로 이동
     if (id === roomId) {
-      if (location.pathname.startsWith('/admin') && isAdminUser) {
-        navigate('/admin/chats');
+      if (location.pathname.startsWith('/admin')) {
+        navigate('/admin/chat');
       } else {
         navigate('/chat');
       }
     }
   };
 
+  const isAdminChat = location.pathname.startsWith('/admin/chat');
   return (
-    <div className="flex h-screen">
+    <div className={`flex h-screen ${isAdminChat ? 'theme-purple' : 'theme-blue'}`}>
       {/* 사이드바 - 스크롤 가능하도록 수정 */}
       <aside className="w-64 border-r bg-white flex flex-col">
         <div className="px-4 py-1 font-bold border-t border-b bg-gray-50 text-gray-900">
           채팅 목록 ({rooms.length})
+          {console.log('🚨 현재 rooms 상태:', rooms)}
+          {console.log('🚨 unreadCount:', unreadCount)}
+          {rooms.map((r, i) => console.log(`🚨 방 ${i+1} notReadMessageCount:`, r.notReadMessageCount))}
           {unreadCount > 0 && (
             <span className="ml-2 text-sm text-red-600 font-normal">
               (읽지 않음: {unreadCount})
@@ -767,25 +792,31 @@ const ChatPage = () => {
         </div>
         <div className="flex-1 overflow-y-auto">
           <ul>
-            {rooms.map((room, index) => (
+            {rooms.map((room, index) => {
+              console.log(`🔍 렌더링 중인 방 ${index + 1}:`, {
+                id: room.id,
+                title: room.title,
+                notReadMessageCount: room.notReadMessageCount,
+                notReadMessageCountType: typeof room.notReadMessageCount,
+                condition: room.notReadMessageCount > 0
+              });
+              return (
               <li
                 key={room.id || `room-${index}`}
                 className={`flex justify-between items-center px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100
                   ${room.id === roomId ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}
-                  ${room.notReadMessageCount > 0 ? 'bg-yellow-50 border-l-2 border-l-yellow-400' : ''}`}
+                  ${Number(room.notReadMessageCount) > 0 ? 'bg-yellow-50 border-l-2 border-l-yellow-400' : ''}`}
               >
                 <Link to={getChatLink(room.id)} className="flex-1 min-w-0" onClick={() => handleRoomClick(room.id)}>
-                  <div className={`font-medium truncate ${room.notReadMessageCount > 0 ? 'text-gray-900 font-semibold' : 'text-gray-700'}`}>
-                    {room.title}
-                    {room.notReadMessageCount > 0 && (
-                      <span className="ml-2 inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs rounded-full">
-                        {room.notReadMessageCount}
+                  <div className="flex items-center justify-between w-full">
+                    <span className="font-medium truncate text-gray-900 font-semibold">{room.title}</span>
+                    {Number(room.notReadMessageCount) > 0 && (
+                      <span className="ml-2 inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs rounded-full flex-shrink-0">
+                        {String(room.notReadMessageCount)}
                       </span>
                     )}
                   </div>
-                  <div className={`text-xs truncate mt-1 ${room.notReadMessageCount > 0 ? 'text-gray-800 font-medium' : 'text-gray-500'}`}>
-                    {room.lastMessage}
-                  </div>
+                  <div className={`text-xs truncate mt-1 ${Number(room.notReadMessageCount) > 0 ? 'text-gray-800 font-medium' : 'text-gray-500'}`}>{room.lastMessage}</div>
                   <div className="text-xs text-gray-400 mt-1">{formatDate(room.updatedAt)}</div>
                 </Link>
                 <button
@@ -809,7 +840,8 @@ const ChatPage = () => {
                   </svg>
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </div>
       </aside>
