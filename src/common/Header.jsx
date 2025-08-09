@@ -73,29 +73,29 @@ const Header = () => {
     });
   };
 
-  console.log('=== Header 디버깅 ===');
-  console.log('전체 loginSlice 상태:', loginState);
-  console.log('location.pathname:', location.pathname);
-  console.log('accessToken:', accessToken);
-  console.log('isLogin:', isLogin);
-  console.log('role:', role);
-  console.log('role type:', typeof role);
-  console.log('role === "A":', role === 'A');
-  console.log('role === A:', role === 'A');
-  console.log('role === 1:', role === 1);
-  console.log('isAdminRole:', isAdminRole);
-  console.log('isAdmin:', isAdmin);
-  console.log('isAdminUser:', isAdminUser);
-  console.log('isAdmin && isAdminUser:', isAdmin && isAdminUser);
+  // console.log('=== Header 디버깅 ===');
+  // console.log('전체 loginSlice 상태:', loginState);
+  // console.log('location.pathname:', location.pathname);
+  // console.log('accessToken:', accessToken);
+  // console.log('isLogin:', isLogin);
+  // console.log('role:', role);
+  // console.log('role type:', typeof role);
+  // console.log('role === "A":', role === 'A');
+  // console.log('role === A:', role === 'A');
+  // console.log('role === 1:', role === 1);
+  // console.log('isAdminRole:', isAdminRole);
+  // console.log('isAdmin:', isAdmin);
+  // console.log('isAdminUser:', isAdminUser);
+  // console.log('isAdmin && isAdminUser:', isAdmin && isAdminUser);
   
-  // 조건별 디버깅
-  console.log('조건 분석:');
-  console.log('- isAdmin (경로가 /admin으로 시작):', isAdmin);
-  console.log('- accessToken 존재:', !!accessToken);
-  console.log('- isLogin (로그인 상태):', isLogin);
-  console.log('- role 값:', role);
-  console.log('- isAdminRole (관리자 권한):', isAdminRole);
-  console.log('- 최종 조건 (isAdmin && isAdminUser):', isAdmin && isAdminUser);
+  // // 조건별 디버깅
+  // console.log('조건 분석:');
+  // console.log('- isAdmin (경로가 /admin으로 시작):', isAdmin);
+  // console.log('- accessToken 존재:', !!accessToken);
+  // console.log('- isLogin (로그인 상태):', isLogin);
+  // console.log('- role 값:', role);a
+  // console.log('- isAdminRole (관리자 권한):', isAdminRole);
+  // console.log('- 최종 조건 (isAdmin && isAdminUser):', isAdmin && isAdminUser);
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50 w-full">
