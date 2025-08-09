@@ -2,9 +2,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import axiosInstance from '../api/mainApi';  // mainApi의 axiosInstance 사용
+import axiosInstance, { API_SERVER_HOST } from '../api/mainApi';  // mainApi의 axiosInstance 사용
 import ChatRoom from './ChatRoom';
 import { Client } from '@stomp/stompjs';
+import { getCookie } from '../util/cookieUtil';
 
 // 더미 채팅방 목록 (더 많은 데이터 추가)
 const dummyRooms = [
@@ -119,31 +120,52 @@ const ChatPage = () => {
         const SockJS = (await import('sockjs-client')).default;
         console.log('✅ SockJS 라이브러리 로딩 완료');
         
-        console.log('🔄 SockJS 소켓 생성 중... URL: http://localhost:80/ws');
-        const socket = new SockJS('http://localhost:80/ws', null, {
-          transports: ['websocket', 'xhr-streaming', 'xhr-polling']
-        });
-        console.log('✅ SockJS 소켓 생성 완료');
-        
-        // SockJS 소켓 이벤트 리스너 추가
-        socket.onopen = () => {
-          console.log('✅ SockJS 소켓 연결 성공');
+        const wsUrl = `${API_SERVER_HOST.replace(/\/$/, '')}/ws`;
+        console.log('🔄 SockJS 소켓 생성 중... URL:', wsUrl);
+        const socketFactory = () => {
+          const socket = new SockJS(wsUrl, null, {
+            transports: ['websocket', 'xhr-streaming', 'xhr-polling']
+          });
+          // SockJS 소켓 이벤트 리스너 추가
+          socket.onopen = () => {
+            console.log('✅ SockJS 소켓 연결 성공');
+          };
+          socket.onclose = (event) => {
+            console.log('❌ SockJS 소켓 연결 닫힘:', event.code, event.reason);
+          };
+          socket.onerror = (error) => {
+            console.error('❌ SockJS 소켓 에러:', error);
+          };
+          return socket;
         };
-        
-        socket.onclose = (event) => {
-          console.log('❌ SockJS 소켓 연결 닫힘:', event.code, event.reason);
-        };
-        
-        socket.onerror = (error) => {
-          console.error('❌ SockJS 소켓 에러:', error);
-        };
+        console.log('✅ SockJS 소켓 팩토리 준비 완료');
         
         console.log('🔄 STOMP 클라이언트 생성 중...');
+        const getAccessToken = () => {
+          try {
+            const localToken = window.localStorage?.getItem('accessToken');
+            if (localToken) return localToken;
+          } catch (_) {}
+          if (accessToken) return accessToken;
+          const member = getCookie('member');
+          if (member && member.accessToken) return member.accessToken;
+          return null;
+        };
+
+        const makeConnectHeaders = () => {
+          const token = getAccessToken();
+          return token ? { Authorization: `Bearer ${token}` } : {};
+        };
+
         const client = new Client({
-          webSocketFactory: () => socket,
+          webSocketFactory: socketFactory,
           reconnectDelay: 5000,
           heartbeatIncoming: 4000,
           heartbeatOutgoing: 4000,
+          connectHeaders: makeConnectHeaders(),
+          beforeConnect: () => {
+            client.connectHeaders = makeConnectHeaders();
+          },
           debug: (msg) => console.log('STOMP DEBUG:', msg),
         });
         console.log('✅ STOMP 클라이언트 생성 완료');
@@ -265,6 +287,7 @@ const ChatPage = () => {
         stompClientRef.current.publish({
           destination: "/app/chat/message",
           body: JSON.stringify(messageDto),
+          headers: { 'content-type': 'application/json' },
         });
         
         console.log('✅ ChatPage WebSocket 메시지 전송 완료');
@@ -595,7 +618,7 @@ const ChatPage = () => {
             });
             
             const mappedRoom = {
-              ...room,
+            ...room,
               id: room.roomId || room.id, // roomId가 있으면 id로 사용, 없으면 기존 id 사용
               title: room.title || room.roomName || room.name || `채팅방 ${room.roomId || room.id}`, // title 필드 매핑
               lastMessage: room.lastMessage || room.lastMsg || room.recentMessage || room.last_message || room.recent_message || room.latestMessage || '메시지가 없습니다', // lastMessage 필드 매핑
@@ -668,7 +691,7 @@ const ChatPage = () => {
             });
             
             const mappedRoom = {
-              ...room,
+            ...room,
               id: room.roomId || room.id, // roomId가 있으면 id로 사용, 없으면 기존 id 사용
               title: room.title || room.roomName || room.name || `채팅방 ${room.roomId || room.id}`, // title 필드 매핑
               lastMessage: room.lastMessage || room.lastMsg || room.recentMessage || room.last_message || room.recent_message || room.latestMessage || '메시지가 없습니다', // lastMessage 필드 매핑

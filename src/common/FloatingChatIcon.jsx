@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import axiosInstance from './api/mainApi';
+import { Client } from '@stomp/stompjs';
 
 const FloatingChatIcon = () => {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -11,6 +12,9 @@ const FloatingChatIcon = () => {
   const isLogin = !!accessToken; // accessToken이 있으면 로그인된 것으로 간주
   const isAdminRole = role === 'A' || role === 'A' || role === 'ADMIN' || role === 'admin' || role === 1;
   const isAdminUser = isLogin && isAdminRole;
+  const stompClientRef = useRef(null);
+  const subscriptionsRef = useRef(new Set());
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
 
   // 현재 경로에 따라 채팅 링크 결정
   const getChatLink = () => {
@@ -34,7 +38,12 @@ const FloatingChatIcon = () => {
   const fetchUnreadCount = async () => {
     try {
       console.log('=== 안 읽은 메시지 개수 API 호출 ===');
-      const userId = 'dhrdbs'; // 실제로는 로그인한 사용자 ID를 사용해야 함
+      const userId = loginState?.id;
+      if (!userId) {
+        console.log('로그인 사용자 ID가 없어 미읽음 수 조회를 건너뜁니다.');
+        setUnreadCount(0);
+        return;
+      }
       const response = await axiosInstance.get(`/api/chat/countALLUnreadMessages?userId=${userId}`);
       console.log('안 읽은 메시지 개수 응답:', response.data);
       
@@ -55,17 +64,117 @@ const FloatingChatIcon = () => {
   };
 
   useEffect(() => {
-    // 컴포넌트 마운트 시 안 읽은 메시지 개수 가져오기
-    fetchUnreadCount();
-    
-    // 주기적으로 안 읽은 메시지 개수 업데이트 (30초마다)
-    const interval = setInterval(fetchUnreadCount, 30000);
-    
-    return () => clearInterval(interval);
-  }, []);
+    const isChatPage = location.pathname.startsWith('/chat') || location.pathname.startsWith('/admin/chat');
+    if (!isLogin) return; // 비로그인 시 연결하지 않음
 
-  // chat 페이지 또는 admin/chat 페이지에서는 FloatingChatIcon을 숨김
-  if (location.pathname.startsWith('/chat') || location.pathname.startsWith('/admin/chat')) {
+    let isMounted = true;
+
+    const initWebSocket = async () => {
+      try {
+        const SockJS = (await import('sockjs-client')).default;
+        const socket = new SockJS('http://localhost:80/ws', null, {
+          transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+        });
+
+        const makeConnectHeaders = () => (accessToken ? { Authorization: `Bearer ${accessToken}` } : {});
+
+        const client = new Client({
+          webSocketFactory: () => socket,
+          reconnectDelay: 5000,
+          heartbeatIncoming: 4000,
+          heartbeatOutgoing: 4000,
+          connectHeaders: makeConnectHeaders(),
+          beforeConnect: () => {
+            client.connectHeaders = makeConnectHeaders();
+          },
+          debug: (msg) => console.log('STOMP ICON DEBUG:', msg),
+        });
+
+        client.onConnect = async () => {
+          if (!isMounted) return;
+          console.log('✅ FloatingChatIcon WebSocket 연결 성공');
+          stompClientRef.current = client;
+          setIsWebSocketConnected(true);
+
+          // 내 채팅방 목록을 가져와 각 방 토픽을 구독
+          try {
+            const res = await axiosInstance.get('/api/chat/me/chatRooms');
+            const list = Array.isArray(res.data) ? res.data : (res.data?.content || []);
+            const roomIds = list.map((room) => room.roomId || room.id).filter(Boolean);
+
+            roomIds.forEach((roomId) => {
+              try {
+                const sub = client.subscribe(`/topic/chat/room/${roomId}`, () => {
+                  // 새 메시지 수신 → 총 미읽음 수 재조회
+                  fetchUnreadCount();
+                });
+                subscriptionsRef.current.add(sub);
+                console.log('📡 FloatingChatIcon 구독 완료:', `/topic/chat/room/${roomId}`);
+              } catch (e) {
+                console.error('❌ FloatingChatIcon 구독 실패:', roomId, e);
+              }
+            });
+          } catch (e) {
+            console.error('❌ 내 채팅방 목록 조회 실패 (아이콘):', e);
+          }
+        };
+
+        client.onStompError = (frame) => {
+          console.error('❌ FloatingChatIcon STOMP 에러:', frame);
+          setIsWebSocketConnected(false);
+        };
+
+        client.onDisconnect = () => {
+          console.log('❌ FloatingChatIcon WebSocket 연결 해제');
+          setIsWebSocketConnected(false);
+        };
+
+        client.activate();
+      } catch (e) {
+        console.error('❌ FloatingChatIcon WebSocket 초기화 실패:', e);
+      }
+    };
+
+    // 채팅 페이지가 아닐 때만 연결 시작
+    if (!isChatPage) {
+      initWebSocket();
+    }
+
+    return () => {
+      isMounted = false;
+      // 구독 해제
+      subscriptionsRef.current.forEach((subscription) => {
+        try {
+          subscription.unsubscribe();
+        } catch (e) {
+          // ignore
+        }
+      });
+      subscriptionsRef.current.clear();
+
+      // 클라이언트 비활성화
+      if (stompClientRef.current) {
+        try {
+          stompClientRef.current.deactivate();
+        } catch (e) {
+          // ignore
+        }
+      }
+      setIsWebSocketConnected(false);
+    };
+  }, [isLogin, accessToken, location.pathname]);
+
+  // 미읽음 수는 채팅 페이지 여부와 상관없이 조회 (로그 확인 목적 포함)
+  useEffect(() => {
+    if (!isLogin) {
+      setUnreadCount(0);
+      return;
+    }
+    fetchUnreadCount();
+  }, [isLogin, accessToken]);
+
+  // 비로그인 또는 chat/admin/chat 페이지에서는 아이콘 숨김
+  if (!isLogin || location.pathname.startsWith('/chat') || location.pathname.startsWith('/admin/chat')) {
     return null;
   }
 
