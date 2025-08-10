@@ -32,9 +32,9 @@ const AdminProductFormPage = () => {
   const [options, setOptions] = useState([
     {
       optionName: '',
-      price: '',
+      price: '100',
       discountPrice: '',
-      stock: 1
+      stock: '0'
     }
   ]);
 
@@ -222,35 +222,34 @@ const AdminProductFormPage = () => {
         if (data.options && Array.isArray(data.options) && data.options.length > 0) {
           setDateOptions(data.options);
           
-          // 고유한 옵션들을 추출하여 옵션 설정에 표시
-          const uniqueOptions = [];
-          const seenOptions = new Set();
+          // 첫 번째 날짜의 옵션 개수만큼 초기값으로 옵션 설정 생성
+          const firstDateOptions = data.options.filter(option => 
+            option.startDate === data.options[0].startDate
+          );
           
-          data.options.forEach(option => {
-            if (!seenOptions.has(option.optionName)) {
-              seenOptions.add(option.optionName);
-              uniqueOptions.push({
-                optionName: option.optionName,
-                price: option.price,
-                discountPrice: option.discountPrice,
-                stock: option.stock
-              });
-            }
-          });
-          
-          setOptions(uniqueOptions.length > 0 ? uniqueOptions : [{
-            optionName: '',
-            price: '',
-            discountPrice: '',
-            stock: 1
-          }]);
+          if (firstDateOptions.length > 0) {
+            setOptions(firstDateOptions.map(() => ({
+              optionName: '',
+              price: '100',
+              discountPrice: '',
+              stock: '0'
+            })));
+          } else {
+            // 옵션이 없으면 기본 옵션 하나 생성
+            setOptions([{
+              optionName: '',
+              price: '100',
+              discountPrice: '',
+              stock: '0'
+            }]);
+          }
         } else {
           // 옵션이 없으면 기본 옵션 하나 생성
           setOptions([{
             optionName: '',
-            price: '',
+            price: '100',
             discountPrice: '',
-            stock: 1
+            stock: '0'
           }]);
           setDateOptions([]);
         }
@@ -438,9 +437,9 @@ const AdminProductFormPage = () => {
   const addOption = () => {
     setOptions(prev => [...prev, {
       optionName: '',
-      price: '',
+      price: '100',
       discountPrice: '',
-      stock: 1
+      stock: '0'
     }]);
   };
 
@@ -495,8 +494,20 @@ const AdminProductFormPage = () => {
         setShowMessagePopup(true);
       return;
     }
+    if (field === 'stock' && parseInt(value) < 0) {
+              setMessagePopupText('재고는 0 이상이어야 합니다.');
+        setMessagePopupType('error');
+        setShowMessagePopup(true);
+      return;
+    }
     if (field === 'price' && value === '') {
               setMessagePopupText('정상가를 입력해주세요.');
+        setMessagePopupType('error');
+        setShowMessagePopup(true);
+      return;
+    }
+    if (field === 'price' && parseInt(value) < 100) {
+              setMessagePopupText('정상가는 100원 이상이어야 합니다.');
         setMessagePopupType('error');
         setShowMessagePopup(true);
       return;
@@ -554,27 +565,87 @@ const AdminProductFormPage = () => {
         setShowMessagePopup(true);
   };
 
-  const applyAllOptionsToDates = () => {
-    if (startDates.length === 0) return;
-    
-    // 모든 옵션에 대해 옵션명, 재고, 정상가가 비어있는지 확인
+  // 옵션 유효성 검사 함수 (모든 옵션)
+  const validateOptions = (optionsToValidate, optionType = '일반') => {
     const emptyFields = [];
-    options.forEach((option, index) => {
-      if (!option.optionName.trim()) {
-        emptyFields.push(`${index + 1}번 옵션의 옵션명`);
+    const invalidFields = [];
+    
+    optionsToValidate.forEach((option, index) => {
+      if (!option.optionName || !option.optionName.trim()) {
+        emptyFields.push(`${optionType} ${index + 1}번 옵션의 옵션명`);
       }
-      if (option.stock === '') {
-        emptyFields.push(`${index + 1}번 옵션의 재고`);
+      if (option.stock === '' || option.stock === undefined) {
+        emptyFields.push(`${optionType} ${index + 1}번 옵션의 재고`);
+      } else if (parseInt(option.stock) < 0) {
+        invalidFields.push(`${optionType} ${index + 1}번 옵션의 재고 (0 이상이어야 함)`);
       }
-      if (option.price === '') {
-        emptyFields.push(`${index + 1}번 옵션의 정상가`);
+      if (option.price === '' || option.price === undefined) {
+        emptyFields.push(`${optionType} ${index + 1}번 옵션의 정상가`);
+      } else if (parseInt(option.price) < 100) {
+        invalidFields.push(`${optionType} ${index + 1}번 옵션의 정상가 (100원 이상이어야 함)`);
       }
     });
     
     if (emptyFields.length > 0) {
-      setMessagePopupText(`다음 항목들을 입력해주세요:\n\n${emptyFields.join('\n')}`);
+      setMessagePopupText(`다음 항목들을 입력해주세요:\n\n${emptyFields.map((field, index) => `${index + 1}. ${field}`).join('\n')}`);
       setMessagePopupType('error');
       setShowMessagePopup(true);
+      return false;
+    }
+    
+    if (invalidFields.length > 0) {
+      setMessagePopupText(`다음 항목들의 값을 확인해주세요:\n\n${invalidFields.map((field, index) => `${index + 1}. ${field}`).join('\n')}`);
+      setMessagePopupType('error');
+      setShowMessagePopup(true);
+      return false;
+    }
+    
+    return true;
+  };
+
+  // 개별 옵션 유효성 검사 함수
+  const validateSingleOption = (option, optionIndex, optionType = '날짜별') => {
+    const emptyFields = [];
+    const invalidFields = [];
+    
+    if (!option.optionName || !option.optionName.trim()) {
+      emptyFields.push(`${optionType} ${optionIndex + 1}번 옵션의 옵션명`);
+    }
+    if (option.stock === '' || option.stock === undefined) {
+      emptyFields.push(`${optionType} ${optionIndex + 1}번 옵션의 재고`);
+    } else if (parseInt(option.stock) < 0) {
+      invalidFields.push(`${optionType} ${optionIndex + 1}번 옵션의 재고 (0 이상이어야 함)`);
+    }
+    if (option.price === '' || option.price === undefined) {
+      emptyFields.push(`${optionType} ${optionIndex + 1}번 옵션의 정상가`);
+    } else if (parseInt(option.price) < 100) {
+      invalidFields.push(`${optionType} ${optionIndex + 1}번 옵션의 정상가 (100원 이상이어야 함)`);
+    }
+    
+    if (emptyFields.length > 0) {
+      setMessagePopupText(`다음 항목들을 입력해주세요:\n\n${emptyFields.map((field, index) => `${index + 1}. ${field}`).join('\n')}`);
+      setMessagePopupType('error');
+      setShowMessagePopup(true);
+      return false;
+    }
+    
+    if (invalidFields.length > 0) {
+      setMessagePopupText(`다음 항목들의 값을 확인해주세요:\n\n${invalidFields.map((field, index) => `${index + 1}. ${field}`).join('\n')}`);
+      setMessagePopupType('error');
+      setShowMessagePopup(true);
+      return false;
+    }
+    
+    return true;
+  };
+
+
+
+  const applyAllOptionsToDates = () => {
+    if (startDates.length === 0) return;
+    
+    // 유효성 검사 실행
+    if (!validateOptions(options, '일반')) {
       return;
     }
     
@@ -671,6 +742,8 @@ const AdminProductFormPage = () => {
         [date]: newTemp
       };
     });
+    
+
   };
 
   // 특정 날짜의 옵션 삭제
@@ -707,20 +780,32 @@ const AdminProductFormPage = () => {
   const applyOptionsToDate = (date) => {
     // 모든 옵션에 대해 옵션명, 재고, 정상가가 비어있는지 확인
     const emptyFields = [];
+    const invalidFields = [];
     options.forEach((option, index) => {
       if (!option.optionName.trim()) {
         emptyFields.push(`${index + 1}번 옵션의 옵션명`);
       }
       if (option.stock === '') {
         emptyFields.push(`${index + 1}번 옵션의 재고`);
+      } else if (parseInt(option.stock) < 0) {
+        invalidFields.push(`${index + 1}번 옵션의 재고 (0 이상이어야 함)`);
       }
       if (option.price === '') {
         emptyFields.push(`${index + 1}번 옵션의 정상가`);
+      } else if (parseInt(option.price) < 100) {
+        invalidFields.push(`${index + 1}번 옵션의 정상가 (100원 이상이어야 함)`);
       }
     });
     
     if (emptyFields.length > 0) {
-      setMessagePopupText(`다음 항목들을 입력해주세요:\n\n${emptyFields.join('\n')}`);
+      setMessagePopupText(`다음 항목들을 입력해주세요:\n\n${emptyFields.map((field, index) => `${index + 1}. ${field}`).join('\n')}`);
+      setMessagePopupType('error');
+      setShowMessagePopup(true);
+      return;
+    }
+    
+    if (invalidFields.length > 0) {
+      setMessagePopupText(`다음 항목들의 값을 확인해주세요:\n\n${invalidFields.map((field, index) => `${index + 1}. ${field}`).join('\n')}`);
       setMessagePopupType('error');
       setShowMessagePopup(true);
       return;
@@ -782,14 +867,36 @@ const AdminProductFormPage = () => {
       errors.push('시작일을 최소 하나 이상 선택해주세요.');
     }
     
-    // 날짜별 옵션 검증
-    if (dateOptions.length === 0) {
-      errors.push('날짜별 옵션을 최소 하나 이상 적용해주세요.');
+    // 날짜별 옵션 유효성 검사
+    if (dateOptions.length > 0) {
+      const dateOptionErrors = [];
+      
+      dateOptions.forEach((option, index) => {
+        if (!option.optionName || option.optionName.trim() === '') {
+          dateOptionErrors.push(`날짜별 옵션 ${index + 1}번의 옵션명을 입력해주세요.`);
+        }
+        if (option.stock === '' || option.stock === undefined || option.stock === null) {
+          dateOptionErrors.push(`날짜별 옵션 ${index + 1}번의 재고를 입력해주세요.`);
+        } else if (parseInt(option.stock) < 0) {
+          dateOptionErrors.push(`날짜별 옵션 ${index + 1}번의 재고는 0 이상이어야 합니다.`);
+        }
+        if (option.price === '' || option.price === undefined || option.price === null) {
+          dateOptionErrors.push(`날짜별 옵션 ${index + 1}번의 정상가를 입력해주세요.`);
+        } else if (parseInt(option.price) < 100) {
+          dateOptionErrors.push(`날짜별 옵션 ${index + 1}번의 정상가는 100원 이상이어야 합니다.`);
+        }
+      });
+      
+      if (dateOptionErrors.length > 0) {
+        errors.push(...dateOptionErrors);
+      }
+    } else {
+      errors.push('날짜별 옵션을 최소 하나 이상 설정해주세요.');
     }
     
     // 에러가 있으면 알림 표시
     if (errors.length > 0) {
-      setMessagePopupText('다음 항목들을 확인해주세요:\n\n' + errors.join('\n'));
+      setMessagePopupText('다음 항목들을 확인해주세요:\n\n' + errors.map((error, index) => `${index + 1}. ${error}`).join('\n'));
       setMessagePopupType('error');
       setShowMessagePopup(true);
       return;
@@ -1182,7 +1289,7 @@ const AdminProductFormPage = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">옵션 설정</h3>
-                <p className="text-sm text-gray-600">옵션을 입력하고 날짜에 적용하세요</p>
+                <p className="text-sm text-gray-600">원하는 옵션 또는 항목을 일괄 적용하세요</p>
               </div>
             </div>
             <button
@@ -1216,7 +1323,7 @@ const AdminProductFormPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium mb-2 text-gray-700">
-                      옵션명 <span className="text-red-500">*</span>
+                      옵션명
                     </label>
                     <div className="flex space-x-2">
                       <input
@@ -1225,7 +1332,6 @@ const AdminProductFormPage = () => {
                         onChange={(e) => updateOption(index, 'optionName', e.target.value)}
                         className="flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         placeholder="옵션명을 입력하세요"
-                        required
                       />
                       <button
                         type="button"
@@ -1239,15 +1345,15 @@ const AdminProductFormPage = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 text-gray-700">
-                      재고 <span className="text-red-500">*</span>
+                      재고
                     </label>
                     <div className="flex space-x-2">
                       <input
                         type="number"
+                        min="0"
                         value={option.stock}
-                        onChange={(e) => updateOption(index, 'stock', parseInt(e.target.value) || 0)}
+                        onChange={(e) => updateOption(index, 'stock', e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                         className="flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                        required
                       />
                       <button
                         type="button"
@@ -1264,16 +1370,16 @@ const AdminProductFormPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2 text-gray-700">
-                      정상가 <span className="text-red-500">*</span>
+                      정상가
                     </label>
                     <div className="flex space-x-2">
                       <input
                         type="number"
+                        min="100"
                         value={option.price}
-                        onChange={(e) => updateOption(index, 'price', e.target.value)}
+                        onChange={(e) => updateOption(index, 'price', e.target.value === '' ? '' : e.target.value)}
                         className="flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         placeholder="정상가"
-                        required
                       />
                       <button
                         type="button"
@@ -1291,7 +1397,7 @@ const AdminProductFormPage = () => {
                       <input
                         type="number"
                         value={option.discountPrice}
-                        onChange={(e) => updateOption(index, 'discountPrice', e.target.value)}
+                        onChange={(e) => updateOption(index, 'discountPrice', e.target.value === '' ? '' : e.target.value)}
                         className="flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         placeholder="할인가"
                       />
@@ -1459,6 +1565,14 @@ const AdminProductFormPage = () => {
                                 <button
                                   type="button"
                                   onClick={() => {
+                                    // 현재 옵션만 유효성 검사
+                                    const currentOption = getOptionsForDate(selectedDateForView)[index];
+                                    
+                                    // 유효성 검사 실행 (해당 옵션만)
+                                    if (!validateSingleOption(currentOption, index, '날짜별')) {
+                                      return;
+                                    }
+                                    
                                     // 임시 수정사항을 실제 dateOptions에 적용
                                     const tempOption = tempDateOptions[selectedDateForView]?.[index];
                                     if (tempOption) {
@@ -1516,7 +1630,7 @@ const AdminProductFormPage = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                               <div>
                                 <label className="block text-sm font-medium mb-2 text-gray-700">
-                                  옵션명 <span className="text-red-500">*</span>
+                                  옵션명
                                 </label>
                                 <input
                                   type="text"
@@ -1524,19 +1638,18 @@ const AdminProductFormPage = () => {
                                   onChange={(e) => updateDateOption(selectedDateForView, index, 'optionName', e.target.value)}
                                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                                   placeholder="옵션명을 입력하세요"
-                                  required
                                 />
                               </div>
                               <div>
                                 <label className="block text-sm font-medium mb-2 text-gray-700">
-                                  재고 <span className="text-red-500">*</span>
+                                  재고
                                 </label>
                                 <input
                                   type="number"
+                                  min="0"
                                   value={option.stock}
-                                  onChange={(e) => updateDateOption(selectedDateForView, index, 'stock', parseInt(e.target.value) || 0)}
+                                  onChange={(e) => updateDateOption(selectedDateForView, index, 'stock', e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                  required
                                 />
                               </div>
                             </div>
@@ -1544,15 +1657,15 @@ const AdminProductFormPage = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <label className="block text-sm font-medium mb-2 text-gray-700">
-                                  정상가 <span className="text-red-500">*</span>
+                                  정상가
                                 </label>
                                 <input
                                   type="number"
+                                  min="100"
                                   value={option.price}
-                                  onChange={(e) => updateDateOption(selectedDateForView, index, 'price', parseInt(e.target.value) || 0)}
+                                  onChange={(e) => updateDateOption(selectedDateForView, index, 'price', e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                                   placeholder="정상가"
-                                  required
                                 />
                               </div>
                               <div>
@@ -1560,7 +1673,7 @@ const AdminProductFormPage = () => {
                                 <input
                                   type="number"
                                   value={option.discountPrice}
-                                  onChange={(e) => updateDateOption(selectedDateForView, index, 'discountPrice', parseInt(e.target.value) || 0)}
+                                  onChange={(e) => updateDateOption(selectedDateForView, index, 'discountPrice', e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                                   min="0"
                                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                                   placeholder="할인가"

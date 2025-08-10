@@ -70,9 +70,13 @@ const MessagePopup = ({ isOpen, onClose, message, type = 'info' }) => {
           </h3>
           
           {/* 메시지 */}
-          <p className="text-sm text-gray-600 mb-6">
-            {message}
-          </p>
+          <div className="text-sm text-gray-600 mb-6">
+            {message.split('\n').map((line, index) => (
+              <p key={index} className={line.trim() === '' ? 'mb-2' : 'mb-1'}>
+                {line}
+              </p>
+            ))}
+          </div>
           
           {/* 확인 버튼 */}
           <button

@@ -415,7 +415,8 @@ const CommerceDetail = () => {
     <>
       <section className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow flex flex-col gap-8">
         {/* 뒤로가기 버튼 */}
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-semibold text-gray-800">상품 상세 페이지</h1>
           <button
             onClick={() => navigate('/commerce')}
             className="bg-gray-100 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
