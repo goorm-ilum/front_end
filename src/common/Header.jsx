@@ -101,13 +101,13 @@ const Header = () => {
   // console.log('- 최종 조건 (isAdmin && isAdminUser):', isAdmin && isAdminUser);
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50 w-full">
-      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+    <header className="bg-white/90 backdrop-blur-sm shadow-lg border-b border-white/20 sticky top-0 z-50 w-full">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         {/* 왼쪽 로고 */}
         <div className="flex items-center min-w-[120px]">
           <MenuLink 
             to={isAdmin ? "/admin" : "/"} 
-            className="text-2xl font-extrabold text-blue-600"
+            className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 transition-all duration-300"
           >
             TalkTrip
           </MenuLink>
@@ -117,22 +117,21 @@ const Header = () => {
         <nav className="flex-1 flex justify-center gap-8">
           {isAdmin ? (
             <>
-
               <AdminMenuLink
                 to="/admin/products"
-                className="text-gray-700 hover:text-blue-600"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-300"
               >
                 상품관리
               </AdminMenuLink>
               <AdminMenuLink
                 to="/admin/orders"
-                className="text-gray-700 hover:text-blue-600"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-300"
               >
                 주문관리
               </AdminMenuLink>
               <AdminMenuLink
                 to="/admin/profile"
-                className="text-gray-700 hover:text-blue-600"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-300"
               >
                 정보수정
               </AdminMenuLink>
@@ -141,14 +140,14 @@ const Header = () => {
             <>
               <MenuLink
                 to="/commerce"
-                className="text-gray-700 hover:text-blue-600"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-300"
                 onClick={(e) => handleMenuClick('/commerce', e)}
               >
                 투어/액티비티
               </MenuLink>
               <MenuLink
                 to="/mypage"
-                className="text-gray-700 hover:text-blue-600"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-300"
                 onClick={handleMypageClick}
               >
                 Mypage
