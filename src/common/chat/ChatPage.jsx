@@ -2,9 +2,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import axiosInstance from '../api/mainApi';  // mainApi의 axiosInstance 사용
+import axiosInstance, { API_SERVER_HOST } from '../api/mainApi';  // mainApi의 axiosInstance 사용
 import ChatRoom from './ChatRoom';
 import { Client } from '@stomp/stompjs';
+import { getCookie } from '../util/cookieUtil';
 
 // 더미 채팅방 목록 (더 많은 데이터 추가)
 const dummyRooms = [
@@ -119,31 +120,52 @@ const ChatPage = () => {
         const SockJS = (await import('sockjs-client')).default;
         console.log('✅ SockJS 라이브러리 로딩 완료');
         
-        console.log('🔄 SockJS 소켓 생성 중... URL: http://localhost:80/ws');
-        const socket = new SockJS('http://localhost:80/ws', null, {
-          transports: ['websocket', 'xhr-streaming', 'xhr-polling']
-        });
-        console.log('✅ SockJS 소켓 생성 완료');
-        
-        // SockJS 소켓 이벤트 리스너 추가
-        socket.onopen = () => {
-          console.log('✅ SockJS 소켓 연결 성공');
+        const wsUrl = `${API_SERVER_HOST.replace(/\/$/, '')}/ws`;
+        console.log('🔄 SockJS 소켓 생성 중... URL:', wsUrl);
+        const socketFactory = () => {
+          const socket = new SockJS(wsUrl, null, {
+            transports: ['websocket', 'xhr-streaming', 'xhr-polling']
+          });
+          // SockJS 소켓 이벤트 리스너 추가
+          socket.onopen = () => {
+            console.log('✅ SockJS 소켓 연결 성공');
+          };
+          socket.onclose = (event) => {
+            console.log('❌ SockJS 소켓 연결 닫힘:', event.code, event.reason);
+          };
+          socket.onerror = (error) => {
+            console.error('❌ SockJS 소켓 에러:', error);
+          };
+          return socket;
         };
-        
-        socket.onclose = (event) => {
-          console.log('❌ SockJS 소켓 연결 닫힘:', event.code, event.reason);
-        };
-        
-        socket.onerror = (error) => {
-          console.error('❌ SockJS 소켓 에러:', error);
-        };
+        console.log('✅ SockJS 소켓 팩토리 준비 완료');
         
         console.log('🔄 STOMP 클라이언트 생성 중...');
+        const getAccessToken = () => {
+          try {
+            const localToken = window.localStorage?.getItem('accessToken');
+            if (localToken) return localToken;
+          } catch (_) {}
+          if (accessToken) return accessToken;
+          const member = getCookie('member');
+          if (member && member.accessToken) return member.accessToken;
+          return null;
+        };
+
+        const makeConnectHeaders = () => {
+          const token = getAccessToken();
+          return token ? { Authorization: `Bearer ${token}` } : {};
+        };
+
         const client = new Client({
-          webSocketFactory: () => socket,
+          webSocketFactory: socketFactory,
           reconnectDelay: 5000,
           heartbeatIncoming: 4000,
           heartbeatOutgoing: 4000,
+          connectHeaders: makeConnectHeaders(),
+          beforeConnect: () => {
+            client.connectHeaders = makeConnectHeaders();
+          },
           debug: (msg) => console.log('STOMP DEBUG:', msg),
         });
         console.log('✅ STOMP 클라이언트 생성 완료');
@@ -265,6 +287,7 @@ const ChatPage = () => {
         stompClientRef.current.publish({
           destination: "/app/chat/message",
           body: JSON.stringify(messageDto),
+          headers: { 'content-type': 'application/json' },
         });
         
         console.log('✅ ChatPage WebSocket 메시지 전송 완료');
@@ -595,7 +618,7 @@ const ChatPage = () => {
             });
             
             const mappedRoom = {
-              ...room,
+            ...room,
               id: room.roomId || room.id, // roomId가 있으면 id로 사용, 없으면 기존 id 사용
               title: room.title || room.roomName || room.name || `채팅방 ${room.roomId || room.id}`, // title 필드 매핑
               lastMessage: room.lastMessage || room.lastMsg || room.recentMessage || room.last_message || room.recent_message || room.latestMessage || '메시지가 없습니다', // lastMessage 필드 매핑
@@ -668,7 +691,7 @@ const ChatPage = () => {
             });
             
             const mappedRoom = {
-              ...room,
+            ...room,
               id: room.roomId || room.id, // roomId가 있으면 id로 사용, 없으면 기존 id 사용
               title: room.title || room.roomName || room.name || `채팅방 ${room.roomId || room.id}`, // title 필드 매핑
               lastMessage: room.lastMessage || room.lastMsg || room.recentMessage || room.last_message || room.recent_message || room.latestMessage || '메시지가 없습니다', // lastMessage 필드 매핑
@@ -759,18 +782,32 @@ const ChatPage = () => {
     }
   };
 
-  // 방 삭제 함수 (더미 삭제)
-  const handleDeleteRoom = (id) => {
-    if (!window.confirm('정말 이 채팅방을 삭제하시겠습니까?')) return;
-    // 실제 API 호출 → 목록에서 제거
-    console.log('delete room', id);
-    // 삭제 후, 다른 방 또는 목록으로 이동
-    if (id === roomId) {
-      if (location.pathname.startsWith('/admin')) {
-        navigate('/admin/chat');
+  // 방 삭제(나가기) 함수 - 백엔드 API 연동
+  const handleDeleteRoom = async (id) => {
+    if (!window.confirm('정말 이 채팅방을 나가시겠습니까? (삭제 처리)')) return;
+    try {
+      console.log('채팅방 나가기 요청 시작:', id);
+      const url = `/api/chat/me/chatRooms/${id}`;
+      const res = await axiosInstance.patch(url);
+      console.log('채팅방 나가기 응답 상태:', res.status);
+      if (res.status === 204) {
+        // 목록에서 제거
+        setRooms(prev => prev.filter(r => r.id !== id));
+        console.log('채팅방 목록에서 제거 완료:', id);
+        // 현재 보고 있던 방이면 목록으로 이동
+        if (id === roomId) {
+          if (location.pathname.startsWith('/admin')) {
+            navigate('/admin/chat');
+          } else {
+            navigate('/chat');
+          }
+        }
       } else {
-        navigate('/chat');
+        console.warn('예상치 못한 상태 코드:', res.status);
       }
+    } catch (error) {
+      console.error('채팅방 나가기 요청 실패:', error);
+      alert('채팅방 나가기에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }
   };
 

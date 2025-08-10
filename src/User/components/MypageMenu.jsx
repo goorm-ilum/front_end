@@ -6,27 +6,50 @@ import MyLike from '../pages/Mypage/MyLike';
 import MyReview from '../pages/Mypage/MyReview';
 
 const MypageMenu = () => {
-  const [selectedMenu, setSelectedMenu] = useState('info');
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // URL에서 탭 정보를 바로 가져와서 초기값 설정
+  const initialTab = searchParams.get('tab');
+  const [selectedMenu, setSelectedMenu] = useState(() => {
+    if (initialTab && ['info', 'order', 'like', 'review'].includes(initialTab)) {
+      return initialTab;
+    }
+    return 'info';
+  });
+  
+  const [refreshKey, setRefreshKey] = useState(0); // 새로고침을 위한 key
 
-  // URL 파라미터에서 탭 정보 확인
+  // 새로고침 신호 감지 (location.state에서 forceRefresh 확인) - 먼저 실행
+  useEffect(() => {
+    if (location.state?.forceRefresh) {
+      // 현재 탭 컴포넌트를 재마운트하기 위해 key 변경
+      setRefreshKey(prev => prev + 1);
+      
+      // state 초기화 (중복 실행 방지)
+      navigate(location.pathname + location.search, { 
+        replace: true, 
+        state: undefined 
+      });
+    }
+  }, [location.state, location.pathname, location.search, navigate]);
+
+  // URL 파라미터 변경 시 탭 정보 업데이트
   useEffect(() => {
     const tab = searchParams.get('tab');
     
     if (tab && ['info', 'order', 'like', 'review'].includes(tab)) {
       setSelectedMenu(tab);
-    } else {
-      // 탭 파라미터가 없거나 유효하지 않은 경우 내 정보 탭으로 설정
+    } else if (!tab) {
+      // 탭 파라미터가 없는 경우 내 정보 탭으로 설정
       setSelectedMenu('info');
-      // URL도 업데이트 (navigate를 의존성에서 제거하여 무한 루프 방지)
+      // URL도 업데이트 (replace: true로 하여 히스토리에 추가되지 않도록)
       if (location.pathname === '/mypage') {
         navigate('/mypage?tab=info', { replace: true });
       }
     }
-  }, [searchParams, location.pathname]);
-
+  }, [searchParams, location.pathname, navigate]);
 
 
   const menuItems = [
@@ -81,9 +104,9 @@ const MypageMenu = () => {
         </div>
       </div>
 
-      {/* 선택된 메뉴의 컴포넌트 렌더링 */}
+      {/* 선택된 메뉴의 컴포넌트 렌더링 - key prop으로 재마운트 제어 */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <SelectedComponent />
+        <SelectedComponent key={`${selectedMenu}-${refreshKey}`} />
       </div>
     </div>
   );

@@ -41,7 +41,7 @@ const FloatingAlarmIcon = () => {
     // 개발 단계에서는 인증 체크를 건너뛰고 API 호출
     // try {
     //   console.log('=== 안 읽은 알림 개수 API 호출 (개발 모드) ===');
-    //   const userId = 'dhrdbs'; // 실제로는 로그인한 사용자 ID를 사용해야 함
+    //   const userId = ' '; // 실제로는 로그인한 사용자 ID를 사용해야 함
     //   const response = await axiosInstance.get(`/api/alarm/countUnreadAlarms?userId=${userId}`);
     //   console.log('안 읽은 알림 개수 응답:', response.data);
     //   
@@ -88,7 +88,10 @@ const FloatingAlarmIcon = () => {
     { id: 8, message: '비밀번호가 변경되었습니다.', time: '35분 전', isRead: true },
   ];
 
-  // 개발 단계에서는 로그인 상태와 관계없이 알림 아이콘 표시
+  // 비로그인 시 아이콘 숨김
+  if (!isLogin) {
+    return null;
+  }
 
   return (
     <>
