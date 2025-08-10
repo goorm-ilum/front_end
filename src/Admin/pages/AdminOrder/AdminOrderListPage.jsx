@@ -111,7 +111,7 @@ const AdminOrderListPage = () => {
     }
 
     // 선택된 주문들만 필터링
-    const selectedData = processedOrders.filter(order => 
+    const selectedData = orders.filter(order => 
       selectedOrders.has(order.orderCode)
     );
 

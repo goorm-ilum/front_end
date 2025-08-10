@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import KakaoLoginButton from "./components/KakaoLoginButton";
 import AdminMenuLink from "./components/AdminMenuLink";
@@ -30,6 +30,7 @@ const MenuLink = ({ to, children, className }) => {
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const loginState = useSelector((state) => state.loginSlice);
   const { accessToken, role } = loginState;
   const isLogin = !!accessToken; // accessToken이 있으면 로그인된 것으로 간주
@@ -55,14 +56,16 @@ const Header = () => {
     }
   };
 
-  // Mypage 버튼 클릭 핸들러 - 항상 내 정보 탭으로 이동
+  // Mypage 버튼 핸들러 - 새로고침 신호 전달
   const handleMypageClick = (e) => {
     e.preventDefault();
     
-    // 현재 마이페이지에 있는 경우 내 정보 탭으로 강제 이동
+    // 현재 마이페이지에 있는 경우 새로고침 신호와 함께 같은 경로로 이동
     if (location.pathname === '/mypage') {
-      navigate('/mypage?tab=info', { 
-        replace: true
+      const currentTab = searchParams.get('tab') || 'info';
+      navigate(`/mypage?tab=${currentTab}`, { 
+        replace: false,
+        state: { forceRefresh: true, timestamp: Date.now() }
       });
       return;
     }
