@@ -914,26 +914,56 @@ const AdminProductFormPage = () => {
          options: dateOptions
        };
 
-       // 전체 상세 이미지 순서 정보 추가 (등록/수정 모두)
-       if (detailImageTypes.length > 0) {
-         const imageOrder = detailImageTypes.map((type, index) => ({
-           order: index,
-           type: type,
-           id: type === 'existing' ? parseInt(detailImageIds[index]) : null,
-           fileName: type === 'new' ? detailFiles[index]?.name : null
-         }));
-         requestData.detailImageOrder = imageOrder;
-       }
-       
-       // 수정 시 기존 이미지 정보 추가
+       // 수정 시 기존 이미지 정보 추가 (백엔드 호환성을 위해 기존 방식 유지)
        if (isEdit) {
          // 기존 썸네일 해시 추가 (새로 업로드하지 않은 경우)
          if (!thumbnailFile && thumbnailHash && thumbnailHash.trim() !== '') {
            requestData.existingThumbnailHash = thumbnailHash;
          }
+         
+         // 기존 상세 이미지 ID들 추가 (기존 방식 유지)
+         if (detailImageIds.length > 0) {
+           const existingIds = detailImageIds.filter((id, index) => 
+             detailImageTypes[index] === 'existing' && id && id !== ''
+           );
+           if (existingIds.length > 0) {
+             // 문자열 ID를 숫자로 변환
+             requestData.existingDetailImageIds = existingIds.map(id => parseInt(id));
+             console.log('기존 상세 이미지 ID들 추가됨:', existingIds);
+           } else {
+             console.log('기존 상세 이미지 ID가 없습니다.');
+           }
+         } else {
+           console.log('detailImageIds가 비어있습니다.');
+         }
        }
-
-      const formData = new FormData();
+       
+             const formData = new FormData();
+      
+      // 새로 업로드할 파일들만 필터링 (순서 유지) - 먼저 선언
+      const newFiles = detailFiles.filter((file, index) => {
+        const type = detailImageTypes[index];
+        const isValidFile = file && file instanceof File;
+        console.log(`필터링 체크 - 인덱스 ${index}: type=${type}, isValidFile=${isValidFile}, file=`, file ? file.name : 'null');
+        return type === 'new' && isValidFile;
+      });
+      
+      // 전체 상세 이미지 순서 정보를 문자열 배열로 생성
+      let imageOrderTokens = [];
+      if (detailImageTypes.length > 0) {
+        imageOrderTokens = detailImageTypes.map((type, index) => {
+          if (type === 'existing') {
+            return `id:${detailImageIds[index]}`;
+          } else if (type === 'new') {
+            // newFiles 배열에서 해당 파일의 인덱스를 찾기
+            const newFileIndex = newFiles.findIndex(file => file === detailFiles[index]);
+            return `new:${newFileIndex}`;
+          }
+          return null;
+        }).filter(token => token !== null);
+        
+        console.log('생성된 detailImageOrder 토큰들:', imageOrderTokens);
+      }
       
       // request를 JSON 문자열로 변환하여 추가
       formData.append('request', new Blob([JSON.stringify(requestData)], {
@@ -968,37 +998,49 @@ const AdminProductFormPage = () => {
           });
         });
         
-        // 새로 업로드할 파일들만 필터링 (순서 유지)
-        const newFiles = detailFiles.filter((file, index) => 
-          detailImageTypes[index] === 'new' && file && file instanceof File
-        );
+         // newFiles는 이미 위에서 선언됨
         
         console.log('필터링된 newFiles:', newFiles);
         console.log('필터링된 newFiles 길이:', newFiles.length);
         
-        // 새로 업로드할 파일들을 순서대로 FormData에 추가
-        if (newFiles.length > 0) {
-          console.log('=== 새로 업로드할 파일들 (순서대로) ===');
-          newFiles.forEach((file, index) => {
-            console.log(`detailImages[${index}]:`, {
-              name: file.name,
-              type: file.type,
-              size: file.size,
-              isFile: file instanceof File
-            });
-            // 각 파일을 개별적으로 detailImages로 추가 (List<MultipartFile>에 맞춤)
-            formData.append('detailImages', file);
-          });
-          console.log('새로 업로드된 상세 이미지들 추가됨:', newFiles.map(f => f.name));
-        } else {
-          console.log('새로 업로드할 상세 이미지가 없습니다.');
-        }
+                 // 새로 업로드할 파일들을 FormData에 추가 (순서대로)
+         if (newFiles.length > 0) {
+           console.log('=== 새로 업로드할 파일들 ===');
+           newFiles.forEach((file, index) => {
+             console.log(`detailImages[${index}]:`, {
+               name: file.name,
+               type: file.type,
+               size: file.size,
+               isFile: file instanceof File
+             });
+             
+             // 순서대로 detailImages에 추가
+             formData.append('detailImages', file);
+           });
+           console.log('새로 업로드된 상세 이미지들 추가됨:', newFiles.map(f => f.name));
+         } else {
+           console.log('새로 업로드할 상세 이미지가 없습니다.');
+         }
+         
+         // detailImageOrder를 하나의 JSON 배열로 만들어서 FormData에 추가
+         if (imageOrderTokens.length > 0) {
+           formData.append('detailImageOrder', new Blob([JSON.stringify(imageOrderTokens)], { type: 'application/json' }));
+         }
+         
+         // 기존 파일 정보 로그
+         if (isEdit && requestData.existingDetailImageIds && requestData.existingDetailImageIds.length > 0) {
+           console.log('=== 기존 파일 유지 정보 ===');
+           console.log('유지할 기존 이미지 ID들:', requestData.existingDetailImageIds);
+           console.log('전체 이미지 순서 토큰들:', imageOrderTokens);
+         }
 
       // 전송할 데이터 로그 출력
       console.log('=== 상품 등록/수정 데이터 ===');
       console.log('Request 데이터:', requestData);
+      console.log('기존 상세 이미지 ID들:', requestData.existingDetailImageIds || '없음');
+      console.log('전체 이미지 순서:', requestData.detailImageOrder || '없음');
       console.log('썸네일 파일:', thumbnailFile ? thumbnailFile.name : '없음');
-             console.log('상세 이미지 파일들:', detailFiles ? detailFiles.filter(f => f && f.name).map(f => f.name) : []);
+      console.log('상세 이미지 파일들:', detailFiles ? detailFiles.filter(f => f && f.name).map(f => f.name) : []);
       
              // FormData 내용 확인
        console.log('=== FormData 내용 ===');
@@ -1013,6 +1055,8 @@ const AdminProductFormPage = () => {
            } else {
              console.log(`  ${key}:`, '파일 객체 없음', value);
            }
+         } else if (key === 'detailImageOrder') {
+           console.log(`  ${key}:`, 'JSON Blob', value);
          } else if (key === 'request') {
            console.log(`  ${key}:`, 'JSON Blob', value);
          } else {
@@ -1028,8 +1072,13 @@ const AdminProductFormPage = () => {
       console.log('=== API 요청 정보 ===');
       console.log('URL:', url);
       console.log('Method:', method);
+      console.log('Content-Type 헤더 자동 설정됨 (FormData)');
 
-      const res = await fetch(url, { method, body: formData });
+      const res = await fetch(url, { 
+        method, 
+        body: formData,
+        // FormData를 사용하면 Content-Type이 자동으로 multipart/form-data로 설정됨
+      });
       
       console.log('=== 응답 정보 ===');
       console.log('Status:', res.status);
