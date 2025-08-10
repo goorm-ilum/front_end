@@ -471,13 +471,31 @@ const CommerceList = () => {
   };
 
   return (
-    <section className="flex flex-col gap-6 items-stretch">
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* 페이지 헤더 */}
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+          투어 & 액티비티
+        </h1>
+        <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
+        <p className="text-lg text-gray-600 mt-4">
+          전세계의 다양한 여행상품을 둘러보고 예약하세요
+        </p>
+      </div>
+
       {/* AI 검색봇 영역 */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 mb-6">
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8 mb-12">
         <div className="text-center mb-6">
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">
-            AI 여행상품 검색
-          </h3>
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mr-4">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              AI 여행상품 검색
+            </h3>
+          </div>
           <p className="text-gray-600">
             자연어로 원하는 여행상품을 쉽게 찾아보세요
           </p>
@@ -488,20 +506,20 @@ const CommerceList = () => {
         />
       </div>
 
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold mb-2 text-left text-gray-900">투어 상품 목록</h2>
-      </div>
-
       {/* 검색 및 필터 섹션 */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <h3 className="text-lg font-semibold text-gray-900">검색 및 필터</h3>
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8 mb-8">
+        <div className="flex items-center mb-6">
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            검색 및 필터
+          </h3>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* 검색 입력 필드 */}
           <div className="lg:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">상품명 검색</label>
@@ -511,11 +529,11 @@ const CommerceList = () => {
                 placeholder="검색할 상품명을 입력하세요"
                 value={inputValue}
                 onChange={e => setInputValue(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-l-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 border border-gray-300 rounded-l-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
               />
               <button
                 onClick={handleSearch}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-r-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-r-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold"
               >
                 검색
               </button>
@@ -532,7 +550,7 @@ const CommerceList = () => {
                 setPage(1);
                 loadProducts(0, search, e.target.value, sortOrder, selectedCountry);
               }}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             >
               <option value="updatedAt">등록일순</option>
               <option value="discountPrice">할인가순</option>
@@ -549,7 +567,7 @@ const CommerceList = () => {
                 setPage(1);
                 loadProducts(0, search, sort, e.target.value, selectedCountry);
               }}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             >
               <option value="desc">내림차순</option>
               <option value="asc">오름차순</option>
@@ -558,46 +576,77 @@ const CommerceList = () => {
         </div>
       </div>
 
-             {/* 주요 여행국가 카테고리 */}
-       <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 mb-6">
-         <div className="text-center mb-4">
-           <h3 className="text-xl font-bold text-gray-800 mb-2">
-             🌍 주요 여행국가
-           </h3>
-           <p className="text-gray-600 text-sm">
-             인기 여행지로 빠르게 검색해보세요
-           </p>
-         </div>
-         <div className="flex flex-wrap justify-center gap-3">
-           {countries.map((country, index) => (
-             <button
-               key={index}
-               onClick={() => {
-                 setSelectedCountry(country.name);
-                 setPage(1);
-                 if (country.name === '전체') {
-                   // 전체 버튼 클릭 시 검색어는 유지하되 국가만 초기화
-                   loadProducts(0, search, sort, sortOrder, '전체');
-                 } else {
-                   // 특정 국가 버튼 클릭 시 검색어는 유지하되 국가 필터 추가
-                   loadProducts(0, search, sort, sortOrder, country.name);
-                 }
-               }}
-               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg ${country.color} text-white ${selectedCountry === country.name ? 'ring-2 ring-white ring-opacity-50' : ''}`}
-             >
-               <span className="text-lg">{country.flag}</span>
-               <span>{country.name}</span>
-             </button>
-           ))}
-         </div>
-       </div>
+      {/* 주요 여행국가 카테고리 */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8 mb-8">
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+              <span className="text-2xl">🌍</span>
+            </div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              주요 여행국가
+            </h3>
+          </div>
+          <p className="text-gray-600">
+            인기 여행지로 빠르게 검색해보세요
+          </p>
+        </div>
+        <div className="flex flex-col gap-3">
+          {/* 첫 번째 줄: 6개 국가 */}
+          <div className="flex justify-center gap-3">
+            {countries.slice(0, 6).map((country, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setSelectedCountry(country.name);
+                  setPage(1);
+                  if (country.name === '전체') {
+                    // 전체 버튼 클릭 시 검색어는 유지하되 국가만 초기화
+                    loadProducts(0, search, sort, sortOrder, '전체');
+                  } else {
+                    // 특정 국가 버튼 클릭 시 검색어는 유지하되 국가 필터 추가
+                    loadProducts(0, search, sort, sortOrder, country.name);
+                  }
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg ${country.color} text-white ${selectedCountry === country.name ? 'ring-2 ring-white ring-opacity-50' : ''}`}
+              >
+                <span className="text-lg">{country.flag}</span>
+                <span>{country.name}</span>
+              </button>
+            ))}
+          </div>
+          {/* 두 번째 줄: 5개 국가 */}
+          <div className="flex justify-center gap-3">
+            {countries.slice(6).map((country, index) => (
+              <button
+                key={index + 6}
+                onClick={() => {
+                  setSelectedCountry(country.name);
+                  setPage(1);
+                  if (country.name === '전체') {
+                    // 전체 버튼 클릭 시 검색어는 유지하되 국가만 초기화
+                    loadProducts(0, search, sort, sortOrder, '전체');
+                  } else {
+                    // 특정 국가 버튼 클릭 시 검색어는 유지하되 국가 필터 추가
+                    loadProducts(0, search, sort, sortOrder, country.name);
+                  }
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg ${country.color} text-white ${selectedCountry === country.name ? 'ring-2 ring-white ring-opacity-50' : ''}`}
+              >
+                <span className="text-lg">{country.flag}</span>
+                <span>{country.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* 로딩 상태 */}
       {loading && (
-        <div className="text-center py-8">
+        <div className="text-center py-12">
           {isAISearch ? (
             // AI 검색 중일 때 - 밝고 경쾌한 메시지
-            <div>
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
               <div className="relative inline-block">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200"></div>
                 <div className="absolute top-0 left-0 animate-spin rounded-full h-12 w-12 border-4 border-transparent border-t-blue-600 border-r-purple-600"></div>
@@ -613,7 +662,7 @@ const CommerceList = () => {
             </div>
           ) : (
             // 일반 로딩 중일 때
-            <div>
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               <p className="mt-2 text-gray-600">상품을 불러오는 중...</p>
             </div>
@@ -624,7 +673,9 @@ const CommerceList = () => {
       {/* 에러 상태 */}
       {error && (
         <div className="text-center py-8">
-          <p className="text-red-600">{error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+            <p className="text-red-600 font-medium">{error}</p>
+          </div>
         </div>
       )}
 
@@ -633,7 +684,7 @@ const CommerceList = () => {
         <div className="text-center py-12">
           {isAISearch ? (
             // AI 검색 결과 없음
-            <div className="max-w-md mx-auto">
+            <div className="max-w-md mx-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
               <div className="mb-4">
                 <span className="text-6xl">🤖</span>
               </div>
@@ -652,7 +703,7 @@ const CommerceList = () => {
                   <button
                     key={index}
                     onClick={() => handleAISearch(example)}
-                    className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-full text-sm transition-colors"
+                    className="px-3 py-1 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 text-blue-700 rounded-full text-sm transition-all duration-300 border border-blue-200/50 hover:border-blue-300/50"
                   >
                     {example}
                   </button>
@@ -661,7 +712,7 @@ const CommerceList = () => {
             </div>
           ) : (
             // 일반 검색 결과 없음
-            <div className="max-w-md mx-auto">
+            <div className="max-w-md mx-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
               <div className="mb-4">
                 <span className="text-6xl">🔍</span>
               </div>
@@ -679,19 +730,19 @@ const CommerceList = () => {
 
       {/* 카드 리스트 */}
       {!loading && !error && filteredProducts.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {filteredProducts.map(product => (
             <div
               key={product.id}
-              className="border rounded-lg shadow hover:shadow-lg transition flex flex-col relative"
+              className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col relative border border-white/20 hover:scale-105 group"
             >
               <img 
                 src={product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png'} 
                 alt="썸네일" 
-                className="w-full h-40 object-cover rounded-t-lg bg-gray-100 cursor-pointer" 
+                className="w-full aspect-square object-cover rounded-t-2xl bg-gray-100 cursor-pointer" 
                 onClick={() => navigate(`${product.id}`)}
                 onError={(e) => {
-                  e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
+                  e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573.png';
                 }}
               />
               
@@ -701,10 +752,10 @@ const CommerceList = () => {
                   e.stopPropagation();
                   handleToggleLike(product.id);
                 }}
-                className={`absolute top-2 right-2 p-2 rounded-full transition-colors ${
+                className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-300 hover:scale-110 ${
                   product.like 
-                    ? 'bg-red-500 text-white' 
-                    : 'bg-white text-gray-600 hover:bg-red-50'
+                    ? 'bg-red-500 text-white shadow-lg' 
+                    : 'bg-white/90 text-gray-600 hover:bg-red-50 shadow-md'
                 }`}
               >
                 {product.like ? (
@@ -718,23 +769,28 @@ const CommerceList = () => {
                 )}
               </button>
               
-              <div className="p-4 flex-1 flex flex-col justify-between">
+              <div className="p-6 flex-1 flex flex-col justify-between">
                 <div>
-                  <div className="text-lg font-semibold mb-1 cursor-pointer text-gray-900 hover:text-blue-600" onClick={() => navigate(`${product.id}`)}>
+                  <div className="text-lg font-bold mb-2 cursor-pointer text-gray-900 hover:text-blue-600 transition-all duration-300" onClick={() => navigate(`${product.id}`)}>
                     {product.title.length > 20 ? `${product.title.substring(0, 20)}...` : product.title}
                   </div>
-                  <div className="text-gray-600 text-sm mb-2">{product.description}</div>
+                  <div className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</div>
                 </div>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-yellow-500 font-bold">★ {product.rating > 0 ? product.rating.toFixed(1) : '-'}</span>
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-yellow-500 font-bold flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    {product.rating > 0 ? product.rating.toFixed(1) : '-'}
+                  </span>
                   <div className="text-right">
                     {product.discountPrice && product.discountPrice !== product.price ? (
                       <div>
                         <span className="text-gray-400 line-through text-sm">{product.price?.toLocaleString()}원</span>
-                        <div className="text-red-600 font-bold">{product.discountPrice?.toLocaleString()}원</div>
+                        <div className="text-red-600 font-bold text-lg">{product.discountPrice?.toLocaleString()}원</div>
                       </div>
                     ) : (
-                      <span className="text-blue-700 font-bold">{product.price?.toLocaleString()}원</span>
+                      <span className="text-blue-700 font-bold text-lg">{product.price?.toLocaleString()}원</span>
                     )}
                   </div>
                 </div>
@@ -746,15 +802,17 @@ const CommerceList = () => {
 
       {/* 페이지네이션 */}
       {!loading && !error && totalItems > 0 && (
-        <Pagination
-          totalItems={totalItems}
-          itemsPerPage={itemsPerPage}
-          currentPage={page}
-          onPageChange={handlePageChange}
-          className="mt-6"
-        />
+        <div className="flex justify-center">
+          <Pagination
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={page}
+            onPageChange={handlePageChange}
+            className="mt-6"
+          />
+        </div>
       )}
-    </section>
+    </div>
   );
 };
 

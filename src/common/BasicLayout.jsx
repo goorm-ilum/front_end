@@ -22,28 +22,17 @@ const BasicLayout = () => {
   return (
     <div className="min-h-screen overflow-x-hidden bg-gray-50">
       {/* Header */}
-      <div className="px-4">
-        <div className="w-[1200px] mx-auto">
-          <Header />
-        </div>
-      </div>
+      <Header />
 
       {/* Main */}
-      <main className="px-4 py-8">
-        <div className="w-[1200px] mx-auto">
-          <Outlet />
-        </div>
+      <main className="w-full">
+        <Outlet />
       </main>
 
       {/* Footer */}
-      <div className="px-4">
-        <div className="w-[1200px] mx-auto">
-          <Footer />
-          {shouldShowChatIcon && <FloatingChatIcon />}
-          {shouldShowChatIcon && <FloatingAlarmIcon />}
-        </div>
-      </div>
-
+      <Footer />
+      {shouldShowChatIcon && <FloatingChatIcon />}
+      {shouldShowChatIcon && <FloatingAlarmIcon />}
     </div>
   );
 };
