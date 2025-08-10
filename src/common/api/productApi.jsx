@@ -167,6 +167,17 @@ export const getReviewFormData = async (productId) => {
   }
 };
 
+// 주문 기반 리뷰 작성 폼 데이터 조회
+export const getOrderReviewFormData = async (orderId) => {
+  try {
+    const response = await axiosInstance.get(`/api/orders/${orderId}/review/form`);
+    return response.data;
+  } catch (error) {
+    console.error('주문 기반 리뷰 작성 폼 데이터 조회 실패:', error);
+    throw error;
+  }
+};
+
 // 리뷰 수정 폼 데이터 조회 (상품 정보 포함)
 export const getReviewEditFormData = async (reviewId) => {
   try {
@@ -214,6 +225,39 @@ export const createReview = async (productId, reviewData) => {
     return response.data;
   } catch (error) {
     console.error('리뷰 작성 실패:', error);
+    console.error('에러 응답:', error.response);
+    console.error('에러 상태:', error.response?.status);
+    console.error('에러 데이터:', error.response?.data);
+    throw error;
+  }
+};
+
+// 주문 기반 리뷰 작성
+export const createOrderReview = async (orderId, reviewData) => {
+  try {
+    console.log('주문 기반 리뷰 작성 요청:', { orderId, reviewData });
+    
+    // API 문서에 맞는 요청 형식으로 데이터 준비
+    const requestData = {
+      comment: reviewData.comment,
+      reviewStar: parseInt(reviewData.reviewStar) // 숫자로 확실히 변환
+    };
+    
+    console.log('전송할 데이터:', requestData);
+    
+    const response = await axiosInstance.post(`/api/orders/${orderId}/review`, requestData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('주문 기반 리뷰 작성 응답:', response);
+    console.log('응답 상태:', response.status);
+    console.log('응답 데이터:', response.data);
+    
+    return response.data;
+  } catch (error) {
+    console.error('주문 기반 리뷰 작성 실패:', error);
     console.error('에러 응답:', error.response);
     console.error('에러 상태:', error.response?.status);
     console.error('에러 데이터:', error.response?.data);

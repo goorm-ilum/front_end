@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Pagination from '../../../common/util/Pagination';
-import { getAdminProducts, searchAdminProducts, sortAdminProducts, deleteAdminProduct } from '../../../common/api/adminApi';
+import { getAdminProducts, searchAdminProducts, sortAdminProducts, deleteAdminProduct, restoreAdminProduct } from '../../../common/api/adminApi';
 import MessagePopup from '../../../common/components/MessagePopup';
 import SuccessModal from '../../../components/SuccessModal';
 import ConfirmModal from '../../../common/components/ConfirmModal';
@@ -31,6 +31,7 @@ const AdminProductListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');    // 실제 검색어
   const [sortKey, setSortKey] = useState('updatedAt');     // 기본값: 등록일 순
   const [sortOrder, setSortOrder] = useState('desc');      // 기본값: 내림차순 (최신순)
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 상태 필터: ALL, ACTIVE, DELETED
   const [forceSearch, setForceSearch] = useState(0);      // 강제 검색 실행을 위한 카운터
 
   // 상태 초기화 함수
@@ -39,6 +40,7 @@ const AdminProductListPage = () => {
     setSearchTerm('');
     setSortKey('updatedAt');
     setSortOrder('desc');
+    setStatusFilter('ALL');
     setCurrentPage(1);
     setTotalPages(0);
     setTotalItems(0);
@@ -52,12 +54,13 @@ const AdminProductListPage = () => {
       setLoading(true);
       setError('');
       
-             const params = {
-         page: currentPage - 1, // 백엔드는 0-based pagination (1페이지 클릭 시 0 전달)
-         size: 10, // 페이지당 10개 아이템
-         sortBy: sortKey,
-         ascending: sortOrder === 'asc'
-       };
+                   const params = {
+        page: currentPage - 1, // 백엔드는 0-based pagination (1페이지 클릭 시 0 전달)
+        size: 10, // 페이지당 10개 아이템
+        sortBy: sortKey,
+        ascending: sortOrder === 'asc',
+        status: statusFilter // ALL을 포함한 모든 상태값을 백엔드로 전달
+      };
       
              const response = await getAdminProducts(params);
        console.log('상품 목록 응답:', response);
@@ -71,7 +74,8 @@ const AdminProductListPage = () => {
          price: product.price,
          discountPrice: product.discountPrice,
          stock: product.totalStock,
-         updatedAt: product.updatedAt
+         updatedAt: product.updatedAt,
+         status: product.isDeleted ? 'DELETED' : 'ACTIVE' // isDeleted 필드 기반으로 상태 설정
        }));
        
        setProducts(transformedProducts);
@@ -133,7 +137,8 @@ const AdminProductListPage = () => {
          price: product.price,
          discountPrice: product.discountPrice,
          stock: product.totalStock,
-         updatedAt: product.updatedAt
+         updatedAt: product.updatedAt,
+         status: product.isDeleted ? 'DELETED' : 'ACTIVE' // isDeleted 필드 기반으로 상태 설정
        }));
        
        setProducts(transformedProducts);
@@ -194,7 +199,8 @@ const AdminProductListPage = () => {
          price: product.price,
          discountPrice: product.discountPrice,
          stock: product.totalStock,
-         updatedAt: product.updatedAt
+         updatedAt: product.updatedAt,
+         status: product.isDeleted ? 'DELETED' : 'ACTIVE' // isDeleted 필드 기반으로 상태 설정
        }));
        
        setProducts(transformedProducts);
@@ -237,7 +243,7 @@ const AdminProductListPage = () => {
     } else {
       loadProducts(); // 기본적으로 정렬된 목록을 보여줌
     }
-  }, [currentPage, searchTerm, sortKey, sortOrder, forceSearch]);
+  }, [currentPage, searchTerm, sortKey, sortOrder, statusFilter, forceSearch]);
 
   // forceRefresh 처리
   useEffect(() => {
@@ -284,27 +290,41 @@ const AdminProductListPage = () => {
     setShowConfirmModal(true);
   };
 
-  // 삭제 실행
+  // 복구 확인 모달 표시
+  const showRestoreConfirm = (id) => {
+    setConfirmData({ 
+      productId: id, 
+      message: '정말 복구하시겠습니까?' 
+    });
+    setShowConfirmModal(true);
+  };
+
+  // 삭제/복구 실행
   const handleDeleteConfirm = async () => {
     const { productId } = confirmData;
+    const isRestore = confirmData.message.includes('복구');
     
     try {
-      await deleteAdminProduct(productId);
+      if (isRestore) {
+        await restoreAdminProduct(productId);
+        setSuccessMessage('상품이 성공적으로 복구되었습니다.');
+      } else {
+        await deleteAdminProduct(productId);
+        setSuccessMessage('상품이 성공적으로 삭제되었습니다.');
+      }
       
-             // 삭제 성공 시 성공 모달 표시
-       setSuccessMessage('상품이 성공적으로 삭제되었습니다.');
-       setShowSuccessModal(true);
-       
-       // 현재 상태에 맞게 목록 다시 로드
-       if (searchTerm) {
-         searchProducts();
-       } else {
-         loadProducts();
-       }
+      setShowSuccessModal(true);
+      
+      // 현재 상태에 맞게 목록 다시 로드
+      if (searchTerm) {
+        searchProducts();
+      } else {
+        loadProducts();
+      }
     } catch (error) {
-      console.error('상품 삭제 실패:', error);
+      console.error(isRestore ? '상품 복구 실패:' : '상품 삭제 실패:', error);
       
-      let errorMessage = '상품 삭제에 실패했습니다.';
+      let errorMessage = isRestore ? '상품 복구에 실패했습니다.' : '상품 삭제에 실패했습니다.';
       
       if (error.response) {
         const status = error.response.status;
@@ -313,7 +333,7 @@ const AdminProductListPage = () => {
         } else if (status === 403) {
           errorMessage = '관리자 권한이 필요합니다.';
         } else if (status === 404) {
-          errorMessage = '삭제할 상품을 찾을 수 없습니다.';
+          errorMessage = isRestore ? '복구할 상품을 찾을 수 없습니다.' : '삭제할 상품을 찾을 수 없습니다.';
         } else {
           errorMessage = `서버 오류: ${status}`;
         }
@@ -353,9 +373,9 @@ const AdminProductListPage = () => {
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleDeleteConfirm}
-        title="삭제 확인"
+        title={confirmData.message.includes('복구') ? '복구 확인' : '삭제 확인'}
         message={confirmData.message}
-        confirmText="삭제"
+        confirmText={confirmData.message.includes('복구') ? '복구' : '삭제'}
         cancelText="취소"
       />
 
@@ -387,7 +407,7 @@ const AdminProductListPage = () => {
           <h3 className="text-lg font-semibold text-gray-900">검색 및 필터</h3>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* 검색 입력 필드 */}
           <div className="lg:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">상품명 검색</label>
@@ -406,6 +426,20 @@ const AdminProductListPage = () => {
                 검색
               </button>
             </div>
+          </div>
+
+          {/* 상태 필터 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">상태 필터</label>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="ALL">전체</option>
+              <option value="ACTIVE">판매중</option>
+              <option value="DELETED">삭제됨</option>
+            </select>
           </div>
 
           {/* 정렬 및 필터 드롭다운 */}
@@ -461,6 +495,9 @@ const AdminProductListPage = () => {
                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                    상품명
                  </th>
+                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                   상태
+                 </th>
                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                    총 재고
                  </th>
@@ -480,18 +517,28 @@ const AdminProductListPage = () => {
                        {(currentPage - 1) * itemsPerPage + index + 1}
                      </td>
                      <td className="px-6 py-4 whitespace-nowrap">
-                       <img
-                         src={p.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'}
-                         alt={p.name}
-                         className="w-12 h-12 object-cover rounded-lg shadow-sm"
-                         onError={(e) => {
-                           e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
-                         }}
-                       />
+                       <div className="w-12 h-12 overflow-hidden rounded-lg shadow-sm bg-gray-200 flex items-center justify-center">
+                         <img
+                           src={p.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'}
+                           alt={p.name}
+                           className="w-full h-full object-contain"
+                           onError={(e) => {
+                             e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                           }}
+                         />
+                       </div>
                      </td>
                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {p.name && p.name.length > 20 ? `${p.name.substring(0, 20)}...` : p.name}
+                        {p.name && p.name.length > 15 ? `${p.name.substring(0, 15)}...` : p.name}
                       </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                       <div className="flex items-center justify-center">
+                         <div className={`w-3 h-3 rounded-full mr-2 ${p.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                         <span className={`text-sm font-medium ${p.status === 'ACTIVE' ? 'text-green-600' : 'text-red-600'}`}>
+                           {p.status === 'ACTIVE' ? '판매중' : '삭제됨'}
+                         </span>
+                       </div>
+                     </td>
                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">{p.stock || 0}</td>
                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
                        {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('ko-KR') : '-'}
@@ -503,18 +550,27 @@ const AdminProductListPage = () => {
                        >
                          수정
                        </Link>
-                       <button 
-                         onClick={() => showDeleteConfirm(p.id)} 
-                         className="text-red-600 hover:text-red-800 font-medium hover:underline transition-colors duration-200"
-                       >
-                         삭제
-                       </button>
+                       {p.status === 'ACTIVE' ? (
+                         <button 
+                           onClick={() => showDeleteConfirm(p.id)} 
+                           className="text-red-600 hover:text-red-800 font-medium hover:underline transition-colors duration-200"
+                         >
+                           삭제
+                         </button>
+                                               ) : (
+                          <button 
+                            onClick={() => showRestoreConfirm(p.id)} 
+                            className="text-emerald-600 hover:text-emerald-800 font-medium hover:underline transition-colors duration-200"
+                          >
+                            복구
+                          </button>
+                        )}
                      </td>
                    </tr>
                  ))
               ) : (
                                  <tr>
-                   <td colSpan="6" className="px-6 py-12 text-center">
+                   <td colSpan="7" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center space-y-4">
                       <svg className="w-16 h-16 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />

@@ -914,22 +914,22 @@ const AdminProductFormPage = () => {
          options: dateOptions
        };
 
+       // 전체 상세 이미지 순서 정보 추가 (등록/수정 모두)
+       if (detailImageTypes.length > 0) {
+         const imageOrder = detailImageTypes.map((type, index) => ({
+           order: index,
+           type: type,
+           id: type === 'existing' ? parseInt(detailImageIds[index]) : null,
+           fileName: type === 'new' ? detailFiles[index]?.name : null
+         }));
+         requestData.detailImageOrder = imageOrder;
+       }
+       
        // 수정 시 기존 이미지 정보 추가
        if (isEdit) {
          // 기존 썸네일 해시 추가 (새로 업로드하지 않은 경우)
          if (!thumbnailFile && thumbnailHash && thumbnailHash.trim() !== '') {
            requestData.existingThumbnailHash = thumbnailHash;
-         }
-         
-         // 기존 상세 이미지 ID들 추가
-         if (detailImageIds.length > 0) {
-           const existingIds = detailImageIds.filter((id, index) => 
-             detailImageTypes[index] === 'existing' && id && id !== ''
-           );
-           if (existingIds.length > 0) {
-             // 문자열 ID를 숫자로 변환
-             requestData.existingDetailImageIds = existingIds.map(id => parseInt(id));
-           }
          }
        }
 
@@ -949,7 +949,7 @@ const AdminProductFormPage = () => {
          console.log('기존 썸네일 이미지 유지 (해시:', thumbnailHash + ')');
        }
 
-               // 상세 이미지들 추가
+               // 상세 이미지들 추가 (전체 순서 유지)
         console.log('=== 상세 이미지 디버깅 ===');
         console.log('detailFiles:', detailFiles);
         console.log('detailFiles 길이:', detailFiles.length);
@@ -958,59 +958,41 @@ const AdminProductFormPage = () => {
         console.log('detailImageIds:', detailImageIds);
         console.log('detailImageIds 길이:', detailImageIds.length);
         
-                 // 각 배열의 인덱스별 상태 확인
-         if (detailFiles && detailFiles.length > 0) {
-           detailFiles.forEach((file, index) => {
-             console.log(`인덱스 ${index}:`, {
-               file: file ? file.name : 'null',
-               type: detailImageTypes[index] || 'unknown',
-               id: detailImageIds[index] || ''
-             });
-           });
-         } else {
-           console.log('detailFiles가 비어있습니다.');
-         }
+        // 전체 순서 정보 로그
+        console.log('=== 전체 이미지 순서 정보 ===');
+        detailImageTypes.forEach((type, index) => {
+          console.log(`순서 ${index}:`, {
+            type: type,
+            id: type === 'existing' ? detailImageIds[index] : null,
+            fileName: type === 'new' ? detailFiles[index]?.name : null
+          });
+        });
         
-                 const newFiles = detailFiles.filter((file, index) => 
-           detailImageTypes[index] === 'new' && file && file instanceof File
-         );
-         const existingIds = detailImageIds.filter((id, index) => 
-           detailImageTypes[index] === 'existing' && id && id !== ''
-         );
+        // 새로 업로드할 파일들만 필터링 (순서 유지)
+        const newFiles = detailFiles.filter((file, index) => 
+          detailImageTypes[index] === 'new' && file && file instanceof File
+        );
         
-                 console.log('필터링된 newFiles:', newFiles);
-         console.log('필터링된 newFiles 길이:', newFiles.length);
-         console.log('필터링된 existingIds:', existingIds);
-         
-         // newFiles 필터링 과정 상세 디버깅
-         console.log('=== newFiles 필터링 과정 ===');
-         detailFiles.forEach((file, index) => {
-           const type = detailImageTypes[index];
-           const isFile = file && file instanceof File;
-           console.log(`인덱스 ${index}: type=${type}, isFile=${isFile}, file=`, file ? file.name : 'null');
-         });
-       
-                        if (newFiles.length > 0) {
-           console.log('=== 새로 업로드할 파일들 ===');
-           newFiles.forEach((file, index) => {
-             console.log(`detailImages[${index}]:`, {
-               name: file.name,
-               type: file.type,
-               size: file.size,
-               isFile: file instanceof File
-             });
-             // 각 파일을 개별적으로 detailImages로 추가 (List<MultipartFile>에 맞춤)
-             formData.append('detailImages', file);
-           });
-           console.log('새로 업로드된 상세 이미지들 추가됨:', newFiles.map(f => f.name));
-         } else {
-           console.log('새로 업로드할 상세 이미지가 없습니다.');
-           // 새로 업로드할 파일이 없으면 detailImages를 추가하지 않음 (required = false)
-         }
-       
-       if (isEdit && existingIds.length > 0) {
-         console.log('기존 상세 이미지들 유지 (ID들:', existingIds + ')');
-       }
+        console.log('필터링된 newFiles:', newFiles);
+        console.log('필터링된 newFiles 길이:', newFiles.length);
+        
+        // 새로 업로드할 파일들을 순서대로 FormData에 추가
+        if (newFiles.length > 0) {
+          console.log('=== 새로 업로드할 파일들 (순서대로) ===');
+          newFiles.forEach((file, index) => {
+            console.log(`detailImages[${index}]:`, {
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              isFile: file instanceof File
+            });
+            // 각 파일을 개별적으로 detailImages로 추가 (List<MultipartFile>에 맞춤)
+            formData.append('detailImages', file);
+          });
+          console.log('새로 업로드된 상세 이미지들 추가됨:', newFiles.map(f => f.name));
+        } else {
+          console.log('새로 업로드할 상세 이미지가 없습니다.');
+        }
 
       // 전송할 데이터 로그 출력
       console.log('=== 상품 등록/수정 데이터 ===');

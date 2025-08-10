@@ -280,13 +280,17 @@ const MyOrderDetail = () => {
              {orderDetail.orderItems?.map((item, index) => (
                <div key={item.id} className="border rounded-lg p-4">
                  <div className="flex gap-4">
-                   <img
-                     src={item.productThumbnail || 'https://placehold.co/300x200?text=이미지없음'}
-                     alt={item.productName}
-                     className="w-24 h-24 rounded object-cover"
-                   />
+                   <div className="w-24 h-24 rounded overflow-hidden bg-gray-200 flex items-center justify-center">
+                     <img
+                       src={item.productThumbnail || 'https://placehold.co/300x200?text=이미지없음'}
+                       alt={item.productName}
+                       className="w-full h-full object-contain"
+                     />
+                   </div>
                    <div className="flex-1">
-                     <h3 className="font-semibold text-lg mb-2">{item.productName || '상품명 없음'}</h3>
+                     <h3 className="font-semibold text-lg mb-2">
+                       {item.productName && item.productName.length > 25 ? `${item.productName.substring(0, 25)}...` : item.productName || '상품명 없음'}
+                     </h3>
                      <div className="text-sm text-gray-600 mb-2">
                        옵션: {item.optionName || '옵션 없음'}
                      </div>

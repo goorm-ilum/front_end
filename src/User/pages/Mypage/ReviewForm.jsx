@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { updateReview, getReviewFormData, getReviewEditFormData, createReview } from '../../../common/api/productApi';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { updateReview, getReviewFormData, getReviewEditFormData, createReview, createOrderReview, getOrderReviewFormData } from '../../../common/api/productApi';
 import MessagePopup from '../../../common/components/MessagePopup';
 
 const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
   console.log('ReviewForm 컴포넌트 렌더링됨');
   const navigate = useNavigate();
   const { reviewId: urlReviewId, productId: urlProductId } = useParams();
+  const [searchParams] = useSearchParams();
   
   // props 또는 URL 파라미터에서 값 가져오기
   const finalProductId = propsProductId || urlProductId;
   const finalReviewId = propsReviewId || urlReviewId;
+  const orderId = searchParams.get('orderId');
   
   console.log('ReviewForm 파라미터:', { propsProductId, propsReviewId, urlReviewId, urlProductId, finalProductId, finalReviewId });
   
@@ -57,10 +59,17 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
           } else {
             throw new Error('리뷰 수정 데이터를 불러올 수 없습니다.');
           }
+        } else if (finalProductId && orderId) {
+          // 주문 기반 리뷰 작성 모드
+          setIsEditing(false);
+          const response = await getOrderReviewFormData(orderId);
+          console.log('주문 기반 리뷰 폼 데이터:', response);
+          setProductInfo(response);
         } else if (finalProductId) {
-          // 리뷰 작성 모드
+          // 상품 기반 리뷰 작성 모드 (기존 방식)
           setIsEditing(false);
           const response = await getReviewFormData(finalProductId);
+          console.log('상품 기반 리뷰 폼 데이터:', response);
           setProductInfo(response);
         } else {
           // reviewId와 productId 모두 없는 경우 에러 처리
@@ -215,6 +224,7 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
         // 리뷰 작성
         console.log('리뷰 작성 시작:', { 
           productId: finalProductId, 
+          orderId: orderId,
           formData: {
             comment: formData.comment,
             reviewStar: formData.reviewStar
@@ -228,8 +238,17 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
         };
         
         console.log('전송할 리뷰 데이터:', reviewData);
-        const result = await createReview(finalProductId, reviewData);
-        console.log('리뷰 작성 결과:', result);
+        
+        // 주문 기반 리뷰 작성인지 확인
+        if (orderId) {
+          console.log('주문 기반 리뷰 작성 사용');
+          const result = await createOrderReview(orderId, reviewData);
+          console.log('주문 기반 리뷰 작성 결과:', result);
+        } else {
+          console.log('상품 기반 리뷰 작성 사용');
+          const result = await createReview(finalProductId, reviewData);
+          console.log('상품 기반 리뷰 작성 결과:', result);
+        }
       }
       
       // 성공 후 내 리뷰 목록으로 이동
@@ -368,22 +387,26 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
       {productInfo && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-4">
-            {productInfo.thumbnailImageUrl ? (
-              <img 
-                src={productInfo.thumbnailImageUrl}
-                alt={productInfo.productName}
-                className="w-16 h-16 object-cover rounded-lg"
-                onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
-                }}
-              />
+            {(productInfo.thumbnailImageUrl || productInfo.thumbnail || productInfo.productThumbnail || productInfo.thumbnailUrl || productInfo.imageUrl || productInfo.image) ? (
+              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center">
+                <img 
+                  src={productInfo.thumbnailImageUrl || productInfo.thumbnail || productInfo.productThumbnail || productInfo.thumbnailUrl || productInfo.imageUrl || productInfo.image}
+                  alt={productInfo.productName}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                  }}
+                />
+              </div>
             ) : (
               <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-xs">
                 이미지 없음
               </div>
             )}
             <div>
-              <h3 className="font-semibold text-gray-900">{productInfo.productName}</h3>
+              <h3 className="font-semibold text-gray-900">
+                {productInfo.productName && productInfo.productName.length > 20 ? `${productInfo.productName.substring(0, 20)}...` : productInfo.productName}
+              </h3>
               {productInfo.price && (
                 <p className="text-sm text-gray-600">
                   {productInfo.price.toLocaleString()}원

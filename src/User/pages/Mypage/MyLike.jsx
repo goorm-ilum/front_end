@@ -178,15 +178,16 @@ const MyLike = () => {
                 key={product.id}
                 className="border rounded-lg shadow hover:shadow-lg transition flex flex-col relative"
               >
-                <img 
-                  src={product.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'} 
-                  alt="썸네일" 
-                  className="w-full h-40 object-cover rounded-t-lg bg-gray-100 cursor-pointer" 
-                  onClick={() => navigate(`/commerce/${product.id}`)}
-                  onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
-                  }}
-                />
+                <div className="w-full aspect-square overflow-hidden rounded-t-lg bg-gray-200 cursor-pointer flex items-center justify-center" onClick={() => navigate(`/commerce/${product.id}`)}>
+                  <img 
+                    src={product.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'} 
+                    alt="썸네일" 
+                    className="w-full h-full object-contain" 
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                    }}
+                  />
+                </div>
                 
                 {/* 좋아요 버튼 */}
                 <button
@@ -203,8 +204,8 @@ const MyLike = () => {
                 
                 <div className="p-4 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="text-lg font-semibold mb-1 cursor-pointer text-gray-900 hover:text-blue-600" onClick={() => navigate(`/commerce/${product.id}`)}>{product.title}</div>
-                    <div className="text-gray-600 text-sm mb-2">{product.description}</div>
+                    <div className="text-lg font-semibold mb-1 cursor-pointer text-gray-900 hover:text-blue-600 truncate" onClick={() => navigate(`/commerce/${product.id}`)} title={product.title}>{product.title}</div>
+                    <div className="text-gray-600 text-sm mb-2 line-clamp-2" title={product.description}>{product.description}</div>
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-yellow-500 font-bold">★ {product.rating > 0 ? product.rating.toFixed(1) : '-'}</span>

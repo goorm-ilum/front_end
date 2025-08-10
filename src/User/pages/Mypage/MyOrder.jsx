@@ -46,16 +46,21 @@ const MyOrder = () => {
 
       const data = await response.json();
       
+      console.log('주문 내역 API 응답:', data);
+      
       // 백엔드 응답 구조에 맞게 데이터 처리
       if (data.content) {
         // 페이지네이션 응답 구조
+        console.log('주문 데이터 (페이지네이션):', data.content);
         setOrders(data.content);
         setTotalItems(data.totalElements || 0);
       } else if (Array.isArray(data)) {
         // 배열 형태 응답
+        console.log('주문 데이터 (배열):', data);
         setOrders(data);
         setTotalItems(data.length);
       } else {
+        console.log('주문 데이터 없음');
         setOrders([]);
         setTotalItems(0);
       }
@@ -83,18 +88,40 @@ const MyOrder = () => {
   };
 
   // 리뷰 작성 버튼 클릭 핸들러
-  const handleReviewClick = async (productId) => {
+  const handleReviewClick = async (productId, orderId) => {
     try {
+      console.log('리뷰 작성 버튼 클릭:', { productId, orderId });
+      
       // 리뷰 작성 가능 여부를 먼저 확인
-      const reviewResponse = await fetch(`/api/products/${productId}/reviews/form`, {
+      const reviewResponse = await fetch(`/api/orders/${orderId}/review/form`, {
         method: 'GET',
         headers: getAuthHeaders(),
         credentials: 'include',
       });
 
-      if (reviewResponse.status === 403 || reviewResponse.status === 409) {
+      console.log('리뷰 작성 폼 응답:', {
+        status: reviewResponse.status,
+        statusText: reviewResponse.statusText,
+        ok: reviewResponse.ok
+      });
+
+      // 성공적인 응답인 경우 바로 리뷰 작성 페이지로 이동
+      if (reviewResponse.ok) {
+        navigate(`/mypage/review/create/${productId}?orderId=${orderId}`);
+        return;
+      }
+
+      // 에러 상태 코드별 처리
+      if (reviewResponse.status === 409) {
         // 이미 작성한 리뷰인 경우 팝업 표시
         setErrorMessage('이미 작성한 리뷰입니다. 내 리뷰에서 수정할 수 있습니다.');
+        setShowErrorPopup(true);
+        return;
+      }
+
+      if (reviewResponse.status === 403) {
+        // 권한이 없는 경우 팝업 표시
+        setErrorMessage('리뷰 작성 권한이 없습니다.');
         setShowErrorPopup(true);
         return;
       }
@@ -113,12 +140,10 @@ const MyOrder = () => {
         return;
       }
 
-      if (!reviewResponse.ok) {
-        throw new Error('리뷰 작성 페이지 접근에 실패했습니다.');
-      }
-
-      // 리뷰 작성 가능한 경우 리뷰 작성 페이지로 이동
-      navigate(`/mypage/review/create/${productId}`);
+      // 기타 에러 상태
+      console.error('예상치 못한 응답 상태:', reviewResponse.status);
+      setErrorMessage('리뷰 작성 페이지 접근에 실패했습니다.');
+      setShowErrorPopup(true);
     } catch (error) {
       console.error('리뷰 작성 버튼 클릭 오류:', error);
       // 네트워크 오류나 기타 오류의 경우에도 상품이 존재하지 않을 가능성이 높음
@@ -226,14 +251,27 @@ const MyOrder = () => {
             key={index}
             className="border rounded-lg p-4 mb-6 shadow-sm flex gap-4"
           >
-            <div className="w-24 h-24 rounded bg-gray-200 flex items-center justify-center">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-24 h-24 rounded bg-gray-200 flex items-center justify-center overflow-hidden">
+              {(order.thumbnailImageUrl || order.thumbnail || order.productThumbnail || order.thumbnailUrl || order.imageUrl || order.image) ? (
+                <img 
+                  src={order.thumbnailImageUrl || order.thumbnail || order.productThumbnail || order.thumbnailUrl || order.imageUrl || order.image} 
+                  alt={order.productName || "상품 이미지"} 
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ display: (order.thumbnailImageUrl || order.thumbnail || order.productThumbnail || order.thumbnailUrl || order.imageUrl || order.image) ? 'none' : 'flex' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
             </div>
 
             <div className="flex-1 space-y-2">
-              <div className="text-lg font-semibold">{order.productName}</div>
+              <div className="text-lg font-semibold">
+                {order.productName && order.productName.length > 20 ? `${order.productName.substring(0, 20)}...` : order.productName}
+              </div>
               <div className="text-sm text-gray-600">
                 <span className="mr-4">구매일: {formatDate(order.createdAt)}</span>
                 <span className="mr-4">결제: {getPaymentMethodText(order.paymentMethod)}</span>
@@ -250,7 +288,7 @@ const MyOrder = () => {
                 주문상세
               </button>
                 <button 
-                  onClick={() => handleReviewClick(order.productId)}
+                  onClick={() => handleReviewClick(order.productId, order.orderId)}
                   className="px-3 py-1 bg-gray-100 rounded border hover:bg-gray-200 text-sm"
                 >
                   리뷰 작성

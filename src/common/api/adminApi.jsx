@@ -5,14 +5,19 @@ export const getAdminProducts = async (params = {}) => {
   try {
     console.log('관리자 상품 목록 조회 요청:', params);
     
-         // URLSearchParams를 사용하여 동일한 키의 파라미터를 여러 개 전송
-     const searchParams = new URLSearchParams();
-     searchParams.append('page', params.page || 0);
-     searchParams.append('size', params.size || 10);
-     searchParams.append('sort', params.sortBy || 'updatedAt');
-     searchParams.append('sort', params.ascending === false ? 'desc' : 'asc');
-     
-     const response = await axiosInstance.get(`/api/admin/products?${searchParams.toString()}`);
+    // URLSearchParams를 사용하여 파라미터 전송
+    const searchParams = new URLSearchParams();
+    searchParams.append('page', params.page || 0);
+    searchParams.append('size', params.size || 10);
+    searchParams.append('sortBy', params.sortBy || 'updatedAt');
+    searchParams.append('sortOrder', params.ascending === false ? 'desc' : 'asc');
+    
+    // 상태 필터 추가
+    if (params.status) {
+      searchParams.append('status', params.status);
+    }
+    
+    const response = await axiosInstance.get(`/api/admin/products?${searchParams.toString()}`);
     
     console.log('관리자 상품 목록 응답:', response);
     console.log('응답 상태:', response.status);
@@ -33,13 +38,13 @@ export const searchAdminProducts = async (params = {}) => {
   try {
     console.log('관리자 상품 검색 요청:', params);
     
-         // URLSearchParams를 사용하여 동일한 키의 파라미터를 여러 개 전송
+         // URLSearchParams를 사용하여 파라미터 전송
      const searchParams = new URLSearchParams();
      searchParams.append('keyword', params.keyword || '');
      searchParams.append('page', params.page || 0);
      searchParams.append('size', params.size || 10);
-     searchParams.append('sort', params.sortBy || 'updatedAt');
-     searchParams.append('sort', params.ascending === false ? 'desc' : 'asc');
+     searchParams.append('sortBy', params.sortBy || 'updatedAt');
+     searchParams.append('sortOrder', params.ascending === false ? 'desc' : 'asc');
      
      const response = await axiosInstance.get(`/api/admin/products/search?${searchParams.toString()}`);
     
@@ -62,12 +67,12 @@ export const sortAdminProducts = async (params = {}) => {
   try {
     console.log('관리자 상품 정렬 요청:', params);
     
-         // URLSearchParams를 사용하여 동일한 키의 파라미터를 여러 개 전송
+         // URLSearchParams를 사용하여 파라미터 전송
      const searchParams = new URLSearchParams();
      searchParams.append('page', params.page || 0);
      searchParams.append('size', params.size || 10);
-     searchParams.append('sort', params.sortBy || 'updatedAt');
-     searchParams.append('sort', params.ascending === false ? 'desc' : 'asc');
+     searchParams.append('sortBy', params.sortBy || 'updatedAt');
+     searchParams.append('sortOrder', params.ascending === false ? 'desc' : 'asc');
      
      const response = await axiosInstance.get(`/api/admin/products/sort?${searchParams.toString()}`);
     
@@ -170,6 +175,27 @@ export const deleteAdminProduct = async (productId) => {
     return response.data;
   } catch (error) {
     console.error('관리자 상품 삭제 실패:', error);
+    console.error('에러 응답:', error.response);
+    console.error('에러 상태:', error.response?.status);
+    console.error('에러 데이터:', error.response?.data);
+    throw error;
+  }
+};
+
+// 관리자 상품 복구
+export const restoreAdminProduct = async (productId) => {
+  try {
+    console.log('관리자 상품 복구 요청:', productId);
+    
+    const response = await axiosInstance.post(`/api/admin/products/${productId}/restore`);
+    
+    console.log('관리자 상품 복구 응답:', response);
+    console.log('응답 상태:', response.status);
+    console.log('응답 데이터:', response.data);
+    
+    return response.data;
+  } catch (error) {
+    console.error('관리자 상품 복구 실패:', error);
     console.error('에러 응답:', error.response);
     console.error('에러 상태:', error.response?.status);
     console.error('에러 데이터:', error.response?.data);

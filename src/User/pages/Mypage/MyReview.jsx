@@ -242,24 +242,25 @@ const MyReview = () => {
                 <div className="flex items-start space-x-4">
                   {/* 상품 썸네일 */}
                   <div className="flex-shrink-0">
-                    <img 
-                      src={review.thumbnailImageUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'} 
-                      alt="썸네일" 
-                      className="w-full h-40 object-cover rounded-t-lg bg-gray-100 cursor-pointer" 
-                      onClick={() => navigate(`/commerce/${review.productId}`)}
-                      onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
-                      }}
-                    />
+                    <div className="w-32 h-32 overflow-hidden rounded-lg bg-gray-200 cursor-pointer flex items-center justify-center" onClick={() => navigate(`/commerce/${review.productId}`)}>
+                      <img 
+                        src={review.thumbnailImageUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'} 
+                        alt="썸네일" 
+                        className="w-full h-full object-contain" 
+                        onError={(e) => {
+                          e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                        }}
+                      />
+                    </div>
                   </div>
                   
                   {/* 리뷰 내용 */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate flex-1 mr-2" title={review.productName}>
                         {review.productName}
                       </h3>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-gray-500 flex-shrink-0">
                         {new Date(review.updatedAt).toLocaleDateString('ko-KR')}
                       </span>
                     </div>

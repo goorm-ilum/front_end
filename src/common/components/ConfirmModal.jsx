@@ -34,7 +34,11 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title = '확인', message, c
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                confirmText === '복구' 
+                  ? 'bg-green-600 text-white hover:bg-green-700' 
+                  : 'bg-red-600 text-white hover:bg-red-700'
+              }`}
             >
               {confirmText}
             </button>

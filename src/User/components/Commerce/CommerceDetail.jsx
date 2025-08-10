@@ -430,14 +430,16 @@ const CommerceDetail = () => {
 
         {/* 썸네일 이미지 */}
         <div className="relative">
-          <img 
-            src={product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png'} 
-            alt={product.title} 
-            className="w-full h-96 object-cover rounded-lg shadow-lg"
-            onError={(e) => {
-              e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
-            }}
-          />
+          <div className="w-full h-96 bg-gray-200 rounded-lg shadow-lg flex items-center justify-center overflow-hidden">
+            <img 
+              src={product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png'} 
+              alt={product.title} 
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
+              }}
+            />
+          </div>
           {/* 좋아요 버튼 */}
           <button
             onClick={handleToggleLike}
@@ -605,11 +607,11 @@ const CommerceDetail = () => {
             {/* 이미지들 */}
             <div className="flex flex-col gap-4">
               {product.images.map((image, index) => (
-                <div key={index}>
+                <div key={index} className="w-full bg-gray-200 rounded-lg shadow-md flex items-center justify-center overflow-hidden">
                   <img 
                     src={image} 
                     alt={`${product.title} ${index + 1}`}
-                    className="w-full h-64 object-cover rounded-lg shadow-md"
+                    className="w-full h-auto max-h-96 object-contain"
                     onError={(e) => {
                       e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
                     }}

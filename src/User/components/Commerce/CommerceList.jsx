@@ -685,15 +685,16 @@ const CommerceList = () => {
               key={product.id}
               className="border rounded-lg shadow hover:shadow-lg transition flex flex-col relative"
             >
-              <img 
-                src={product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png'} 
-                alt="썸네일" 
-                className="w-full h-40 object-cover rounded-t-lg bg-gray-100 cursor-pointer" 
-                onClick={() => navigate(`${product.id}`)}
-                onError={(e) => {
-                  e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
-                }}
-              />
+              <div className="w-full aspect-square overflow-hidden rounded-t-lg bg-gray-200 cursor-pointer flex items-center justify-center" onClick={() => navigate(`${product.id}`)}>
+                <img 
+                  src={product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png'} 
+                  alt="썸네일" 
+                  className="w-full h-full object-contain" 
+                  onError={(e) => {
+                    e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
+                  }}
+                />
+              </div>
               
               {/* 좋아요 버튼 */}
               <button
@@ -721,11 +722,11 @@ const CommerceList = () => {
               <div className="p-4 flex-1 flex flex-col justify-between">
                 <div>
                   <div className="text-lg font-semibold mb-1 cursor-pointer text-gray-900 hover:text-blue-600" onClick={() => navigate(`${product.id}`)}>
-                    {product.title.length > 20 ? `${product.title.substring(0, 20)}...` : product.title}
+                    {product.title.length > 15 ? `${product.title.substring(0, 15)}...` : product.title}
                   </div>
                   <div className="text-gray-600 text-sm mb-2">
-                    {product.description && product.description.length > 50 
-                      ? `${product.description.substring(0, 50)}...` 
+                    {product.description && product.description.length > 30 
+                      ? `${product.description.substring(0, 30)}...` 
                       : product.description}
                   </div>
                 </div>
