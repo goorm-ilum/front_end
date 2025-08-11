@@ -1242,14 +1242,20 @@ const AdminProductFormPage = () => {
               <label className="block mb-2 font-medium text-gray-700">
                 상품명 <span className="text-red-500">*</span>
               </label>
-              <input
-                name="productName"
-                value={form.productName}
-                onChange={handleChange}
-                required
-                className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                placeholder="상품명을 입력해주세요"
-              />
+              <div className="relative">
+                <input
+                  name="productName"
+                  value={form.productName}
+                  onChange={handleChange}
+                  maxLength={40}
+                  required
+                  className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  placeholder="상품명을 입력해주세요 (최대 40자)"
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
+                  {form.productName.length}/40
+                </div>
+              </div>
             </div>
 
             {/* 상품 설명 */}
@@ -1257,15 +1263,21 @@ const AdminProductFormPage = () => {
               <label className="block mb-2 font-medium text-gray-700">
                 상품 설명 <span className="text-red-500">*</span>
               </label>
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                rows={4}
-                className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
-                placeholder="상품에 대한 설명을 입력해주세요..."
-                required
-              />
+              <div className="relative">
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  maxLength={200}
+                  rows={4}
+                  className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none pr-16"
+                  placeholder="상품에 대한 설명을 입력해주세요... (최대 200자)"
+                  required
+                />
+                <div className="absolute bottom-3 right-3 text-sm text-gray-500">
+                  {form.description.length}/200
+                </div>
+              </div>
             </div>
 
             {/* 대륙/국가 */}
