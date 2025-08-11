@@ -201,4 +201,32 @@ export const restoreAdminProduct = async (productId) => {
     console.error('에러 데이터:', error.response?.data);
     throw error;
   }
+};
+
+// 관리자 상품별 리뷰 조회
+export const getAdminProductReviews = async (productId, params = {}) => {
+  try {
+    console.log('관리자 상품 리뷰 조회 요청:', { productId, params });
+    
+    // URLSearchParams를 사용하여 파라미터 전송
+    const searchParams = new URLSearchParams();
+    searchParams.append('page', params.page || 0);
+    searchParams.append('size', params.size || 10);
+    searchParams.append('sortBy', params.sortBy || 'createdAt');
+    searchParams.append('sortOrder', params.ascending === false ? 'desc' : 'asc');
+    
+    const response = await axiosInstance.get(`/api/admin/products/${productId}/reviews?${searchParams.toString()}`);
+    
+    console.log('관리자 상품 리뷰 조회 응답:', response);
+    console.log('응답 상태:', response.status);
+    console.log('응답 데이터:', response.data);
+    
+    return response.data;
+  } catch (error) {
+    console.error('관리자 상품 리뷰 조회 실패:', error);
+    console.error('에러 응답:', error.response);
+    console.error('에러 상태:', error.response?.status);
+    console.error('에러 데이터:', error.response?.data);
+    throw error;
+  }
 }; 

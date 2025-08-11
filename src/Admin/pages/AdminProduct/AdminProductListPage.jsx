@@ -504,9 +504,12 @@ const AdminProductListPage = () => {
                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                    상품등록일
                  </th>
-                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                   관리
-                 </th>
+                                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    관리
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    리뷰
+                  </th>
                </tr>
              </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -543,34 +546,46 @@ const AdminProductListPage = () => {
                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
                        {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('ko-KR') : '-'}
                      </td>
-                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center space-x-2">
-                       <Link 
-                         to={`/admin/products/detail/${p.id}`} 
-                         className="text-blue-600 hover:text-blue-800 font-medium hover:underline transition-colors duration-200"
-                       >
-                         수정
-                       </Link>
-                       {p.status === 'ACTIVE' ? (
-                         <button 
-                           onClick={() => showDeleteConfirm(p.id)} 
-                           className="text-red-600 hover:text-red-800 font-medium hover:underline transition-colors duration-200"
-                         >
-                           삭제
-                         </button>
-                                               ) : (
+                                           <td className="px-6 py-4 whitespace-nowrap text-sm text-center space-x-2">
+                        <Link 
+                          to={`/admin/products/detail/${p.id}`} 
+                          className="text-blue-600 hover:text-blue-800 font-medium hover:underline transition-colors duration-200"
+                        >
+                          수정
+                        </Link>
+                        {p.status === 'ACTIVE' ? (
                           <button 
-                            onClick={() => showRestoreConfirm(p.id)} 
-                            className="text-emerald-600 hover:text-emerald-800 font-medium hover:underline transition-colors duration-200"
+                            onClick={() => showDeleteConfirm(p.id)} 
+                            className="text-red-600 hover:text-red-800 font-medium hover:underline transition-colors duration-200"
                           >
-                            복구
+                            삭제
                           </button>
-                        )}
-                     </td>
+                                                ) : (
+                           <button 
+                             onClick={() => showRestoreConfirm(p.id)} 
+                             className="text-emerald-600 hover:text-emerald-800 font-medium hover:underline transition-colors duration-200"
+                           >
+                             복구
+                           </button>
+                         )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                        <Link 
+                          to={`/admin/products/${p.id}/reviews`} 
+                          className="inline-flex items-center justify-center w-8 h-8 bg-purple-100 hover:bg-purple-200 text-purple-600 rounded-full transition-colors duration-200"
+                          title="리뷰 보기"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </Link>
+                      </td>
                    </tr>
                  ))
               ) : (
                                  <tr>
-                   <td colSpan="7" className="px-6 py-12 text-center">
+                   <td colSpan="8" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center space-y-4">
                       <svg className="w-16 h-16 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />

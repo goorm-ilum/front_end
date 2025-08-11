@@ -24,6 +24,7 @@ import ChatPage from './common/chat/ChatPage';
 import AdminHome from './Admin/pages/AdminHome';
 import AdminProductList from './Admin/pages/AdminProduct/AdminProductListPage';
 import AdminProductForm from './Admin/pages/AdminProduct/AdminProductFormPage';
+import AdminProductReviews from './Admin/pages/AdminProduct/AdminProductReviewsPage';
 import AdminOrderList from './Admin/pages/AdminOrder/AdminOrderListPage';
 import AdminOrderDetail from './Admin/pages/AdminOrder/AdminOrderDetailPage';
 import AdminProfilePage from './Admin/pages/AdminProfile/AdminProfilePage';
@@ -69,6 +70,11 @@ function App() {
             <Route path="/admin/products/detail/:productId" element={
               <AdminProtectedRoute>
                 <AdminProductForm />
+              </AdminProtectedRoute>
+            } />
+            <Route path="/admin/products/:productId/reviews" element={
+              <AdminProtectedRoute>
+                <AdminProductReviews />
               </AdminProtectedRoute>
             } />
             <Route path="/admin/orders" element={
