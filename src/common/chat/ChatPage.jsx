@@ -10,20 +10,7 @@ import { getCookie } from '../util/cookieUtil';
 // 더미 채팅방 목록 (더 많은 데이터 추가)
 const dummyRooms = [
   { id: 'room1', title: '고객 A님 문의', lastMessage: '안녕하세요!', updatedAt: '2024-06-10', notReadMessageCount: 2 },
-  { id: 'room2', title: '고객 B님 문의', lastMessage: '결제 관련 문의입니다.', updatedAt: '2024-06-09', notReadMessageCount: 0 },
-  { id: 'room3', title: '고객 C님 취소 요청', lastMessage: '취소가 되나요?', updatedAt: '2024-06-08', notReadMessageCount: 1 },
-  { id: 'room4', title: '고객 D님 투어 문의', lastMessage: '서울 투어 상품에 대해 문의드립니다.', updatedAt: '2024-06-07', notReadMessageCount: 0 },
-  { id: 'room5', title: '고객 E님 예약 변경', lastMessage: '날짜를 변경하고 싶습니다.', updatedAt: '2024-06-06', notReadMessageCount: 3 },
-  { id: 'room6', title: '고객 F님 리뷰 문의', lastMessage: '리뷰를 어떻게 작성하나요?', updatedAt: '2024-06-05', notReadMessageCount: 0 },
-  { id: 'room7', title: '고객 G님 환불 요청', lastMessage: '환불 처리가 안되고 있습니다.', updatedAt: '2024-06-04', notReadMessageCount: 1 },
-  { id: 'room8', title: '고객 H님 가이드 문의', lastMessage: '가이드 언어는 어떤 것이 있나요?', updatedAt: '2024-06-03', notReadMessageCount: 0 },
-  { id: 'room9', title: '고객 I님 교통편 문의', lastMessage: '집합 장소까지 어떻게 가나요?', updatedAt: '2024-06-02', notReadMessageCount: 2 },
-  { id: 'room10', title: '고객 J님 음식 문의', lastMessage: '점심 식사가 포함되나요?', updatedAt: '2024-06-01', notReadMessageCount: 0 },
-  { id: 'room11', title: '고객 K님 날씨 문의', lastMessage: '비가 오면 어떻게 되나요?', updatedAt: '2024-05-31', notReadMessageCount: 1 },
-  { id: 'room12', title: '고객 L님 인원 변경', lastMessage: '인원을 추가하고 싶습니다.', updatedAt: '2024-05-30', notReadMessageCount: 0 },
-  { id: 'room13', title: '고객 M님 할인 문의', lastMessage: '단체 할인이 있나요?', updatedAt: '2024-05-29', notReadMessageCount: 4 },
-  { id: 'room14', title: '고객 N님 사진 문의', lastMessage: '사진 촬영이 가능한가요?', updatedAt: '2024-05-28', notReadMessageCount: 0 },
-  { id: 'room15', title: '고객 O님 시간 변경', lastMessage: '출발 시간을 변경하고 싶습니다.', updatedAt: '2024-05-27', notReadMessageCount: 1 },
+  
 ];
 
 const ChatPage = () => {

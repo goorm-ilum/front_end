@@ -18,10 +18,15 @@ const SellerInfo = ({ sellerName, email, phoneNum, sellerId }) => {
     if (!sellerData) return;
     
     try {
-      console.log('판매자와 채팅 시작...', { sellerId });
+      const sellerAccountEmail = email;
+      if (!sellerAccountEmail || sellerAccountEmail === '이메일 없음') {
+        alert('판매자 이메일 정보가 없습니다.');
+        return;
+      }
+      console.log('판매자와 채팅 시작...', { sellerAccountEmail });
       
       const response = await axiosInstance.post('/api/chat/rooms/enter', {
-        sellerId: sellerId
+        'sellerAccountEmail': sellerAccountEmail,
       });
       
       console.log('채팅방 응답:', response.data);
