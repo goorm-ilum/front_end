@@ -53,10 +53,10 @@ const MypageMenu = () => {
 
 
   const menuItems = [
-    { id: 'info', label: '내 정보', component: MyInfo },
-    { id: 'order', label: '내 구매내역', component: MyOrder },
-    { id: 'like', label: '내 좋아요', component: MyLike },
-    { id: 'review', label: '내 리뷰', component: MyReview },
+    { id: 'info', label: '내 정보', component: MyInfo, icon: '👤' },
+    { id: 'order', label: '내 구매내역', component: MyOrder, icon: '📦' },
+    { id: 'like', label: '내 좋아요', component: MyLike, icon: '❤️' },
+    { id: 'review', label: '내 리뷰', component: MyReview, icon: '⭐' },
   ];
 
   // 탭 클릭 핸들러
@@ -82,22 +82,34 @@ const MypageMenu = () => {
   const SelectedComponent = getSelectedComponent();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Header */}
+      <div className="text-center py-12">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+          마이페이지
+        </h1>
+        <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
+        <p className="text-lg text-gray-600 mt-4">내 정보와 활동 내역을 관리하세요</p>
+      </div>
+
       {/* 메뉴 바 */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="flex justify-center space-x-8 py-4">
+      <div className="max-w-4xl mx-auto px-4 mb-8">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300">
+          <div className="flex justify-center space-x-4">
             {menuItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleTabClick(item.id)}
-                className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                className={`group flex flex-col items-center px-6 py-4 rounded-xl font-medium transition-all duration-300 ${
                   selectedMenu === item.id
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'text-gray-600 hover:text-blue-500 hover:bg-blue-50'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg scale-105'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50 hover:scale-105'
                 }`}
               >
-                {item.label}
+                <span className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">
+                  {item.icon}
+                </span>
+                <span className="text-sm font-semibold">{item.label}</span>
               </button>
             ))}
           </div>
@@ -105,8 +117,10 @@ const MypageMenu = () => {
       </div>
 
       {/* 선택된 메뉴의 컴포넌트 렌더링 - key prop으로 재마운트 제어 */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <SelectedComponent key={`${selectedMenu}-${refreshKey}`} />
+      <div className="max-w-4xl mx-auto px-4 pb-12">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 hover:shadow-2xl transition-all duration-300">
+          <SelectedComponent key={`${selectedMenu}-${refreshKey}`} />
+        </div>
       </div>
     </div>
   );
