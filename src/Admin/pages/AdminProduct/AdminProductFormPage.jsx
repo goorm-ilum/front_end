@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SuccessModal from '../../../components/SuccessModal';
 import MessagePopup from '../../../common/components/MessagePopup';
+import ProductPreviewModal from './ProductPreviewModal';
 
 const continentCountryMap = {
   아시아: ['한국', '일본', '중국'],
@@ -67,6 +68,7 @@ const AdminProductFormPage = () => {
   const [showMessagePopup, setShowMessagePopup] = useState(false);
   const [messagePopupText, setMessagePopupText] = useState('');
   const [messagePopupType, setMessagePopupType] = useState('info');
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // 달력 관련 함수들
   const getDaysInMonth = (year, month) => {
@@ -1870,7 +1872,20 @@ const AdminProductFormPage = () => {
 
         {/* 저장 버튼 */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-end">
+          <div className="flex justify-end space-x-4">
+            {/* 미리보기 버튼 */}
+            <button
+              type="button"
+              onClick={() => setShowPreviewModal(true)}
+              className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span>미리보기</span>
+            </button>
+            
             <button
               type="submit"
               disabled={submitting}
@@ -1910,6 +1925,23 @@ const AdminProductFormPage = () => {
         onClose={() => setShowMessagePopup(false)}
         message={messagePopupText}
         type={messagePopupType}
+      />
+      
+      {/* 미리보기 모달 */}
+      <ProductPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        productData={{
+          productName: form.productName,
+          description: form.description,
+          price: form.price,
+          discountPrice: form.discountPrice,
+          countryName: form.countryName,
+          tags: tags,
+          thumbnailPreview: thumbnailPreview,
+          detailPreviews: detailPreviews,
+          dateOptions: dateOptions
+        }}
       />
     </div>
   );
