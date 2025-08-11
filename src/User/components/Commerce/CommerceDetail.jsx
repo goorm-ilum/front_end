@@ -448,20 +448,6 @@ const CommerceDetail = () => {
 
           {/* 상품 정보 - 오른쪽 (7/10) */}
           <div className="lg:col-span-7 flex flex-col gap-4 bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/30 p-6">
-            {/* 해시태그 */}
-            {product?.hashtags && product.hashtags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {product.hashtags.map((tag, index) => (
-                  <span 
-                    key={index}
-                    className="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-300 cursor-pointer shadow-md"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-            
             {/* 제목과 좋아요, 국가 정보를 한 줄에 배치 */}
             <div className="flex items-start justify-between mb-2">
               <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent flex-1 min-w-0 mr-4 break-words">
@@ -472,10 +458,9 @@ const CommerceDetail = () => {
                 <span className="text-sm text-gray-600 bg-white/80 backdrop-blur-sm border border-gray-200/30 rounded-full px-3 py-1 shadow-sm">📍 {product.countryName}</span>
               </div>
             </div>
-            <p className="text-sm text-gray-600 mb-3 leading-relaxed">{product.description}</p>
             
-            {/* 가격 정보 */}
-            <div className="mb-4">
+            {/* 가격 정보 - 박스 하단에 배치 */}
+            <div className="mt-auto pt-4 border-t border-gray-200/30">
               {product.discountPrice && product.discountPrice !== product.price ? (
                 <div className="flex items-center gap-2">
                   <span className="text-gray-400 line-through text-lg">{product.price?.toLocaleString()}원</span>
@@ -486,6 +471,29 @@ const CommerceDetail = () => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* 해시태그 */}
+        {product?.hashtags && product.hashtags.length > 0 && (
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/30 p-6 mb-8">
+            <h4 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">해시태그</h4>
+            <div className="flex flex-wrap gap-2">
+              {product.hashtags.map((tag, index) => (
+                <span 
+                  key={index}
+                  className="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-300 cursor-pointer shadow-md"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 상품 설명 */}
+        <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/30 p-6 mb-8">
+          <h4 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">상품 설명</h4>
+          <p className="text-sm text-gray-600 leading-relaxed">{product.description}</p>
         </div>
 
         {/* 재고 옵션 선택 섹션 */}
