@@ -119,12 +119,32 @@ const AdminProductReviewsPage = () => {
     return stars;
   };
 
+  // 리뷰 평점에 따른 이모티콘/배경 색상
+  const getReviewEmoji = (rating) => {
+    if (rating >= 5) return '😍';
+    if (rating >= 4) return '😊';
+    if (rating >= 3) return '🙂';
+    if (rating >= 2) return '🙁';
+    if (rating >= 1) return '😡';
+    return '💬';
+  };
+
+  const getReviewEmojiClass = (rating) => {
+    if (rating >= 5) return 'bg-pink-100 text-pink-600';
+    if (rating >= 4) return 'bg-green-100 text-green-600';
+    if (rating >= 3) return 'bg-blue-100 text-blue-600';
+    if (rating >= 2) return 'bg-yellow-100 text-yellow-700';
+    if (rating >= 1) return 'bg-red-100 text-red-600';
+    return 'bg-gray-200 text-gray-600';
+  };
+
   if (loading) {
     return <div className="p-6 text-center">로딩중…</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 space-y-8">
       {/* 메시지 팝업 */}
       <MessagePopup
         isOpen={showMessagePopup}
@@ -135,12 +155,12 @@ const AdminProductReviewsPage = () => {
 
       {/* 페이지 제목 */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">상품 리뷰 관리</h1>
-        <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-600 mx-auto rounded"></div>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">상품 리뷰 관리</h1>
+        <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full"></div>
         <div className="mt-4">
           <Link
             to="/admin/products"
-            className="inline-flex items-center space-x-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="inline-flex items-center space-x-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-3 rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -152,11 +172,13 @@ const AdminProductReviewsPage = () => {
 
       {/* 상품 정보 섹션 */}
       {productInfo && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 mb-6">
           <div className="flex items-center space-x-3 mb-4">
-            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
             <h3 className="text-lg font-semibold text-gray-900">상품 정보</h3>
           </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -164,7 +186,7 @@ const AdminProductReviewsPage = () => {
                <img
                  src={productInfo.thumbnailImageUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'}
                  alt={productInfo.productName}
-                 className="w-16 h-16 object-cover rounded-lg"
+                className="w-16 h-16 object-cover rounded-lg border border-gray-200"
                  onError={(e) => {
                    e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
                  }}
@@ -182,11 +204,13 @@ const AdminProductReviewsPage = () => {
       )}
 
       {/* 정렬 섹션 */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 mb-6">
         <div className="flex items-center space-x-3 mb-4">
-          <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-          </svg>
+          <div className="w-8 h-8 bg-gradient-to-r from-gray-500 to-gray-700 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+            </svg>
+          </div>
           <h3 className="text-lg font-semibold text-gray-900">정렬 옵션</h3>
         </div>
         
@@ -196,7 +220,7 @@ const AdminProductReviewsPage = () => {
             <select
               value={sortKey}
               onChange={e => handleSortChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50"
             >
               <option value="createdAt">등록일순</option>
               <option value="rating">별점순</option>
@@ -208,7 +232,7 @@ const AdminProductReviewsPage = () => {
             <select
               value={sortOrder}
               onChange={e => handleSortOrderChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50"
             >
               <option value="desc">내림차순</option>
               <option value="asc">오름차순</option>
@@ -218,10 +242,10 @@ const AdminProductReviewsPage = () => {
       </div>
 
       {/* 리뷰 목록 섹션 */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
         <div className="flex items-center space-x-3 mb-6">
-          <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-            <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
@@ -232,13 +256,11 @@ const AdminProductReviewsPage = () => {
         <div className="space-y-6">
           {reviews.length > 0 ? (
             reviews.map((review, index) => (
-              <div key={`review-${review.id}-${index}`} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
+              <div key={`review-${review.id}-${index}`} className="border border-gray-200 rounded-lg p-6 bg-white/40 hover:bg-gradient-to-r hover:from-blue-50/60 hover:to-purple-50/60 transition-all duration-300">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                      </svg>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${getReviewEmojiClass(review.reviewStar || 0)}`}>
+                      {getReviewEmoji(review.reviewStar || 0)}
                     </div>
                                          <div>
                        <p className="font-medium text-gray-900">{review.nickName || '익명'}</p>
@@ -301,17 +323,20 @@ const AdminProductReviewsPage = () => {
         </div>
 
                  {/* 페이지네이션 */}
-         {totalItems > 0 && (
-           <div className="mt-6">
-             <Pagination
-               totalItems={totalItems}
-               itemsPerPage={itemsPerPage}
-               currentPage={currentPage}
-               onPageChange={setCurrentPage}
-               className="flex justify-center"
-             />
-           </div>
-         )}
+      {totalItems > 0 && (
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 mt-6">
+          <div className="flex items-center justify-center">
+            <Pagination
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              className="pagination-modern"
+            />
+          </div>
+        </div>
+      )}
+    </div>
       </div>
     </div>
   );

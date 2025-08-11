@@ -813,7 +813,8 @@ const ChatPage = () => {
 
   const isAdminChat = location.pathname.startsWith('/admin/chat');
   return (
-    <div className={`flex h-screen ${isAdminChat ? 'theme-purple' : 'theme-blue'}`}>
+    <div className={isAdminChat ? 'min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50' : ''}>
+      <div className="flex h-screen">
       {/* 사이드바 - 스크롤 가능하도록 수정 */}
       <aside className="w-64 border-r bg-white flex flex-col">
         <div className="px-4 py-1 font-bold border-t border-b bg-gray-50 text-gray-900">
@@ -884,7 +885,7 @@ const ChatPage = () => {
       </aside>
 
       {/* 채팅방 선택 전 / 후 Outlet */}
-      <main className="flex-1 p-4 bg-gray-50">
+      <main className={`flex-1 p-4 ${isAdminChat ? '' : 'bg-gray-50'}`}>
         <Routes>
           {/* 아무 방도 선택 안됐을 때 */}
           <Route
@@ -914,6 +915,7 @@ const ChatPage = () => {
           />
         </Routes>
       </main>
+      </div>
     </div>
   );
 };
