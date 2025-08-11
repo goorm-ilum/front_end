@@ -28,6 +28,9 @@ const AdminProductFormPage = () => {
   const [startDates, setStartDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
+  // 날짜 범위 선택을 위한 상태 추가
+  const [dateRangeStart, setDateRangeStart] = useState(null);
+  const [dateRangeEnd, setDateRangeEnd] = useState(null);
 
   // 옵션 입력용 상태
   const [options, setOptions] = useState([
@@ -88,13 +91,52 @@ const AdminProductFormPage = () => {
   };
 
   const handleDateClick = (dateStr) => {
+    const clickedDate = new Date(dateStr);
+    
     if (isDateSelected(dateStr)) {
+      // 이미 선택된 날짜라면 제거
       setStartDates(prev => prev.filter(date => date !== dateStr));
-      // 날짜가 제거되면 해당 날짜의 옵션도 제거
       setDateOptions(prev => prev.filter(option => option.startDate !== dateStr));
+      // 범위 선택 상태도 초기화
+      setDateRangeStart(null);
+      setDateRangeEnd(null);
+    } else if (!dateRangeStart) {
+      // 첫 번째 날짜 선택
+      setDateRangeStart(clickedDate);
+      setStartDates([dateStr]);
+      setSelectedDateForView(dateStr);
+    } else if (!dateRangeEnd) {
+      // 두 번째 날짜 선택 - 범위 생성
+      const start = dateRangeStart < clickedDate ? dateRangeStart : clickedDate;
+      const end = dateRangeStart < clickedDate ? clickedDate : dateRangeStart;
+      
+      // 범위 내 모든 날짜 생성
+      const allDates = [];
+      const current = new Date(start);
+      while (current <= end) {
+        allDates.push(formatDate(current));
+        current.setDate(current.getDate() + 1);
+      }
+      
+      setStartDates(allDates);
+      setDateRangeEnd(clickedDate);
+      setSelectedDateForView(dateStr);
+      
+      // 범위 선택 완료 후 초기화
+      setTimeout(() => {
+        setDateRangeStart(null);
+        setDateRangeEnd(null);
+      }, 100);
+      
+      // 성공 메시지 표시
+      setMessagePopupText(`${allDates.length}일의 날짜 범위가 선택되었습니다.`);
+      setMessagePopupType('success');
+      setShowMessagePopup(true);
     } else {
-      setStartDates(prev => [...prev, dateStr].sort());
-      // 새로운 날짜가 선택되면 날짜별 옵션에서 해당 날짜 표시
+      // 새로운 범위 시작
+      setDateRangeStart(clickedDate);
+      setDateRangeEnd(null);
+      setStartDates([dateStr]);
       setSelectedDateForView(dateStr);
     }
   };
@@ -131,19 +173,38 @@ const AdminProductFormPage = () => {
       const isSelected = isDateSelected(dateStr);
       const isPast = new Date(dateStr) < new Date(formatDate(today));
       
+      // 범위 선택 중인지 확인
+      const isInRange = dateRangeStart && dateRangeEnd && 
+        new Date(dateStr) >= (dateRangeStart < dateRangeEnd ? dateRangeStart : dateRangeEnd) &&
+        new Date(dateStr) <= (dateRangeStart < dateRangeEnd ? dateRangeEnd : dateRangeStart);
+      
+      // 범위 시작/끝 날짜인지 확인
+      const isRangeStart = dateRangeStart && formatDate(dateRangeStart) === dateStr;
+      const isRangeEnd = dateRangeEnd && formatDate(dateRangeEnd) === dateStr;
+      
+      let dateClass = 'p-2 rounded ';
+      
+      if (isSelected) {
+        if (isRangeStart || isRangeEnd) {
+          dateClass += 'bg-blue-600 text-white font-bold';
+        } else if (isInRange) {
+          dateClass += 'bg-blue-200 text-blue-800';
+        } else {
+          dateClass += 'bg-blue-500 text-white';
+        }
+      } else if (isPast) {
+        dateClass += 'text-gray-300 cursor-not-allowed';
+      } else {
+        dateClass += 'hover:bg-gray-100';
+      }
+      
       days.push(
         <button
           key={day}
           type="button"
           onClick={() => !isPast && handleDateClick(dateStr)}
           disabled={isPast}
-          className={`p-2 rounded ${
-            isSelected 
-              ? 'bg-blue-500 text-white' 
-              : isPast 
-                ? 'text-gray-300 cursor-not-allowed' 
-                : 'hover:bg-gray-100'
-          }`}
+          className={dateClass}
         >
           {day}
         </button>
@@ -1488,12 +1549,44 @@ const AdminProductFormPage = () => {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">시작일 선택</h3>
-              <p className="text-sm text-gray-600">상품의 시작 가능한 날짜를 선택하세요</p>
+                              <p className="text-sm text-gray-600">
+                  {dateRangeStart && !dateRangeEnd 
+                    ? '두 번째 날짜를 선택하여 범위를 완성하세요' 
+                    : '날짜를 클릭하여 범위를 선택하세요 (첫 번째 날짜 선택 후 두 번째 날짜 선택)'}
+                </p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="relative">
+                      <div className="space-y-4">
+              {/* 범위 선택 상태 표시 */}
+              {dateRangeStart && (
+                <div className="flex items-center space-x-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-blue-800">범위 선택 중:</span>
+                    <span className="text-sm text-blue-600">{formatDate(dateRangeStart)}</span>
+                    {dateRangeEnd && (
+                      <>
+                        <span className="text-blue-400">~</span>
+                        <span className="text-sm text-blue-600">{formatDate(dateRangeEnd)}</span>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDateRangeStart(null);
+                      setDateRangeEnd(null);
+                      setStartDates([]);
+                      setSelectedDateForView('');
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    취소
+                  </button>
+                </div>
+              )}
+              
+              <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowCalendar(!showCalendar)}
