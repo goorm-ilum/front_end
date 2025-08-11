@@ -16,6 +16,16 @@ const FloatingChatIcon = () => {
   const subscriptionsRef = useRef(new Set());
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
 
+  const getDotSize = (count) => {
+    if (!count || count <= 0) return 0;
+    if (count >= 100) return 32; // px (조금 키움)
+    if (count >= 50) return 26;
+    if (count >= 10) return 20;
+    return 14;
+  };
+
+  const getDotOffset = () => -0; // 아주 조금 바깥쪽으로 배치
+
   // 현재 경로에 따라 채팅 링크 결정
   const getChatLink = () => {
     if (location.pathname.startsWith('/admin')) {
@@ -199,9 +209,16 @@ const FloatingChatIcon = () => {
         />
       </svg>
       {unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-          {unreadCount > 99 ? '99+' : unreadCount}
-        </span>
+        <span
+          className="absolute bg-red-500 rounded-full animate-pulse"
+          style={{
+            width: `${getDotSize(unreadCount)}px`,
+            height: `${getDotSize(unreadCount)}px`,
+            top: `${getDotOffset(unreadCount)}px`,
+            right: `${getDotOffset(unreadCount)}px`,
+          }}
+          title={`${unreadCount}`}
+        />
       )}
     </Link>
   );

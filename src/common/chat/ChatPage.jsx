@@ -839,9 +839,7 @@ const ChatPage = () => {
                   <div className="flex items-center justify-between w-full">
                     <span className="font-medium truncate text-gray-900 font-semibold">{room.title}</span>
                     {Number(room.notReadMessageCount) > 0 && (
-                      <span className="ml-2 inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs rounded-full flex-shrink-0">
-                        {String(room.notReadMessageCount)}
-                      </span>
+                      <span className="ml-2 inline-flex items-center justify-center w-2.5 h-2.5 bg-red-500 rounded-full flex-shrink-0" />
                     )}
                   </div>
                   <div className={`text-xs truncate mt-1 ${Number(room.notReadMessageCount) > 0 ? 'text-gray-800 font-medium' : 'text-gray-500'}`}>{room.lastMessage}</div>

@@ -1,7 +1,6 @@
 import Header from './Header';
 import Footer from './Footer';
 import FloatingChatIcon from './FloatingChatIcon';
-import FloatingAlarmIcon from './FloatingAlarmIcon';
 import { Outlet, Link, useLocation } from "react-router-dom";
 
 const isFullWidth = true;
@@ -34,7 +33,6 @@ const BasicLayout = () => {
             {/* Footer */}
             <Footer />
             {shouldShowChatIcon && <FloatingChatIcon />}
-            {shouldShowChatIcon && <FloatingAlarmIcon />}
         </div>
     );
 };
