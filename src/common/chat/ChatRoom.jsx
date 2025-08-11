@@ -1,133 +1,17 @@
 // src/common/chat/ChatRoom.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import axiosInstance from '../api/mainApi';  // mainApi의 axiosInstance 사용
+import axiosInstance, { API_SERVER_HOST } from '../api/mainApi';  // mainApi의 axiosInstance 사용
 import { getCookie } from '../util/cookieUtil';  // 쿠키 유틸 추가
 // import SockJS from 'sockjs-client/dist/sockjs.min.js';
 import { Client } from '@stomp/stompjs';
 
 const dummyMessages = {
   'ROOM001': [
-    { messageId: 'msg001', memberId: 'user1', message: '안녕하세요.', createdAt: '2025-01-15 10:00:00' },
-    { messageId: 'msg002', memberId: 'admin', message: '무엇이 궁금하신가요?', createdAt: '2025-01-15 10:01:00' },
-  ],
-  'ROOM002': [
-    { messageId: 'msg003', memberId: 'user2', message: '결제가 안됩니다.', createdAt: '2025-01-15 11:10:00' },
-    { messageId: 'msg004', memberId: 'admin', message: '결제 수단을 알려주세요.', createdAt: '2025-01-15 11:12:00' },
-  ],
-  'ROOM003': [
-    { messageId: 'msg005', memberId: 'user3', message: '취소가 되나요?', createdAt: '2025-01-15 09:30:00' },
-    { messageId: 'msg006', memberId: 'admin', message: '네, 취소 가능합니다. 언제 이용하실 예정이었나요?', createdAt: '2025-01-15 09:32:00' },
-  ],
-  'ROOM004': [
-    { messageId: 'msg007', memberId: 'user4', message: '서울 투어 상품에 대해 문의드립니다.', createdAt: '2025-01-15 14:15:00' },
-    { messageId: 'msg008', memberId: 'admin', message: '어떤 부분이 궁금하신가요?', createdAt: '2025-01-15 14:17:00' },
-  ],
-  'ROOM005': [
-    { messageId: 'msg009', memberId: 'user5', message: '날짜를 변경하고 싶습니다.', createdAt: '2025-01-15 16:20:00' },
-    { messageId: 'msg010', memberId: 'admin', message: '변경하고 싶은 날짜를 알려주세요.', createdAt: '2025-01-15 16:22:00' },
-  ],
-  'ROOM006': [
-    { messageId: 'msg011', memberId: 'user6', message: '리뷰를 어떻게 작성하나요?', createdAt: '2025-01-15 13:45:00' },
-    { messageId: 'msg012', memberId: 'admin', message: '마이페이지에서 작성 가능합니다.', createdAt: '2025-01-15 13:47:00' },
-  ],
-  'ROOM007': [
-    { messageId: 'msg013', memberId: 'user7', message: '환불 처리가 안되고 있습니다.', createdAt: '2025-01-15 12:30:00' },
-    { messageId: 'msg014', memberId: 'admin', message: '환불 신청 내역을 확인해드리겠습니다.', createdAt: '2025-01-15 12:32:00' },
-  ],
-  'ROOM008': [
-    { messageId: 'msg015', memberId: 'user8', message: '가이드 언어는 어떤 것이 있나요?', createdAt: '2025-01-15 15:10:00' },
-    { messageId: 'msg016', memberId: 'admin', message: '한국어, 영어, 일본어, 중국어 가이드가 있습니다.', createdAt: '2025-01-15 15:12:00' },
-  ],
-  'ROOM009': [
-    { messageId: 'msg017', memberId: 'user9', message: '집합 장소까지 어떻게 가나요?', createdAt: '2025-01-15 11:25:00' },
-    { messageId: 'msg018', memberId: 'admin', message: '지하철 2호선 홍대입구역 3번 출구에서 도보 5분입니다.', createdAt: '2025-01-15 11:27:00' },
-  ],
-  'ROOM010': [
-    { messageId: 'msg019', memberId: 'user10', message: '점심 식사가 포함되나요?', createdAt: '2025-01-15 10:40:00' },
-    { messageId: 'msg020', memberId: 'admin', message: '네, 점심 식사가 포함되어 있습니다.', createdAt: '2025-01-15 10:42:00' },
-  ],
-  'ROOM011': [
-    { messageId: 'msg021', memberId: 'user11', message: '비가 오면 어떻게 되나요?', createdAt: '2025-01-15 08:15:00' },
-    { messageId: 'msg022', memberId: 'admin', message: '우천 시 실내 프로그램으로 대체됩니다.', createdAt: '2025-01-15 08:17:00' },
-  ],
-  'ROOM012': [
-    { messageId: 'msg023', memberId: 'user12', message: '인원을 추가하고 싶습니다.', createdAt: '2025-01-15 17:30:00' },
-    { messageId: 'msg024', memberId: 'admin', message: '몇 명 추가하시겠습니까?', createdAt: '2025-01-15 17:32:00' },
-  ],
-  'ROOM013': [
-    { messageId: 'msg025', memberId: 'user13', message: '단체 할인이 있나요?', createdAt: '2025-01-15 14:50:00' },
-    { messageId: 'msg026', memberId: 'admin', message: '10명 이상 단체 시 10% 할인됩니다.', createdAt: '2025-01-15 14:52:00' },
-  ],
-  'ROOM014': [
-    { messageId: 'msg027', memberId: 'user14', message: '사진 촬영이 가능한가요?', createdAt: '2025-01-15 16:05:00' },
-    { messageId: 'msg028', memberId: 'admin', message: '네, 자유롭게 촬영 가능합니다.', createdAt: '2025-01-15 16:07:00' },
-  ],
-  'ROOM015': [
-    { messageId: 'msg029', memberId: 'user15', message: '출발 시간을 변경하고 싶습니다.', createdAt: '2025-01-15 13:20:00' },
-    { messageId: 'msg030', memberId: 'admin', message: '변경하고 싶은 시간을 알려주세요.', createdAt: '2025-01-15 13:22:00' },
-  ],
-  // 기존 room1, room2 형식도 유지 (더미 데이터와의 호환성)
-  room1: [
-    { messageId: 'msg001', memberId: 'user1', message: '안녕하세요.', createdAt: '2025-01-15 10:00:00' },
-    { messageId: 'msg002', memberId: 'admin', message: '무엇이 궁금하신가요?', createdAt: '2025-01-15 10:01:00' },
-  ],
-  room2: [
-    { messageId: 'msg003', memberId: 'user2', message: '결제가 안됩니다.', createdAt: '2025-01-15 11:10:00' },
-    { messageId: 'msg004', memberId: 'admin', message: '결제 수단을 알려주세요.', createdAt: '2025-01-15 11:12:00' },
-  ],
-  room3: [
-    { messageId: 'msg005', memberId: 'user3', message: '취소가 되나요?', createdAt: '2025-01-15 09:30:00' },
-    { messageId: 'msg006', memberId: 'admin', message: '네, 취소 가능합니다. 언제 이용하실 예정이었나요?', createdAt: '2025-01-15 09:32:00' },
-  ],
-  room4: [
-    { messageId: 'msg007', memberId: 'user4', message: '서울 투어 상품에 대해 문의드립니다.', createdAt: '2025-01-15 14:15:00' },
-    { messageId: 'msg008', memberId: 'admin', message: '어떤 부분이 궁금하신가요?', createdAt: '2025-01-15 14:17:00' },
-  ],
-  room5: [
-    { messageId: 'msg009', memberId: 'user5', message: '날짜를 변경하고 싶습니다.', createdAt: '2025-01-15 16:20:00' },
-    { messageId: 'msg010', memberId: 'admin', message: '변경하고 싶은 날짜를 알려주세요.', createdAt: '2025-01-15 16:22:00' },
-  ],
-  room6: [
-    { messageId: 'msg011', memberId: 'user6', message: '리뷰를 어떻게 작성하나요?', createdAt: '2025-01-15 13:45:00' },
-    { messageId: 'msg012', memberId: 'admin', message: '마이페이지에서 작성 가능합니다.', createdAt: '2025-01-15 13:47:00' },
-  ],
-  room7: [
-    { messageId: 'msg013', memberId: 'user7', message: '환불 처리가 안되고 있습니다.', createdAt: '2025-01-15 12:30:00' },
-    { messageId: 'msg014', memberId: 'admin', message: '환불 신청 내역을 확인해드리겠습니다.', createdAt: '2025-01-15 12:32:00' },
-  ],
-  room8: [
-    { messageId: 'msg015', memberId: 'user8', message: '가이드 언어는 어떤 것이 있나요?', createdAt: '2025-01-15 15:10:00' },
-    { messageId: 'msg016', memberId: 'admin', message: '한국어, 영어, 일본어, 중국어 가이드가 있습니다.', createdAt: '2025-01-15 15:12:00' },
-  ],
-  room9: [
-    { messageId: 'msg017', memberId: 'user9', message: '집합 장소까지 어떻게 가나요?', createdAt: '2025-01-15 11:25:00' },
-    { messageId: 'msg018', memberId: 'admin', message: '지하철 2호선 홍대입구역 3번 출구에서 도보 5분입니다.', createdAt: '2025-01-15 11:27:00' },
-  ],
-  room10: [
-    { messageId: 'msg019', memberId: 'user10', message: '점심 식사가 포함되나요?', createdAt: '2025-01-15 10:40:00' },
-    { messageId: 'msg020', memberId: 'admin', message: '네, 점심 식사가 포함되어 있습니다.', createdAt: '2025-01-15 10:42:00' },
-  ],
-  room11: [
-    { messageId: 'msg021', memberId: 'user11', message: '비가 오면 어떻게 되나요?', createdAt: '2025-01-15 08:15:00' },
-    { messageId: 'msg022', memberId: 'admin', message: '우천 시 실내 프로그램으로 대체됩니다.', createdAt: '2025-01-15 08:17:00' },
-  ],
-  room12: [
-    { messageId: 'msg023', memberId: 'user12', message: '인원을 추가하고 싶습니다.', createdAt: '2025-01-15 17:30:00' },
-    { messageId: 'msg024', memberId: 'admin', message: '몇 명 추가하시겠습니까?', createdAt: '2025-01-15 17:32:00' },
-  ],
-  room13: [
-    { messageId: 'msg025', memberId: 'user13', message: '단체 할인이 있나요?', createdAt: '2025-01-15 14:50:00' },
-    { messageId: 'msg026', memberId: 'admin', message: '10명 이상 단체 시 10% 할인됩니다.', createdAt: '2025-01-15 14:52:00' },
-  ],
-  room14: [
-    { messageId: 'msg027', memberId: 'user14', message: '사진 촬영이 가능한가요?', createdAt: '2025-01-15 16:05:00' },
-    { messageId: 'msg028', memberId: 'admin', message: '네, 자유롭게 촬영 가능합니다.', createdAt: '2025-01-15 16:07:00' },
-  ],
-  room15: [
-    { messageId: 'msg029', memberId: 'user15', message: '출발 시간을 변경하고 싶습니다.', createdAt: '2025-01-15 13:20:00' },
-    { messageId: 'msg030', memberId: 'admin', message: '변경하고 싶은 시간을 알려주세요.', createdAt: '2025-01-15 13:22:00' },
-  ],
+    { messageId: 'msg001', accountEmail: 'user1', message: '안녕하세요.', createdAt: '2025-01-15 10:00:00' },
+    { messageId: 'msg002', accountEmail: 'admin', message: '무엇이 궁금하신가요?', createdAt: '2025-01-15 10:01:00' },
+  ]
 };
 
 const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
@@ -140,8 +24,12 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 현재 사용자 ID (실제로는 로그인한 사용자 ID를 가져와야 함)
-  const currentUserId = 'dhrdbs';
+  // 현재 로그인한 사용자 이메일
+  const loginState = useSelector((state) => state.loginSlice);
+  const currentUserEmail = loginState?.email || getCookie('member')?.email || '';
+
+  const normalizeEmail = (v) => String(v || '').trim().toLowerCase();
+  const emailsEqual = (a, b) => normalizeEmail(a) === normalizeEmail(b);
 
   // 날짜를 yyyy-mm-dd hh:mm:ss 형식으로 변환하는 함수
   const formatDateTime = (dateInput) => {
@@ -261,7 +149,7 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
             // messageId가 없는 경우 - 메시지 내용, 발신자로 중복 체크 (시간은 5초 이내면 같은 메시지로 인식)
             const currentTime = new Date(chatMessage.createdAt).getTime();
             isDuplicate = prev.some(msg => {
-              if (msg.message === chatMessage.message && msg.memberId === chatMessage.memberId) {
+              if (msg.message === chatMessage.message && msg.accountEmail === chatMessage.accountEmail) {
                 // 시간이 5초 이내인지 확인
                 if (msg.createdAt) {
                   const msgTime = new Date(msg.createdAt).getTime();
@@ -292,6 +180,118 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
   }, [onMessageUpdate]);
   
 
+
+  // /topic/chat/room/{roomId}/update 구독 (실시간 업데이트 수신)
+  useEffect(() => {
+    let isMounted = true;
+    const stompRef = { current: null };
+    const subscriptionRef = { current: null };
+
+    const connectAndSubscribe = async () => {
+      try {
+        const wsBase = API_SERVER_HOST.replace(/\/$/, '').replace(/^http/, 'ws');
+        const brokerWsUrl = `${wsBase}/ws/websocket`;
+
+        const getAccessToken = () => {
+          try {
+            const localToken = window.localStorage?.getItem('accessToken');
+            if (localToken) return localToken;
+          } catch (_) {}
+          if (loginState?.accessToken) return loginState.accessToken;
+          const member = getCookie('member');
+          if (member && member.accessToken) return member.accessToken;
+          return null;
+        };
+
+        const makeConnectHeaders = () => {
+          const token = getAccessToken();
+          return token ? { Authorization: `Bearer ${token}` } : {};
+        };
+
+        const client = new Client({
+          webSocketFactory: () => new WebSocket(brokerWsUrl),
+          reconnectDelay: 5000,
+          heartbeatIncoming: 4000,
+          heartbeatOutgoing: 4000,
+          connectHeaders: makeConnectHeaders(),
+          beforeConnect: () => {
+            client.connectHeaders = makeConnectHeaders();
+          },
+          debug: (msg) => console.log('STOMP ROOM DEBUG:', msg),
+        });
+
+        client.onConnect = () => {
+          if (!isMounted) return;
+          // 방 업데이트 토픽 구독
+          const dest = `/topic/chat/room/${actualRoomId}/update`;
+          const sub = client.subscribe(dest, (message) => {
+            try {
+              console.log('📨 ROOM UPDATE RAW:', message);
+              console.log('📨 ROOM UPDATE BODY:', message.body);
+              const payload = JSON.parse(message.body || '{}');
+              console.log('📨 ROOM UPDATE PARSED:', payload);
+              // payload 구조: roomId, memberId/accountEmail, message(또는 content/msg/lastMessage), updatedAt 등
+              const createdAt = payload.createdAt || payload.updatedAt || Date.now();
+              const text = payload.message ?? payload.content ?? payload.lastMessage ?? payload.msg ?? payload.text ?? '';
+              const incoming = {
+                messageId: payload.messageId || `msg_${Date.now()}`,
+                accountEmail: payload.accountEmail || payload.memberId || payload.senderAccountEmail || payload.sender || payload.email || payload.emailAccount || '',
+                message: String(text),
+                createdAt,
+              };
+
+              // 현재 방 체크는 토픽 자체가 방별이라 완화하되, 혹시 몰라 접두사 제거 비교 추가
+              const payloadRoomId = String(payload.roomId || '');
+              const currentRoomId = String(actualRoomId || '');
+              const sameRoom = (
+                payloadRoomId === currentRoomId ||
+                payloadRoomId.replace(/^ROOM_/, '') === currentRoomId.replace(/^ROOM_/, '')
+              );
+              if (!sameRoom) return;
+
+              // 화면에 추가 (중복 필터 강화: 내용/보낸사람/시간 3중 체크)
+              setMessages((prev) => {
+                if (!incoming.message || incoming.message.trim().length === 0) {
+                  // 내용이 비어있으면 표시하지 않음
+                  return prev;
+                }
+                const isDup = prev.some(m =>
+                  (incoming.messageId && m.messageId === incoming.messageId) ||
+                  (
+                    m.message === incoming.message &&
+                    emailsEqual(m.accountEmail, incoming.accountEmail) &&
+                    Math.abs(new Date(m.createdAt).getTime() - new Date(incoming.createdAt).getTime()) < 3000
+                  )
+                );
+                if (isDup) return prev;
+                return [...prev, incoming];
+              });
+            } catch (e) {
+              console.error('룸 업데이트 파싱 실패:', e);
+            }
+          });
+          subscriptionRef.current = sub;
+        };
+
+        client.onStompError = (frame) => {
+          console.error('ChatRoom STOMP 에러:', frame?.body || frame);
+        };
+
+        client.activate();
+        stompRef.current = client;
+      } catch (e) {
+        console.error('ChatRoom 업데이트 구독 초기화 실패:', e);
+      }
+    };
+
+    connectAndSubscribe();
+
+    return () => {
+      isMounted = false;
+      try { subscriptionRef.current?.unsubscribe(); } catch (_) {}
+      try { stompRef.current?.deactivate(); } catch (_) {}
+    };
+  }, [actualRoomId, loginState?.accessToken]);
 
   useEffect(() => {
 
@@ -370,8 +370,8 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
 
     const messageDto = {
       roomId: actualRoomId,
-      memberId: 'dhrdbs',
-      receiverId: 'JTRweb',
+      accountEmail: currentUserEmail,
+      receiverAccountEmail: 'JTRweb',
       message: input
     };
 
@@ -380,13 +380,11 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
     const createdAt = formatDateTime(now); // formatDateTime 함수 사용
     const newMessage = {
       messageId: `msg${Date.now()}`,
-      memberId: 'dhrdbs',
+      accountEmail: currentUserEmail,
       message: input,
       createdAt,
     };
     
-    // 즉시 메시지를 화면에 추가
-    setMessages((prev) => [...prev, newMessage]);
     setInput('');
 
     // ChatPage.jsx의 WebSocket을 통한 메시지 전송
@@ -448,18 +446,18 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
           messages.map((m, i) => (
             <div
               key={i}
-              className={`flex ${m.memberId === currentUserId ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${emailsEqual(m.accountEmail, currentUserEmail) ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`max-w-xs px-4 py-2 rounded-lg shadow-sm ${
-                  m.memberId === currentUserId 
+                  emailsEqual(m.accountEmail, currentUserEmail) 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-gray-100 text-gray-900'
                 }`}
               >
                 <p className="text-sm">{m.message}</p>
                 <p className={`text-xs mt-1 ${
-                  m.memberId === currentUserId ? 'text-blue-100' : 'text-gray-500'
+                  emailsEqual(m.accountEmail, currentUserEmail) ? 'text-blue-100' : 'text-gray-500'
                 }`}>
                   {formatDateTime(m.createdAt)}
                 </p>

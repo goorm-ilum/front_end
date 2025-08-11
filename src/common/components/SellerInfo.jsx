@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import axiosInstance from '../api/mainApi';
+import { getCookie } from '../util/cookieUtil';
 
 const SellerInfo = ({ sellerName, email, phoneNum, sellerId }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const navigate = useNavigate();
+  const loginState = useSelector((state) => state.loginSlice);
+  const currentUserEmail = loginState?.email || getCookie('member')?.email || '';
   
   // 판매자 데이터 구성
   const sellerData = {
@@ -16,21 +20,33 @@ const SellerInfo = ({ sellerName, email, phoneNum, sellerId }) => {
   // 채팅방 입장 또는 생성 함수
   const handleChatWithSeller = async () => {
     if (!sellerData) return;
-    
+
     try {
-      console.log('판매자와 채팅 시작...', { sellerId });
-      
+      const sellerEmailAccount = email;
+      if (!sellerEmailAccount) {
+        alert('판매자 이메일 정보가 없습니다.');
+        return;
+      }
+
+      if (!currentUserEmail) {
+        alert('로그인이 필요합니다. 로그인 후 다시 시도해주세요.');
+        return;
+      }
+
+      console.log('판매자와 채팅 시작...', { sellerEmailAccount });
+
       const response = await axiosInstance.post('/api/chat/rooms/enter', {
-        sellerId: sellerId
+        sellerEmailAccount: sellerEmailAccount,
+        buyerEmailAccount: currentUserEmail,
       });
-      
+
       console.log('채팅방 응답:', response.data);
-      
+
       // 채팅방으로 이동
       if (response.data.roomId) {
         navigate(`/chat/${response.data.roomId}`);
       }
-      
+
     } catch (error) {
       console.error('채팅방 생성/입장 실패:', error);
       

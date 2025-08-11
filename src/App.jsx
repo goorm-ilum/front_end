@@ -87,7 +87,7 @@ function App() {
                 <AdminOrderDetail />
               </AdminProtectedRoute>
             } />
-            <Route path="/admin/chats/*" element={
+            <Route path="/admin/chat/*" element={
               <AdminProtectedRoute>
                 <ChatPage />
               </AdminProtectedRoute>
@@ -98,6 +98,7 @@ function App() {
               </AdminProtectedRoute>
             } />
           </Route>
+
         </Routes>
       </BrowserRouter>
     </div>
