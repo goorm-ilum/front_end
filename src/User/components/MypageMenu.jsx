@@ -93,7 +93,7 @@ const MypageMenu = () => {
       </div>
 
       {/* 메뉴 바 */}
-      <div className="max-w-4xl mx-auto px-4 mb-8">
+      <div className="max-w-6xl mx-auto px-4 mb-8">
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300">
           <div className="flex justify-center space-x-4">
             {menuItems.map((item) => (
@@ -117,7 +117,7 @@ const MypageMenu = () => {
       </div>
 
       {/* 선택된 메뉴의 컴포넌트 렌더링 - key prop으로 재마운트 제어 */}
-      <div className="max-w-4xl mx-auto px-4 pb-12">
+      <div className="max-w-6xl mx-auto px-4 pb-12">
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 hover:shadow-2xl transition-all duration-300">
           <SelectedComponent key={`${selectedMenu}-${refreshKey}`} />
         </div>

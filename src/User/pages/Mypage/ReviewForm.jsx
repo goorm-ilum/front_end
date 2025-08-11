@@ -345,15 +345,15 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
             key={star}
             type="button"
             onClick={() => !readonly && onRatingChange(star)}
-            className={`text-2xl ${
+            className={`text-3xl ${
               star <= rating ? 'text-yellow-400' : 'text-gray-300'
-            } ${!readonly ? 'hover:text-yellow-300' : ''}`}
+            } ${!readonly ? 'hover:text-yellow-300 hover:scale-110 transition-all duration-200' : ''}`}
             disabled={readonly}
           >
             ★
           </button>
         ))}
-        <span className="ml-2 text-sm text-gray-600">{rating}/5</span>
+        <span className="ml-3 text-lg text-gray-600 font-medium">{rating}/5</span>
       </div>
     );
   };
@@ -361,127 +361,132 @@ const ReviewForm = ({ productId: propsProductId, reviewId: propsReviewId }) => {
   // 로딩 상태
   if (loading && !productInfo) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">데이터를 불러오는 중...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">데이터를 불러오는 중...</p>
         </div>
       </div>
     );
   }
 
-
-
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          {isEditing ? '리뷰 수정' : '리뷰 작성'}
-        </h2>
-        <p className="text-gray-600">
-          {isEditing ? '리뷰를 수정해주세요.' : '상품에 대한 리뷰를 작성해주세요.'}
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+      <div className="max-w-2xl mx-auto px-4">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+            {isEditing ? '리뷰 수정' : '리뷰 작성'}
+          </h1>
+          <div className="w-20 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
+          <p className="text-gray-600 mt-4">
+            {isEditing ? '리뷰를 수정해주세요.' : '상품에 대한 솔직한 후기를 작성해주세요.'}
+          </p>
+        </div>
 
-      {/* 상품 정보 표시 */}
-      {productInfo && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center space-x-4">
-            {(productInfo.thumbnailImageUrl || productInfo.thumbnail || productInfo.productThumbnail || productInfo.thumbnailUrl || productInfo.imageUrl || productInfo.image) ? (
-              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center">
-                <img 
-                  src={productInfo.thumbnailImageUrl || productInfo.thumbnail || productInfo.productThumbnail || productInfo.thumbnailUrl || productInfo.imageUrl || productInfo.image}
-                  alt={productInfo.productName}
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-xs">
-                이미지 없음
-              </div>
-            )}
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                {productInfo.productName && productInfo.productName.length > 20 ? `${productInfo.productName.substring(0, 20)}...` : productInfo.productName}
-              </h3>
-              {productInfo.price && (
-                <p className="text-sm text-gray-600">
-                  {productInfo.price.toLocaleString()}원
-                </p>
+        {/* 상품 정보 표시 */}
+        {productInfo && (
+          <div className="mb-8 p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20">
+            <div className="flex items-center space-x-4">
+              {(productInfo.thumbnailImageUrl || productInfo.thumbnail || productInfo.productThumbnail || productInfo.thumbnailUrl || productInfo.imageUrl || productInfo.image) ? (
+                <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center border-2 border-white shadow-md">
+                  <img 
+                    src={productInfo.thumbnailImageUrl || productInfo.thumbnail || productInfo.productThumbnail || productInfo.thumbnailUrl || productInfo.imageUrl || productInfo.image}
+                    alt={productInfo.productName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-20 h-20 bg-gray-200 rounded-xl flex items-center justify-center text-gray-500 text-sm border-2 border-white shadow-md">
+                  이미지 없음
+                </div>
               )}
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {productInfo.productName && productInfo.productName.length > 20 ? `${productInfo.productName.substring(0, 20)}...` : productInfo.productName}
+                </h3>
+                {productInfo.price && (
+                  <p className="text-lg text-gray-600 font-medium">
+                    {productInfo.price.toLocaleString()}원
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 별점 선택 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            별점
-          </label>
-          <StarRating 
-            rating={formData.reviewStar} 
-            onRatingChange={handleStarChange}
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* 별점 선택 */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <label className="block text-lg font-semibold text-gray-800 mb-4">
+              별점 평가
+            </label>
+            <StarRating 
+              rating={formData.reviewStar} 
+              onRatingChange={handleStarChange}
+            />
+          </div>
 
-        {/* 리뷰 내용 */}
-        <div>
-          <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
-            리뷰 내용
-          </label>
-          <textarea
-            id="comment"
-            name="comment"
-            value={formData.comment}
-            onChange={handleInputChange}
-            rows={6}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="상품에 대한 솔직한 리뷰를 작성해주세요..."
-            required
-          />
-        </div>
+          {/* 리뷰 내용 */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <label htmlFor="comment" className="block text-lg font-semibold text-gray-800 mb-4">
+              리뷰 내용
+            </label>
+            <textarea
+              id="comment"
+              name="comment"
+              value={formData.comment}
+              onChange={handleInputChange}
+              rows={8}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"
+              placeholder="상품에 대한 솔직한 리뷰를 작성해주세요... (최소 10자 이상)"
+              required
+            />
+            <div className="mt-2 text-right">
+              <span className={`text-sm ${formData.comment.length < 10 ? 'text-red-500' : 'text-gray-500'}`}>
+                {formData.comment.length}/1000
+              </span>
+            </div>
+          </div>
 
+          {/* 버튼 그룹 */}
+          <div className="flex justify-end space-x-4">
+            <button
+              type="button"
+              onClick={() => navigate('/mypage?tab=review')}
+              className="px-6 py-3 text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+            >
+              {loading ? '처리 중...' : (isEditing ? '수정 완료' : '리뷰 작성')}
+            </button>
+          </div>
+        </form>
 
-
-        {/* 버튼 그룹 */}
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={() => navigate('/mypage?tab=review')}
-            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-          >
-            취소
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading ? '처리 중...' : (isEditing ? '수정 완료' : '리뷰 작성')}
-          </button>
-        </div>
-      </form>
-
-      {/* 메시지 팝업 */}
-      <MessagePopup
-        isOpen={showErrorPopup}
-        onClose={handleClosePopup}
-        message={errorMessage}
-        type="warning"
-      />
-      
-      {/* 일반 메시지 팝업 */}
-      <MessagePopup
-        isOpen={showMessagePopup}
-        onClose={() => setShowMessagePopup(false)}
-        message={messageData.message}
-        type={messageData.type}
-      />
+        {/* 메시지 팝업 */}
+        <MessagePopup
+          isOpen={showErrorPopup}
+          onClose={handleClosePopup}
+          message={errorMessage}
+          type="warning"
+        />
+        
+        {/* 일반 메시지 팝업 */}
+        <MessagePopup
+          isOpen={showMessagePopup}
+          onClose={() => setShowMessagePopup(false)}
+          message={messageData.message}
+          type={messageData.type}
+        />
+      </div>
     </div>
   );
 };

@@ -80,7 +80,7 @@ const MyReview = () => {
       await deleteReview(reviewId);
 
       // 성공적으로 삭제된 경우 목록에서 제거
-      setReviews(prevReviews => prevReviews.filter(review => review.id !== reviewId));
+      setReviews(prevReviews => prevReviews.filter(review => review.reviewId !== reviewId));
       setTotalItems(prev => prev - 1);
       
       // 페이지가 비어있고 이전 페이지가 있다면 이전 페이지로 이동
@@ -208,16 +208,16 @@ const MyReview = () => {
             <div className="space-y-6 mb-8">
               {reviews.map((review) => (
                 <div
-                  key={review.id}
+                  key={review.reviewId}
                   className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300"
                 >
                   {/* 리뷰 헤더 */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 rounded-xl bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-white shadow-md">
-                        {review.productThumbnail ? (
+                        {review.thumbnailImageUrl ? (
                           <img
-                            src={review.productThumbnail}
+                            src={review.thumbnailImageUrl}
                             alt={review.productName}
                             className="w-full h-full object-cover cursor-pointer"
                             onClick={() => handleProductClick(review.productId)}
@@ -238,42 +238,44 @@ const MyReview = () => {
                         </h3>
                         <div className="flex items-center gap-2">
                           <div className="flex">
-                            {renderStars(review.rating)}
+                            {renderStars(review.reviewStar)}
                           </div>
                           <span className="text-sm text-gray-600 ml-2">
-                            {review.rating}/5
+                            {review.reviewStar}/5
                           </span>
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {review.nickName || '익명'}
                         </div>
                       </div>
                     </div>
                     
                     <div className="text-right">
                       <div className="text-sm text-gray-500 mb-1">
-                        {formatDate(review.createdAt)}
+                        {formatDate(review.updatedAt)}
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleEditReview(review.id)}
+                          onClick={() => handleEditReview(review.reviewId)}
                           className="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm rounded-lg hover:from-blue-600 hover:to-purple-600 shadow-md hover:shadow-lg transition-all duration-300"
                         >
                           수정
                         </button>
-                        <button
-                          onClick={() => handleDeleteReview(review.id)}
-                          className="px-3 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-sm rounded-lg hover:from-red-600 hover:to-pink-600 shadow-md hover:shadow-lg transition-all duration-300"
-                        >
-                          삭제
-                        </button>
+                                                 <button
+                           onClick={() => handleDeleteReview(review.reviewId)}
+                           className="px-3 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-sm rounded-lg hover:from-red-600 hover:to-pink-600 shadow-md hover:shadow-lg transition-all duration-300"
+                         >
+                           삭제
+                         </button>
                       </div>
                     </div>
                   </div>
 
                   {/* 리뷰 내용 */}
                   <div className="mb-4">
-                    <h4 className="font-medium text-gray-700 mb-2">리뷰 내용</h4>
                     <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                       <p className="text-gray-800 leading-relaxed">
-                        {review.content || '리뷰 내용이 없습니다.'}
+                        {review.comment || '리뷰 내용이 없습니다.'}
                       </p>
                     </div>
                   </div>
@@ -295,24 +297,6 @@ const MyReview = () => {
                       </div>
                     </div>
                   )}
-
-                  {/* 리뷰 메타 정보 */}
-                  <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-4">
-                      <span>작성일: {formatDate(review.createdAt)}</span>
-                      {review.updatedAt && review.updatedAt !== review.createdAt && (
-                        <span>수정일: {formatDate(review.updatedAt)}</span>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      <span>조회수: {review.viewCount || 0}</span>
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>

@@ -213,7 +213,8 @@ const MyInfo = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="h-fit bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+      <div className="max-w-3xl mx-auto">
       <SuccessModal
         isOpen={showSuccessModal}
         onClose={handleSuccessModalClose}
@@ -404,6 +405,7 @@ const MyInfo = () => {
         message={messageData.message}
         type={messageData.type}
       />
+      </div>
     </div>
   );
 };

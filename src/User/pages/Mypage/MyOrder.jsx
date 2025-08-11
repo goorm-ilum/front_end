@@ -224,7 +224,8 @@ const MyOrder = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="h-fit bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+      <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
@@ -341,6 +342,7 @@ const MyOrder = () => {
         message={messageData.message}
         type={messageData.type}
       />
+      </div>
     </div>
   );
 };

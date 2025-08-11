@@ -129,8 +129,8 @@ const MyLike = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
+         <div className="h-fit bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4">
+               <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
@@ -158,89 +158,65 @@ const MyLike = () => {
           </div>
         ) : (
           <>
-            {/* 상품 그리드 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {likes.map((like) => (
-                <div
-                  key={like.id}
-                  className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 group cursor-pointer"
-                  onClick={() => handleProductClick(like.productId)}
-                >
-                  {/* 상품 이미지 */}
-                  <div className="relative overflow-hidden rounded-t-2xl">
-                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-                      {like.productThumbnail ? (
-                        <img
-                          src={like.productThumbnail}
-                          alt={like.productName}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      )}
-                    </div>
-                    
-                    {/* 좋아요 버튼 */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUnlike(like.productId);
+                         {/* 상품 그리드 */}
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+               {likes.map((like) => (
+                 <div
+                   key={like.id}
+                   className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col relative border border-white/20 hover:scale-105 group"
+                 >
+                                       <img 
+                      src={like.thumbnailImageUrl || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png'} 
+                      alt="썸네일" 
+                      className="w-full aspect-square object-cover rounded-t-2xl bg-gray-100 cursor-pointer" 
+                      onClick={() => handleProductClick(like.productId)}
+                      onError={(e) => {
+                        e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
                       }}
-                      className="absolute top-3 right-3 w-10 h-10 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110"
-                    >
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* 상품 정보 */}
-                  <div className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
-                      {like.productName}
-                    </h3>
-                    
-                    <div className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {like.productDescription || '상품 설명이 없습니다.'}
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        {like.productPrice ? `${like.productPrice.toLocaleString()}원` : '가격 정보 없음'}
-                      </div>
-                      
-                      <div className="flex items-center text-gray-500 text-sm">
-                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                        </svg>
-                        {like.likeCount || 0}
-                      </div>
-                    </div>
-
-                    {/* 상품 태그 */}
-                    {like.productTags && like.productTags.length > 0 && (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {like.productTags.slice(0, 3).map((tag, index) => (
-                          <span
-                            key={index}
-                            className="px-2 py-1 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 text-xs rounded-full font-medium"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {like.productTags.length > 3 && (
-                          <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                            +{like.productTags.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                    />
+                   
+                   {/* 좋아요 버튼 */}
+                   <button
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       handleUnlike(like.productId);
+                     }}
+                     className="absolute top-3 right-3 p-2 rounded-full transition-all duration-300 hover:scale-110 bg-red-500 text-white shadow-lg"
+                   >
+                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                       <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                     </svg>
+                   </button>
+                   
+                   <div className="p-6 flex-1 flex flex-col justify-between">
+                     <div>
+                                               <div className="text-lg font-bold mb-2 cursor-pointer text-gray-900 hover:text-blue-600 transition-all duration-300 line-clamp-1" onClick={() => handleProductClick(like.productId)}>
+                          {like.productName}
+                        </div>
+                       <div className="text-gray-600 text-sm mb-3 line-clamp-2">{like.productDescription || '상품 설명이 없습니다.'}</div>
+                     </div>
+                     <div className="flex items-center justify-between mt-3">
+                       <span className="text-yellow-500 font-bold flex items-center">
+                         <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                         </svg>
+                         {like.averageReviewStar > 0 ? like.averageReviewStar.toFixed(1) : '-'}
+                       </span>
+                                               <div className="text-right">
+                          {like.discountPrice && like.discountPrice !== like.price ? (
+                            <div>
+                              <span className="text-gray-400 line-through text-sm">{like.price?.toLocaleString()}원</span>
+                              <div className="text-red-600 font-bold text-lg">{like.discountPrice?.toLocaleString()}원</div>
+                            </div>
+                          ) : (
+                            <span className="text-blue-700 font-bold text-lg">{like.price?.toLocaleString()}원</span>
+                          )}
+                        </div>
+                     </div>
+                   </div>
+                 </div>
+               ))}
+             </div>
 
             {/* 페이지네이션 */}
             {totalItems > itemsPerPage && (
