@@ -59,11 +59,29 @@ const CommerceList = () => {
 
   // 초기 로드
   useEffect(() => {
-    loadProducts(0, '', sort, sortOrder, selectedCountry);
-  }, []);
+    const aiSearchQuery = location.state?.aiSearchQuery;
+    const immediateAISearch = location.state?.immediateAISearch;
+    
+    // AI 검색이 예정된 경우 전체 상품 로드하지 않음
+    if (aiSearchQuery && immediateAISearch) {
+      console.log('AI 검색이 예정되어 있어 전체 상품 로드 건너뜀');
+      return;
+    }
+    
+    // AI 검색이 아닐 때만 전체 상품 로드
+    if (!isAISearch && !aiSearchQuery) {
+      loadProducts(0, '', sort, sortOrder, selectedCountry);
+    }
+  }, [isAISearch, location.state, sort, sortOrder, selectedCountry]); // 의존성 배열에 필요한 상태들 추가
 
   // 초기 상품 목록 로드
   const loadProducts = async (pageNum = 0, keyword = '', sort = 'updatedAt', sortOrder = 'desc', country = '전체') => {
+    // AI 검색 모드일 때는 일반 상품 로드 차단
+    if (isAISearch) {
+      console.log('AI 검색 모드 중이므로 일반 상품 로드 건너뜀');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     setIsAISearch(false); // 일반 검색으로 플래그 해제
@@ -167,13 +185,19 @@ const CommerceList = () => {
   };
 
   // AI 검색봇 핸들러
-  const handleAISearch = async (query) => {
+  const handleAISearch = async (query, isAISearchStart = false) => {
     console.log('AI 검색 쿼리:', query);
     setSearch(query);
     setIsAISearch(true); // AI 검색 플래그 설정
+    
+    // AI 검색 시작 시 즉시 로딩 상태로 설정
+    if (isAISearchStart) {
+      setLoading(true);
+      setProducts([]); // 기존 상품 목록 초기화
+      setError(''); // 에러 메시지 초기화
+    }
 
     try {
-      setLoading(true);
       const response = await aiSearchProducts(query);
       console.log('AI 검색 결과:', response);
 
@@ -216,6 +240,8 @@ const CommerceList = () => {
     } catch (error) {
       console.error('AI 검색 중 오류 발생:', error);
       setError('AI 검색 중 오류가 발생했습니다.');
+      setProducts([]);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
@@ -224,15 +250,18 @@ const CommerceList = () => {
   // 컴포넌트 마운트 시 초기 데이터 로드 (AI 검색 쿼리 고려)
   useEffect(() => {
     const aiSearchQuery = location.state?.aiSearchQuery;
+    const immediateAISearch = location.state?.immediateAISearch;
     const forceRefresh = location.state?.forceRefresh;
     
-    // AI 검색 쿼리가 있는 경우 - 일반 상품 로드 건너뛰고 AI 검색만 실행
-    if (aiSearchQuery) {
-      console.log('AI 검색 모드로 진입:', aiSearchQuery);
+    // AI 검색 쿼리가 있는 경우 - 즉시 AI 검색 모드로 전환
+    if (aiSearchQuery && immediateAISearch) {
+      console.log('즉시 AI 검색 모드로 진입:', aiSearchQuery);
       resetToInitialState();
       setLoading(true); // AI 검색 대기 중 로딩 표시
+      setProducts([]); // 기존 상품 목록 즉시 초기화
+      setError(''); // 에러 메시지 초기화
       
-      // AI 검색 직접 실행 (handleAISearch 함수 내용을 여기서 직접 실행)
+      // AI 검색 직접 실행
       const executeAISearch = async () => {
         setSearch(aiSearchQuery);
         setIsAISearch(true);
@@ -286,7 +315,7 @@ const CommerceList = () => {
       
       executeAISearch();
       
-      // state 초기화
+      // state 초기화 (페이지 새로고침 시에도 AI 검색 상태 유지)
       navigate(location.pathname, { replace: true });
     } 
     // 강제 새로고침인 경우
@@ -297,23 +326,30 @@ const CommerceList = () => {
     // 일반 진입인 경우 (AI 검색이 아닐 때만 전체 상품 로드)
     else {
       resetToInitialState();
-      loadProducts(0, '', sort, sortOrder);
+      // 초기 로드 시에는 전체 상품을 보여주지 않음
+      setProducts([]);
+      setTotalItems(0);
+      setLoading(false);
     }
   }, []);
 
   // location.state 변경 감지 (페이지 이동 시 AI 검색 처리)
   useEffect(() => {
     const aiSearchQuery = location.state?.aiSearchQuery;
+    const immediateAISearch = location.state?.immediateAISearch;
     
-    if (aiSearchQuery) {
-      console.log('페이지 이동으로 인한 AI 검색:', aiSearchQuery);
-      resetToInitialState();
-      setLoading(true);
+    if (aiSearchQuery && immediateAISearch) {
+      console.log('페이지 이동으로 인한 즉시 AI 검색:', aiSearchQuery);
+      
+      // 즉시 상태 초기화 및 AI 검색 모드 전환
+      setSearch(aiSearchQuery);
+      setIsAISearch(true);
+      setProducts([]); // 기존 상품 목록 즉시 초기화
+      setError(''); // 에러 메시지 초기화
+      setLoading(true); // 로딩 상태 활성화
+      setPage(1); // 페이지 초기화
       
       const executeAISearch = async () => {
-        setSearch(aiSearchQuery);
-        setIsAISearch(true);
-        
         try {
           const response = await aiSearchProducts(aiSearchQuery);
           console.log('AI 검색 결과:', response);
@@ -350,17 +386,19 @@ const CommerceList = () => {
             setProducts([]);
             setTotalItems(0);
           }
-          
-          setPage(1);
         } catch (error) {
           console.error('AI 검색 중 오류 발생:', error);
           setError('AI 검색 중 오류가 발생했습니다.');
+          setProducts([]);
+          setTotalItems(0);
         } finally {
           setLoading(false);
         }
       };
       
       executeAISearch();
+      
+      // state 초기화 (페이지 새로고침 시에도 AI 검색 상태 유지)
       navigate(location.pathname, { replace: true });
     }
   }, [location.state]);
@@ -504,6 +542,29 @@ const CommerceList = () => {
           onSearch={handleAISearch}
           placeholder="예: 로맨틱한 여행지 추천, 가족과 함께하는 여행, 서울 근교 당일치기 투어"
         />
+        
+        {/* AI 검색 결과가 있을 때 전체 상품 보기 버튼 */}
+        {isAISearch && products.length > 0 && !loading && (
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setIsAISearch(false);
+                setSearch('');
+                setProducts([]);
+                setTotalItems(0);
+                setError('');
+                // 전체 상품 로드
+                loadProducts(0, '', sort, sortOrder, selectedCountry);
+              }}
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-lg transition-all duration-300 hover:scale-105"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              전체 상품 보기
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 검색 및 필터 섹션 */}
@@ -684,7 +745,7 @@ const CommerceList = () => {
         <div className="text-center py-12">
           {isAISearch ? (
             // AI 검색 결과 없음
-            <div className="max-w-md mx-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
+            <div className="w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
               <div className="mb-4">
                 <span className="text-6xl">🤖</span>
               </div>
@@ -711,18 +772,40 @@ const CommerceList = () => {
               </div>
             </div>
           ) : (
-            // 일반 검색 결과 없음
-            <div className="max-w-md mx-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
+            // 초기 상태 또는 일반 검색 결과 없음
+            <div className="w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
               <div className="mb-4">
                 <span className="text-6xl">🔍</span>
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                검색 결과가 없습니다
+                {search ? '검색 결과가 없습니다' : 'AI 검색을 시작해보세요'}
               </h3>
               <p className="text-gray-600">
-                다른 키워드로 검색해보시거나<br/>
-                검색어를 줄여서 시도해보세요
+                {search ? (
+                  <>
+                    다른 키워드로 검색해보시거나<br/>
+                    검색어를 줄여서 시도해보세요
+                  </>
+                ) : (
+                  <>
+                    위의 AI 검색봇에 여행 관련 질문을 입력하면<br/>
+                    최적의 여행상품을 추천해드립니다
+                  </>
+                )}
               </p>
+              {!search && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => loadProducts(0, '', sort, sortOrder, selectedCountry)}
+                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all duration-300 hover:scale-105"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    전체 상품 보기
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

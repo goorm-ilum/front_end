@@ -22,7 +22,12 @@ const Home = () => {
   const handleAISearch = (query) => {
     console.log('AI 검색 쿼리:', query);
     // AI 검색 시 CommerceList 페이지로 이동
-    navigate('/commerce', { state: { aiSearchQuery: query } });
+    navigate('/commerce', { 
+      state: { 
+        aiSearchQuery: query,
+        immediateAISearch: true 
+      } 
+    });
   };
 
   const handleExploreProducts = () => {
@@ -131,6 +136,7 @@ const Home = () => {
               onSearch={handleAISearch}
               placeholder="예: 로맨틱한 여행지 추천, 가족과 함께하는 여행, 서울 근교 당일치기 투어"
               className="mb-8"
+              isHomePage={true}
             />
 
             {/* 예시 질문들 */}
@@ -143,7 +149,12 @@ const Home = () => {
               ].map((example, index) => (
                 <button
                   key={index}
-                  onClick={() => handleAISearch(example)}
+                  onClick={() => navigate('/commerce', { 
+                    state: { 
+                      aiSearchQuery: example,
+                      immediateAISearch: true 
+                    } 
+                  })}
                   className="px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 text-gray-700 rounded-full text-sm transition-all duration-300 border border-blue-200/50 hover:border-blue-300/50 hover:scale-105"
                 >
                   {example}
