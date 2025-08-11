@@ -15,7 +15,7 @@ const dummyMessages = {
   ]
 };
 
-const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
+const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate, roomTitle }) => {
   const { roomId } = useParams();
   // URL에서 가져온 roomId 사용
   const actualRoomId = roomId || 'ROOM001';
@@ -334,7 +334,6 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
 
         
         if (response.data && Array.isArray(response.data)) {
-
           setMessages(response.data);
         } else {
 
@@ -426,7 +425,7 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
       <div className="px-4 py-3 border-b bg-gray-50 rounded-t-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-gray-900">채팅방 {roomId}</h3>
+            <h3 className="font-semibold text-gray-900">{roomTitle || `채팅방 ${actualRoomId}`}</h3>
             <p className="text-sm text-gray-500">총 {messages.length}개의 메시지</p>
           </div>
 

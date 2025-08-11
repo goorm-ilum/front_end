@@ -621,6 +621,7 @@ const CommerceDetail = () => {
           sellerName={product?.sellerName}
           email={product?.email}
           phoneNum={product?.phoneNum}
+          productId={product?.id}
         />
 
         {/* 리뷰 목록 */}
