@@ -1479,7 +1479,7 @@ const AdminProductFormPage = () => {
         </div>
 
         {/* 시작일 선택 섹션 */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 relative z-30">
           <div className="flex items-center space-x-3 mb-6">
             <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1505,7 +1505,7 @@ const AdminProductFormPage = () => {
               </button>
               
               {showCalendar && (
-                <div className="absolute top-full left-0 mt-1 bg-white/95 backdrop-blur border border-gray-200 rounded-2xl shadow-xl z-10 p-4 min-w-[300px]">
+                <div className="absolute top-full left-0 mt-1 bg-white/95 backdrop-blur border border-gray-200 rounded-2xl shadow-2xl z-50 p-4 min-w-[300px]">
                   <div className="grid grid-cols-7 gap-1 mb-2">
                     {['일', '월', '화', '수', '목', '금', '토'].map(day => (
                       <div key={day} className="p-2 text-center font-medium text-gray-600 text-sm">
@@ -1886,9 +1886,6 @@ const AdminProductFormPage = () => {
               </svg>
               <span>미리보기</span>
             </button>
-            
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
-          <div className="flex justify-end">
             <button
               type="submit"
               disabled={submitting}
@@ -1912,8 +1909,6 @@ const AdminProductFormPage = () => {
               )}
             </button>
           </div>
-        </div>
-        </div>
         </div>
       </form>
       
