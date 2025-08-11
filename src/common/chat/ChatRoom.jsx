@@ -1,24 +1,36 @@
 // src/common/chat/ChatRoom.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import axiosInstance from '../api/mainApi';  // mainApi의 axiosInstance 사용
+import axiosInstance, { API_SERVER_HOST } from '../api/mainApi';  // mainApi의 axiosInstance 사용
 import { getCookie } from '../util/cookieUtil';  // 쿠키 유틸 추가
 // import SockJS from 'sockjs-client/dist/sockjs.min.js';
 import { Client } from '@stomp/stompjs';
 // import { Client } from '@stomp/stompjs';
 
+const dummyMessages = {
+  'ROOM001': [
+    { messageId: 'msg001', accountEmail: 'user1', message: '안녕하세요.', createdAt: '2025-01-15 10:00:00' },
+    { messageId: 'msg002', accountEmail: 'admin', message: '무엇이 궁금하신가요?', createdAt: '2025-01-15 10:01:00' },
+  ]
+};
+
 const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
   const { roomId } = useParams();
   // URL에서 가져온 roomId 사용
-  const actualRoomId = roomId || '';
+  const actualRoomId = roomId || 'ROOM001';
   const scrollRef = useRef();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 현재 사용자 ID (실제로는 로그인한 사용자 ID를 가져와야 함)
-  const currentUserId = 'dhrdbs';
+  // 현재 로그인한 사용자 이메일
+  const loginState = useSelector((state) => state.loginSlice);
+  const currentUserEmail = loginState?.email || getCookie('member')?.email || '';
+
+  const normalizeEmail = (v) => String(v || '').trim().toLowerCase();
+  const emailsEqual = (a, b) => normalizeEmail(a) === normalizeEmail(b);
 
   // 날짜를 yyyy-mm-dd hh:mm:ss 형식으로 변환하는 함수
   const formatDateTime = (dateInput) => {
@@ -80,8 +92,9 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
       const day = String(date.getDate()).padStart(2, '0');
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
-      // 초 단위는 표시하지 않음 (YYYY-MM-DD hh:mm)
-      const formatted = `${year}-${month}-${day} ${hours}:${minutes}`;
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      
+      const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
       return formatted;
     } catch (error) {
@@ -137,7 +150,7 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
             // messageId가 없는 경우 - 메시지 내용, 발신자로 중복 체크 (시간은 5초 이내면 같은 메시지로 인식)
             const currentTime = new Date(chatMessage.createdAt).getTime();
             isDuplicate = prev.some(msg => {
-              if (msg.message === chatMessage.message && msg.memberId === chatMessage.memberId) {
+              if (msg.message === chatMessage.message && msg.accountEmail === chatMessage.accountEmail) {
                 // 시간이 5초 이내인지 확인
                 if (msg.createdAt) {
                   const msgTime = new Date(msg.createdAt).getTime();
@@ -169,6 +182,118 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
   
 
 
+  // /topic/chat/room/{roomId}/update 구독 (실시간 업데이트 수신)
+  useEffect(() => {
+    let isMounted = true;
+    const stompRef = { current: null };
+    const subscriptionRef = { current: null };
+
+    const connectAndSubscribe = async () => {
+      try {
+        const wsBase = API_SERVER_HOST.replace(/\/$/, '').replace(/^http/, 'ws');
+        const brokerWsUrl = `${wsBase}/ws/websocket`;
+
+        const getAccessToken = () => {
+          try {
+            const localToken = window.localStorage?.getItem('accessToken');
+            if (localToken) return localToken;
+          } catch (_) {}
+          if (loginState?.accessToken) return loginState.accessToken;
+          const member = getCookie('member');
+          if (member && member.accessToken) return member.accessToken;
+          return null;
+        };
+
+        const makeConnectHeaders = () => {
+          const token = getAccessToken();
+          return token ? { Authorization: `Bearer ${token}` } : {};
+        };
+
+        const client = new Client({
+          webSocketFactory: () => new WebSocket(brokerWsUrl),
+          reconnectDelay: 5000,
+          heartbeatIncoming: 4000,
+          heartbeatOutgoing: 4000,
+          connectHeaders: makeConnectHeaders(),
+          beforeConnect: () => {
+            client.connectHeaders = makeConnectHeaders();
+          },
+          debug: (msg) => console.log('STOMP ROOM DEBUG:', msg),
+        });
+
+        client.onConnect = () => {
+          if (!isMounted) return;
+          // 방 업데이트 토픽 구독
+          const dest = `/topic/chat/room/${actualRoomId}/update`;
+          const sub = client.subscribe(dest, (message) => {
+            try {
+              console.log('📨 ROOM UPDATE RAW:', message);
+              console.log('📨 ROOM UPDATE BODY:', message.body);
+              const payload = JSON.parse(message.body || '{}');
+              console.log('📨 ROOM UPDATE PARSED:', payload);
+              // payload 구조: roomId, memberId/accountEmail, message(또는 content/msg/lastMessage), updatedAt 등
+              const createdAt = payload.createdAt || payload.updatedAt || Date.now();
+              const text = payload.message ?? payload.content ?? payload.lastMessage ?? payload.msg ?? payload.text ?? '';
+              const incoming = {
+                messageId: payload.messageId || `msg_${Date.now()}`,
+                accountEmail: payload.accountEmail || payload.memberId || payload.senderAccountEmail || payload.sender || payload.email || payload.emailAccount || '',
+                message: String(text),
+                createdAt,
+              };
+
+              // 현재 방 체크는 토픽 자체가 방별이라 완화하되, 혹시 몰라 접두사 제거 비교 추가
+              const payloadRoomId = String(payload.roomId || '');
+              const currentRoomId = String(actualRoomId || '');
+              const sameRoom = (
+                payloadRoomId === currentRoomId ||
+                payloadRoomId.replace(/^ROOM_/, '') === currentRoomId.replace(/^ROOM_/, '')
+              );
+              if (!sameRoom) return;
+
+              // 화면에 추가 (중복 필터 강화: 내용/보낸사람/시간 3중 체크)
+              setMessages((prev) => {
+                if (!incoming.message || incoming.message.trim().length === 0) {
+                  // 내용이 비어있으면 표시하지 않음
+                  return prev;
+                }
+                const isDup = prev.some(m =>
+                  (incoming.messageId && m.messageId === incoming.messageId) ||
+                  (
+                    m.message === incoming.message &&
+                    emailsEqual(m.accountEmail, incoming.accountEmail) &&
+                    Math.abs(new Date(m.createdAt).getTime() - new Date(incoming.createdAt).getTime()) < 3000
+                  )
+                );
+                if (isDup) return prev;
+                return [...prev, incoming];
+              });
+            } catch (e) {
+              console.error('룸 업데이트 파싱 실패:', e);
+            }
+          });
+          subscriptionRef.current = sub;
+        };
+
+        client.onStompError = (frame) => {
+          console.error('ChatRoom STOMP 에러:', frame?.body || frame);
+        };
+
+        client.activate();
+        stompRef.current = client;
+      } catch (e) {
+        console.error('ChatRoom 업데이트 구독 초기화 실패:', e);
+      }
+    };
+
+    connectAndSubscribe();
+
+    return () => {
+      isMounted = false;
+      try { subscriptionRef.current?.unsubscribe(); } catch (_) {}
+      try { stompRef.current?.deactivate(); } catch (_) {}
+    };
+  }, [actualRoomId, loginState?.accessToken]);
+
   useEffect(() => {
 
 
@@ -180,7 +305,9 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
 
       
       if (!actualRoomId) {
-        setMessages([]);
+
+        const roomMessages = dummyMessages[actualRoomId] || [];
+        setMessages(roomMessages);
         setLoading(false);
         return;
       }
@@ -207,17 +334,21 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
 
         
         if (response.data && Array.isArray(response.data)) {
+
           setMessages(response.data);
         } else {
-          setMessages([]);
+
+          const roomMessages = dummyMessages[roomId] || [];
+          setMessages(roomMessages);
         }
       } catch (error) {
 
         
         setError('메시지를 불러오는데 실패했습니다.');
         
-        // 에러 발생 시 빈 배열로 대체
-        setMessages([]);
+        // 에러 발생 시 더미 데이터 사용
+        const roomMessages = dummyMessages[roomId] || [];
+        setMessages(roomMessages);
       } finally {
         setLoading(false);
 
@@ -240,8 +371,8 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
 
     const messageDto = {
       roomId: actualRoomId,
-      memberId: 'dhrdbs',
-      receiverId: 'JTRweb',
+      accountEmail: currentUserEmail,
+      receiverAccountEmail: 'JTRweb',
       message: input
     };
 
@@ -250,13 +381,11 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
     const createdAt = formatDateTime(now); // formatDateTime 함수 사용
     const newMessage = {
       messageId: `msg${Date.now()}`,
-      memberId: 'dhrdbs',
+      accountEmail: currentUserEmail,
       message: input,
       createdAt,
     };
     
-    // 즉시 메시지를 화면에 추가
-    setMessages((prev) => [...prev, newMessage]);
     setInput('');
 
     // ChatPage.jsx의 WebSocket을 통한 메시지 전송
@@ -318,18 +447,18 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate }) => {
           messages.map((m, i) => (
             <div
               key={i}
-              className={`flex ${m.memberId === currentUserId ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${emailsEqual(m.accountEmail, currentUserEmail) ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`max-w-xs px-4 py-2 rounded-lg shadow-sm ${
-                  m.memberId === currentUserId 
+                  emailsEqual(m.accountEmail, currentUserEmail) 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-gray-100 text-gray-900'
                 }`}
               >
                 <p className="text-sm">{m.message}</p>
                 <p className={`text-xs mt-1 ${
-                  m.memberId === currentUserId ? 'text-blue-100' : 'text-gray-500'
+                  emailsEqual(m.accountEmail, currentUserEmail) ? 'text-blue-100' : 'text-gray-500'
                 }`}>
                   {formatDateTime(m.createdAt)}
                 </p>

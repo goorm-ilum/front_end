@@ -7,12 +7,34 @@ import ChatRoom from './ChatRoom';
 import { Client } from '@stomp/stompjs';
 import { getCookie } from '../util/cookieUtil';
 
+// 더미 채팅방 목록 (더 많은 데이터 추가)
+const dummyRooms = [
+  { id: 'room1', title: '고객 A님 문의', lastMessage: '안녕하세요!', updatedAt: '2024-06-10', notReadMessageCount: 2 },
+  { id: 'room2', title: '고객 B님 문의', lastMessage: '결제 관련 문의입니다.', updatedAt: '2024-06-09', notReadMessageCount: 0 },
+  { id: 'room3', title: '고객 C님 취소 요청', lastMessage: '취소가 되나요?', updatedAt: '2024-06-08', notReadMessageCount: 1 },
+  { id: 'room4', title: '고객 D님 투어 문의', lastMessage: '서울 투어 상품에 대해 문의드립니다.', updatedAt: '2024-06-07', notReadMessageCount: 0 },
+  { id: 'room5', title: '고객 E님 예약 변경', lastMessage: '날짜를 변경하고 싶습니다.', updatedAt: '2024-06-06', notReadMessageCount: 3 },
+  { id: 'room6', title: '고객 F님 리뷰 문의', lastMessage: '리뷰를 어떻게 작성하나요?', updatedAt: '2024-06-05', notReadMessageCount: 0 },
+  { id: 'room7', title: '고객 G님 환불 요청', lastMessage: '환불 처리가 안되고 있습니다.', updatedAt: '2024-06-04', notReadMessageCount: 1 },
+  { id: 'room8', title: '고객 H님 가이드 문의', lastMessage: '가이드 언어는 어떤 것이 있나요?', updatedAt: '2024-06-03', notReadMessageCount: 0 },
+  { id: 'room9', title: '고객 I님 교통편 문의', lastMessage: '집합 장소까지 어떻게 가나요?', updatedAt: '2024-06-02', notReadMessageCount: 2 },
+  { id: 'room10', title: '고객 J님 음식 문의', lastMessage: '점심 식사가 포함되나요?', updatedAt: '2024-06-01', notReadMessageCount: 0 },
+  { id: 'room11', title: '고객 K님 날씨 문의', lastMessage: '비가 오면 어떻게 되나요?', updatedAt: '2024-05-31', notReadMessageCount: 1 },
+  { id: 'room12', title: '고객 L님 인원 변경', lastMessage: '인원을 추가하고 싶습니다.', updatedAt: '2024-05-30', notReadMessageCount: 0 },
+  { id: 'room13', title: '고객 M님 할인 문의', lastMessage: '단체 할인이 있나요?', updatedAt: '2024-05-29', notReadMessageCount: 4 },
+  { id: 'room14', title: '고객 N님 사진 문의', lastMessage: '사진 촬영이 가능한가요?', updatedAt: '2024-05-28', notReadMessageCount: 0 },
+  { id: 'room15', title: '고객 O님 시간 변경', lastMessage: '출발 시간을 변경하고 싶습니다.', updatedAt: '2024-05-27', notReadMessageCount: 1 },
+];
+
 const ChatPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { roomId } = useParams();
   const loginState = useSelector((state) => state.loginSlice);
   const { accessToken, role } = loginState;
+  const currentUserEmail = loginState?.email || getCookie('member')?.email || '';
+  const normalizeEmail = (v) => String(v || '').trim().toLowerCase();
+  const emailsEqual = (a, b) => normalizeEmail(a) === normalizeEmail(b);
   const isLogin = !!accessToken; // accessToken이 있으면 로그인된 것으로 간주
   const isAdminRole = role === 'A' || role === 'A' || role === 'ADMIN' || role === 'admin' || role === 1;
   const isAdminUser = isLogin && isAdminRole;
@@ -97,29 +119,24 @@ const ChatPage = () => {
     
     const initWebSocket = async () => {
       try {
-        console.log('🔄 SockJS 라이브러리 로딩...');
-        const SockJS = (await import('sockjs-client')).default;
-        console.log('✅ SockJS 라이브러리 로딩 완료');
-        
-        const wsUrl = `${API_SERVER_HOST.replace(/\/$/, '')}/ws`;
-        console.log('🔄 SockJS 소켓 생성 중... URL:', wsUrl);
+        // 네이티브 WebSocket을 사용해 SockJS info(401) 없이 바로 연결
+        const wsBase = API_SERVER_HOST.replace(/\/$/, '').replace(/^http/, 'ws');
+        const brokerWsUrl = `${wsBase}/ws/websocket`;
+        console.log('🔄 WebSocket 생성 중... URL:', brokerWsUrl);
         const socketFactory = () => {
-          const socket = new SockJS(wsUrl, null, {
-            transports: ['websocket', 'xhr-streaming', 'xhr-polling']
-          });
-          // SockJS 소켓 이벤트 리스너 추가
+          const socket = new WebSocket(brokerWsUrl);
           socket.onopen = () => {
-            console.log('✅ SockJS 소켓 연결 성공');
+            console.log('✅ WebSocket 연결 성공');
           };
           socket.onclose = (event) => {
-            console.log('❌ SockJS 소켓 연결 닫힘:', event.code, event.reason);
+            console.log('❌ WebSocket 연결 닫힘:', event.code, event.reason);
           };
           socket.onerror = (error) => {
-            console.error('❌ SockJS 소켓 에러:', error);
+            console.error('❌ WebSocket 에러:', error);
           };
           return socket;
         };
-        console.log('✅ SockJS 소켓 팩토리 준비 완료');
+        console.log('✅ WebSocket 팩토리 준비 완료');
         
         console.log('🔄 STOMP 클라이언트 생성 중...');
         const getAccessToken = () => {
@@ -140,6 +157,7 @@ const ChatPage = () => {
 
         const client = new Client({
           webSocketFactory: socketFactory,
+          // brokerURL를 사용하지 않고 webSocketFactory로 직접 WebSocket 사용
           reconnectDelay: 5000,
           heartbeatIncoming: 4000,
           heartbeatOutgoing: 4000,
@@ -344,125 +362,78 @@ const ChatPage = () => {
         try {
           // 여러 형태의 토픽을 구독하여 메시지 수신 확률 높이기
           const messageSubscription = stompClientRef.current.subscribe(`/topic/chat/room/${room.id}`, (message) => {
-          console.log(`=== 📨 ChatPage WebSocket 메시지 수신 시작 (/topic/chat/room/${room.id}) ===`);
-          console.log(`📨 원본 메시지 객체:`, message);
-          console.log(`📨 메시지 바디 (raw):`, message.body);
-          console.log(`📨 메시지 헤더:`, message.headers);
-          console.log(`📨 메시지 명령:`, message.command);
-          console.log(`📨 메시지 바디 타입:`, typeof message.body);
-          console.log(`📨 메시지 바디 길이:`, message.body?.length);
-          
-          try {
-            const chatMessage = JSON.parse(message.body);
-            console.log(`📨 파싱된 메시지1 (ChatPage):`, chatMessage);
-            console.log(`📨 파싱된 메시지1 JSON:`, JSON.stringify(chatMessage, null, 2));
-            console.log(`📨 파싱된 메시지1 타입:`, typeof chatMessage);
-            console.log(`📨 파싱된 메시지1 키들:`, Object.keys(chatMessage));
-            console.log(`📨 메시지 키 개수:`, Object.keys(chatMessage).length);
-            console.log(`📨 메시지 내용:`, chatMessage.message);
-            console.log(`📨 메시지 roomId:`, chatMessage.roomId);
-            console.log(`📨 메시지 memberId:`, chatMessage.memberId);
-            console.log(`📨 메시지 receiverId:`, chatMessage.receiverId);
-            console.log(`📨 메시지 createdAt:`, chatMessage.createdAt);
-            console.log(`📨 메시지 messageId:`, chatMessage.messageId);
-            console.log(`📨 메시지 unreadCount:`, chatMessage.unreadCount);
-            console.log(`📨 메시지 updatedAt:`, chatMessage.updatedAt);
-            console.log(`=== 백엔드에서 보낸 모든 필드 확인 ===`);
-            for (const [key, value] of Object.entries(chatMessage)) {
-              console.log(`📨 필드 ${key}:`, value, `(타입: ${typeof value})`);
-            }
-            
-            // 메시지가 있으면 lastMessage 업데이트 및 ChatRoom 컴포넌트에도 전달
-            if (chatMessage.message) {
-              console.log(`🔄 lastMessage 업데이트 시도:`, chatMessage.message);
-              
-              // ChatRoom 컴포넌트에 메시지 전달 (현재 보고 있는 채팅방인 경우)
-              if (chatRoomUpdateCallbackRef.current && (chatMessage.roomId === roomId || room.id === roomId)) {
-                console.log(`📨 ChatRoom 컴포넌트에 메시지 전달:`, chatMessage);
-                chatRoomUpdateCallbackRef.current(chatMessage);
-              }
-              
-              // 무한 루프 방지를 위해 setTimeout으로 비동기 처리
-              setTimeout(() => {
-                setRooms(prev => {
-                  console.log(`🔍 현재 rooms 상태:`, prev.map(r => ({ id: r.id, roomId: r.roomId, title: r.title, lastMessage: r.lastMessage })));
-                  
-                  // roomId 매칭을 위한 조건 확인 (여러 형태의 roomId 지원)
-                  let targetRoom = null;
-                  
-                  // 1. 현재 room.id로 찾기
-                  targetRoom = prev.find(r => r.id === room.id);
-                  
-                  // 2. chatMessage.roomId로 찾기
-                  if (!targetRoom) {
-                    targetRoom = prev.find(r => r.id === chatMessage.roomId);
-                  }
-                  
-                  // 3. roomId 필드로 찾기
-                  if (!targetRoom) {
-                    targetRoom = prev.find(r => r.roomId === chatMessage.roomId);
-                  }
-                  
-                  // 4. ROOM_ 접두사 제거 후 찾기
-                  if (!targetRoom && chatMessage.roomId && chatMessage.roomId.startsWith('ROOM_')) {
-                    const roomIdWithoutPrefix = chatMessage.roomId.replace('ROOM_', '');
-                    targetRoom = prev.find(r => r.id === roomIdWithoutPrefix || r.roomId === roomIdWithoutPrefix);
-                  }
-                  
-                  if (!targetRoom) {
-                    console.log(`⚠️ 채팅방을 찾을 수 없음:`, {
-                      searchRoomId: room.id,
-                      searchMessageRoomId: chatMessage.roomId,
-                      availableRooms: prev.map(r => ({ id: r.id, roomId: r.roomId }))
-                    });
-                    return prev;
-                  }
-                  
-                  console.log(`✅ 찾은 채팅방:`, targetRoom);
-                  console.log(`✅ 현재 lastMessage:`, targetRoom.lastMessage);
-                  console.log(`✅ 새로운 lastMessage:`, chatMessage.message);
-                  
-                  // 중복 체크 (같은 메시지가 이미 lastMessage인지 확인)
-                  if (targetRoom.lastMessage === chatMessage.message) {
-                    console.log(`⚠️ 중복 메시지 감지, lastMessage 업데이트 건너뜀:`, chatMessage.message);
-                    return prev;
-                  }
-                  
-                  // lastMessage 업데이트
-                  const updatedRooms = prev.map(r => {
-                    if (r.id === targetRoom.id) {
-                      console.log(`✅ 채팅방 ${r.id} lastMessage 업데이트: ${r.lastMessage} → ${chatMessage.message}`);
-                      return {
-                        ...r,
-                        lastMessage: chatMessage.message,
-                        updatedAt: formatDate(chatMessage.createdAt || new Date()),
-                        notReadMessageCount: chatMessage.notReadMessageCount || chatMessage.unreadCount || r.notReadMessageCount || 0
-                      };
-                    }
-                    return r;
-                  });
-                  
-                  // updatedAt 내림차순으로 정렬 (최신 메시지가 있는 채팅방이 위로)
-                  const sortedRooms = updatedRooms.sort((a, b) => {
-                    const dateA = new Date(a.updatedAt);
-                    const dateB = new Date(b.updatedAt);
-                    return dateB - dateA; // 내림차순 (최신순)
-                  });
-                  
-                  console.log(`✅ 업데이트된 rooms:`, sortedRooms.map(r => ({ id: r.id, lastMessage: r.lastMessage, updatedAt: r.updatedAt })));
-                  return sortedRooms;
+            try {
+              const payload = JSON.parse(message.body || '{}');
+              const text = payload.message ?? payload.content ?? payload.lastMessage ?? payload.msg ?? payload.text ?? '';
+              const senderEmail = payload.accountEmail || payload.memberId || payload.senderAccountEmail || payload.sender || payload.email || payload.emailAccount || '';
+              const receiverEmail = payload.receiverAccountEmail || payload.receiver || '';
+              const msgRoomId = payload.roomId || room.id;
+              const createdAt = payload.createdAt || payload.updatedAt || Date.now();
+
+              // 현재 사용자 기준 unread 선택
+              const unreadForSender = payload.unreadCountForSender;
+              const unreadForReceiver = payload.unreadCountForReceiver;
+              console.log('🔢 unread values:', { unreadForSender, unreadForReceiver, roomId: msgRoomId });
+              const useSenderUnread = emailsEqual(currentUserEmail, senderEmail);
+              if (useSenderUnread) {
+                console.log('🧮 unreadForSender 사용:', unreadForSender, {
+                  roomId: msgRoomId,
+                  sender: senderEmail,
                 });
-              }, 0);
-            } else {
-              console.log(`⚠️ 메시지가 없음:`, chatMessage);
+              }
+              const effectiveUnread = useSenderUnread
+                ? (unreadForSender ?? 0)
+                : (unreadForReceiver ?? 0);
+
+              const unified = {
+                roomId: msgRoomId,
+                accountEmail: senderEmail,
+                receiverAccountEmail: receiverEmail,
+                message: String(text),
+                createdAt,
+                messageId: payload.messageId,
+                notReadMessageCount: effectiveUnread,
+              };
+
+              // 현재 보고 있는 채팅방이면 ChatRoom으로 전달하여 append
+              if (chatRoomUpdateCallbackRef.current && (String(unified.roomId) === String(roomId) || String(room.id) === String(roomId))) {
+                chatRoomUpdateCallbackRef.current(unified);
+              }
+
+              // 사이드바 lastMessage/읽지않음 갱신
+              setRooms(prev => {
+                // 대상 방 찾기 (id/roomId/ROOM_ 접두사 대응)
+                const findTarget = () => {
+                  let target = prev.find(r => String(r.id) === String(room.id));
+                  if (!target) target = prev.find(r => String(r.id) === String(unified.roomId));
+                  if (!target) target = prev.find(r => String(r.roomId) === String(unified.roomId));
+                  if (!target && String(unified.roomId || '').startsWith('ROOM_')) {
+                    const rid = String(unified.roomId).replace('ROOM_', '');
+                    target = prev.find(r => String(r.id) === rid || String(r.roomId) === rid);
+                  }
+                  return target;
+                };
+
+                const targetRoom = findTarget();
+                if (!targetRoom) return prev;
+
+                const updated = prev.map(r => (
+                  r.id === targetRoom.id
+                    ? {
+                        ...r,
+                        lastMessage: unified.message,
+                        updatedAt: formatDate(createdAt),
+                        notReadMessageCount: effectiveUnread,
+                      }
+                    : r
+                ));
+
+                return updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+              });
+            } catch (e) {
+              console.error('❌ 메시지 구독 파싱 실패:', e, message?.body);
             }
-          } catch (error) {
-            console.error(`❌ ChatPage 메시지 파싱 실패:`, error);
-            console.error(`❌ 파싱 실패한 원본 데이터:`, message.body);
-          }
-          
-          console.log(`=== 📨 ChatPage WebSocket 메시지 수신 완료 (/topic/chat/room/${room.id}) ===`);
-        });
+          });
         
         console.log(`✅ 메시지 구독 성공: /topic/chat/room/${room.id}`);
         console.log(`📡 구독 객체:`, messageSubscription);
@@ -516,6 +487,58 @@ const ChatPage = () => {
         }
         
         console.log(`📡 채팅방 ${room.id} 메시지 구독 완료`);
+      });
+
+      // 각 방의 업데이트 토픽(/update)도 구독하여 채팅방 화면으로 전달
+      rooms.forEach(room => {
+        try {
+          const dest = `/topic/chat/room/${room.id}/update`;
+          const updateSub = stompClientRef.current.subscribe(dest, (message) => {
+            try {
+              const payload = JSON.parse(message.body || '{}');
+              const text = payload.message ?? payload.content ?? payload.lastMessage ?? payload.msg ?? payload.text ?? '';
+              const chatMessage = {
+                roomId: payload.roomId || room.id,
+                accountEmail: payload.accountEmail || payload.memberId || payload.senderAccountEmail || payload.sender || payload.email || payload.emailAccount || '',
+                message: String(text),
+                createdAt: payload.createdAt || payload.updatedAt || Date.now(),
+                messageId: payload.messageId,
+              };
+
+              // 현재 보고 있는 방이면 ChatRoom으로 전달
+              if (chatRoomUpdateCallbackRef.current && (String(chatMessage.roomId) === String(roomId) || String(room.id) === String(roomId))) {
+                chatRoomUpdateCallbackRef.current(chatMessage);
+              }
+
+              // 사이드바 목록도 최신화
+              if (chatMessage.message) {
+                // unread는 현재 사용자 기준으로만 계산(unreadCountForSender/Receiver 사용, fallback 제거)
+                const unreadForSender = payload.unreadCountForSender;
+                const unreadForReceiver = payload.unreadCountForReceiver;
+                const senderEmail = chatMessage.accountEmail;
+                const useSenderUnread = emailsEqual(currentUserEmail, senderEmail);
+                const effectiveUnread = useSenderUnread ? (unreadForSender ?? 0) : (unreadForReceiver ?? 0);
+
+                setRooms(prev => prev.map(r => (
+                  (String(r.id) === String(chatMessage.roomId) || String(r.roomId) === String(chatMessage.roomId))
+                    ? {
+                        ...r,
+                        lastMessage: chatMessage.message,
+                        updatedAt: formatDate(chatMessage.createdAt),
+                        notReadMessageCount: effectiveUnread,
+                      }
+                    : r
+                )).sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+              }
+            } catch (e) {
+              console.error('❌ /update 구독 파싱 실패:', e, message?.body);
+            }
+          });
+          subscriptionsRef.current.add(updateSub);
+          console.log(`✅ 업데이트 구독 성공: ${dest}`);
+        } catch (e) {
+          console.error('❌ 업데이트 구독 실패:', room?.id, e);
+        }
       });
       
       // 구독 설정 완료 플래그 설정
@@ -706,8 +729,23 @@ const ChatPage = () => {
           });
           setRooms(sortedData);
         } else {
-          console.log('API 응답이 배열이 아니거나 비어있습니다. 빈 목록을 사용합니다.');
-          setRooms([]);
+          console.log('API 응답이 배열이 아니거나 비어있어서 더미 데이터를 사용합니다.');
+          console.log('API 응답 상태:', {
+            hasData: !!response.data,
+            isArray: Array.isArray(response.data),
+            length: response.data?.length,
+            data: response.data
+          });
+          
+          // 더미 데이터 사용 (API 데이터가 없을 때)
+          console.log('더미 데이터 사용 중');
+          const testDummyData = dummyRooms.map((room, index) => ({
+            ...room,
+            lastMessage: room.lastMessage || '메시지가 없습니다',
+            notReadMessageCount: room.notReadMessageCount || 0
+          }));
+          console.log('더미 데이터:', testDummyData);
+          setRooms(testDummyData);
         }
       } catch (error) {
         console.error('채팅방 목록 가져오기 실패:', error);
@@ -779,8 +817,7 @@ const ChatPage = () => {
 
   const isAdminChat = location.pathname.startsWith('/admin/chat');
   return (
-    <div className={isAdminChat ? 'min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50' : ''}>
-      <div className="flex h-screen">
+    <div className={`flex h-screen ${isAdminChat ? 'theme-purple' : 'theme-blue'}`}>
       {/* 사이드바 - 스크롤 가능하도록 수정 */}
       <aside className="w-64 border-r bg-white flex flex-col">
         <div className="px-4 py-1 font-bold border-t border-b bg-gray-50 text-gray-900">
@@ -851,7 +888,7 @@ const ChatPage = () => {
       </aside>
 
       {/* 채팅방 선택 전 / 후 Outlet */}
-      <main className={`flex-1 p-4 ${isAdminChat ? '' : 'bg-gray-50'}`}>
+      <main className="flex-1 p-4 bg-gray-50">
         <Routes>
           {/* 아무 방도 선택 안됐을 때 */}
           <Route
@@ -881,7 +918,6 @@ const ChatPage = () => {
           />
         </Routes>
       </main>
-      </div>
     </div>
   );
 };
