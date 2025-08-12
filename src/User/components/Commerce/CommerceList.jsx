@@ -608,7 +608,7 @@ const CommerceList = () => {
                     loadProducts(0, search, sort, sortOrder, country.name);
                   }
                 }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg ${country.color} text-white ${selectedCountry === country.name ? 'ring-2 ring-white ring-opacity-50' : ''}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg ${country.color} text-white ${selectedCountry === country.name ? 'ring-2 ring-black ring-opacity-80 shadow-lg' : ''}`}
               >
                 <span className="text-lg">{country.flag}</span>
                 <span>{country.name}</span>
@@ -631,7 +631,7 @@ const CommerceList = () => {
                     loadProducts(0, search, sort, sortOrder, country.name);
                   }
                 }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg ${country.color} text-white ${selectedCountry === country.name ? 'ring-2 ring-white ring-opacity-50' : ''}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg ${country.color} text-white ${selectedCountry === country.name ? 'ring-2 ring-black ring-opacity-80 shadow-lg' : ''}`}
               >
                 <span className="text-lg">{country.flag}</span>
                 <span>{country.name}</span>
