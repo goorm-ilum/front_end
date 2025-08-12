@@ -7,7 +7,7 @@ import { getProductList, aiSearchProducts, toggleLike } from '../../../common/ap
 const CommerceList = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showOnlyLiked, setShowOnlyLiked] = useState(false);
+
   
   // 검색어 상태 추가
   const [inputValue, setInputValue] = useState("");    // input 에 타이핑할 값
@@ -57,7 +57,7 @@ const CommerceList = () => {
     };
   }, []);
 
-  // 초기 로드
+  // 초기 로드 - 컴포넌트 마운트 시에만 실행
   useEffect(() => {
     const aiSearchQuery = location.state?.aiSearchQuery;
     const immediateAISearch = location.state?.immediateAISearch;
@@ -72,16 +72,10 @@ const CommerceList = () => {
     if (!isAISearch && !aiSearchQuery) {
       loadProducts(0, '', sort, sortOrder, selectedCountry);
     }
-  }, [isAISearch, location.state, sort, sortOrder, selectedCountry]); // 의존성 배열에 필요한 상태들 추가
+  }, []); // 빈 의존성 배열로 컴포넌트 마운트 시에만 실행
 
   // 초기 상품 목록 로드
   const loadProducts = async (pageNum = 0, keyword = '', sort = 'updatedAt', sortOrder = 'desc', country = '전체') => {
-    // AI 검색 모드일 때는 일반 상품 로드 차단
-    if (isAISearch) {
-      console.log('AI 검색 모드 중이므로 일반 상품 로드 건너뜀');
-      return;
-    }
-    
     setLoading(true);
     setError('');
     setIsAISearch(false); // 일반 검색으로 플래그 해제
@@ -99,41 +93,51 @@ const CommerceList = () => {
       
       console.log('상품 목록 응답:', response);
       
-      // 백엔드 응답 구조에 맞게 데이터 변환
-      if (Array.isArray(response)) {
-        // 배열 형태로 직접 받은 경우
-        const transformedProducts = response.map(product => ({
-          id: product.productId,
-          title: product.productName,
-          description: product.productDescription,
-          thumbnail: product.thumbnailImageUrl,
-          price: product.price,
-          discountPrice: product.discountPrice,
-          rating: product.averageReviewStar,
-          like: product.isLiked,
-          reviews: [] // 리뷰 배열은 별도로 받아야 할 수 있음
-        }));
-        setProducts(transformedProducts);
-        setTotalItems(transformedProducts.length);
-      } else if (response.content) {
-        // 페이지네이션 응답 구조인 경우
-        const transformedProducts = response.content.map(product => ({
-          id: product.productId,
-          title: product.productName,
-          description: product.productDescription,
-          thumbnail: product.thumbnailImageUrl,
-          price: product.price,
-          discountPrice: product.discountPrice,
-          rating: product.averageReviewStar,
-          like: product.isLiked,
-          reviews: []
-        }));
-        setProducts(transformedProducts);
-        setTotalItems(response.totalElements || transformedProducts.length);
-      } else {
-        setProducts([]);
-        setTotalItems(0);
-      }
+             // 백엔드 응답 구조에 맞게 데이터 변환
+       console.log('응답 데이터 구조 확인:', response);
+       
+       let transformedProducts = [];
+       let totalCount = 0;
+       
+       if (Array.isArray(response)) {
+         // 배열 형태로 직접 받은 경우
+         transformedProducts = response.map(product => ({
+           id: product.productId || product.id,
+           title: product.productName || product.title || '제목 없음',
+           description: product.productDescription || product.description || '설명 없음',
+           thumbnail: product.thumbnailImageUrl || product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png',
+           price: product.price || 0,
+           discountPrice: product.discountPrice || null,
+           rating: product.averageReviewStar || product.rating || 0,
+           like: product.isLiked || product.like || false,
+           reviews: [] // 리뷰 배열은 별도로 받아야 할 수 있음
+         }));
+         totalCount = transformedProducts.length;
+       } else if (response.content && Array.isArray(response.content)) {
+         // 페이지네이션 응답 구조인 경우
+         transformedProducts = response.content.map(product => ({
+           id: product.productId || product.id,
+           title: product.productName || product.title || '제목 없음',
+           description: product.productDescription || product.description || '설명 없음',
+           thumbnail: product.thumbnailImageUrl || product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png',
+           price: product.price || 0,
+           discountPrice: product.discountPrice || null,
+           rating: product.averageReviewStar || product.rating || 0,
+           like: product.isLiked || product.like || false,
+           reviews: []
+         }));
+         totalCount = response.totalElements || transformedProducts.length;
+       } else {
+         console.warn('예상하지 못한 응답 구조:', response);
+         transformedProducts = [];
+         totalCount = 0;
+       }
+       
+       console.log('변환된 상품 데이터:', transformedProducts);
+       console.log('총 상품 수:', totalCount);
+       
+       setProducts(transformedProducts);
+       setTotalItems(totalCount);
       
     } catch (error) {
       console.error('상품 목록 조회 실패:', error);
@@ -202,38 +206,48 @@ const CommerceList = () => {
       console.log('AI 검색 결과:', response);
 
       // 백엔드 응답 구조에 맞게 데이터 변환
+      console.log('AI 검색 응답 데이터 구조 확인:', response);
+      
+      let transformedProducts = [];
+      let totalCount = 0;
+      
       if (Array.isArray(response)) {
-        const transformedProducts = response.map(product => ({
-          id: product.productId,
-          title: product.productName,
-          description: product.productDescription,
-          thumbnail: product.thumbnailImageUrl,
-          price: product.price,
-          discountPrice: product.discountPrice,
-          rating: product.averageReviewStar,
-          like: product.isLiked,
+        transformedProducts = response.map(product => ({
+          id: product.productId || product.id,
+          title: product.productName || product.title || '제목 없음',
+          description: product.productDescription || product.description || '설명 없음',
+          thumbnail: product.thumbnailImageUrl || product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png',
+          price: product.price || 0,
+          discountPrice: product.discountPrice || null,
+          rating: product.averageReviewStar || product.rating || 0,
+          like: product.isLiked || product.like || false,
           reviews: []
         }));
-        setProducts(transformedProducts);
-        setTotalItems(transformedProducts.length);
-      } else if (response.content) {
-        const transformedProducts = response.content.map(product => ({
-          id: product.productId,
-          title: product.productName,
-          description: product.productDescription,
-          thumbnail: product.thumbnailImageUrl,
-          price: product.price,
-          discountPrice: product.discountPrice,
-          rating: product.averageReviewStar,
-          like: product.isLiked,
+        totalCount = transformedProducts.length;
+      } else if (response.content && Array.isArray(response.content)) {
+        transformedProducts = response.content.map(product => ({
+          id: product.productId || product.id,
+          title: product.productName || product.title || '제목 없음',
+          description: product.productDescription || product.description || '설명 없음',
+          thumbnail: product.thumbnailImageUrl || product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png',
+          price: product.price || 0,
+          discountPrice: product.discountPrice || null,
+          rating: product.averageReviewStar || product.rating || 0,
+          like: product.isLiked || product.like || false,
           reviews: []
         }));
-        setProducts(transformedProducts);
-        setTotalItems(response.totalElements || transformedProducts.length);
+        totalCount = response.totalElements || transformedProducts.length;
       } else {
-        setProducts([]);
-        setTotalItems(0);
+        console.warn('AI 검색: 예상하지 못한 응답 구조:', response);
+        transformedProducts = [];
+        totalCount = 0;
       }
+      
+      console.log('AI 검색 변환된 상품 데이터:', transformedProducts);
+      console.log('AI 검색 총 상품 수:', totalCount);
+      
+      setProducts(transformedProducts);
+      setTotalItems(totalCount);
       
       setPage(1); // 검색 결과 나오면 페이지 1로 초기화
 
@@ -271,38 +285,48 @@ const CommerceList = () => {
           console.log('AI 검색 결과:', response);
 
           // 백엔드 응답 구조에 맞게 데이터 변환
+          console.log('useEffect AI 검색 응답 데이터 구조 확인:', response);
+          
+          let transformedProducts = [];
+          let totalCount = 0;
+          
           if (Array.isArray(response)) {
-            const transformedProducts = response.map(product => ({
-              id: product.productId,
-              title: product.productName,
-              description: product.productDescription,
-              thumbnail: product.thumbnailImageUrl,
-              price: product.price,
-              discountPrice: product.discountPrice,
-              rating: product.averageReviewStar,
-              like: product.isLiked,
+            transformedProducts = response.map(product => ({
+              id: product.productId || product.id,
+              title: product.productName || product.title || '제목 없음',
+              description: product.productDescription || product.description || '설명 없음',
+              thumbnail: product.thumbnailImageUrl || product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png',
+              price: product.price || 0,
+              discountPrice: product.discountPrice || null,
+              rating: product.averageReviewStar || product.rating || 0,
+              like: product.isLiked || product.like || false,
               reviews: []
             }));
-            setProducts(transformedProducts);
-            setTotalItems(transformedProducts.length);
-          } else if (response.content) {
-            const transformedProducts = response.content.map(product => ({
-              id: product.productId,
-              title: product.productName,
-              description: product.productDescription,
-              thumbnail: product.thumbnailImageUrl,
-              price: product.price,
-              discountPrice: product.discountPrice,
-              rating: product.averageReviewStar,
-              like: product.isLiked,
+            totalCount = transformedProducts.length;
+          } else if (response.content && Array.isArray(response.content)) {
+            transformedProducts = response.content.map(product => ({
+              id: product.productId || product.id,
+              title: product.productName || product.title || '제목 없음',
+              description: product.productDescription || product.description || '설명 없음',
+              thumbnail: product.thumbnailImageUrl || product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png',
+              price: product.price || 0,
+              discountPrice: product.discountPrice || null,
+              rating: product.averageReviewStar || product.rating || 0,
+              like: product.isLiked || product.like || false,
               reviews: []
             }));
-            setProducts(transformedProducts);
-            setTotalItems(response.totalElements || transformedProducts.length);
+            totalCount = response.totalElements || transformedProducts.length;
           } else {
-            setProducts([]);
-            setTotalItems(0);
+            console.warn('useEffect AI 검색: 예상하지 못한 응답 구조:', response);
+            transformedProducts = [];
+            totalCount = 0;
           }
+          
+          console.log('useEffect AI 검색 변환된 상품 데이터:', transformedProducts);
+          console.log('useEffect AI 검색 총 상품 수:', totalCount);
+          
+          setProducts(transformedProducts);
+          setTotalItems(totalCount);
           
           setPage(1);
         } catch (error) {
@@ -321,16 +345,9 @@ const CommerceList = () => {
     // 강제 새로고침인 경우
     else if (forceRefresh) {
       resetToInitialState();
-      loadProducts(0, '', sort, sortOrder);
+      loadProducts(0, '', sort, sortOrder, selectedCountry);
     }
-    // 일반 진입인 경우 (AI 검색이 아닐 때만 전체 상품 로드)
-    else {
-      resetToInitialState();
-      // 초기 로드 시에는 전체 상품을 보여주지 않음
-      setProducts([]);
-      setTotalItems(0);
-      setLoading(false);
-    }
+    // 일반 진입인 경우 - 초기 로드 useEffect에서 처리하므로 여기서는 아무것도 하지 않음
   }, []);
 
   // location.state 변경 감지 (페이지 이동 시 AI 검색 처리)
@@ -338,7 +355,8 @@ const CommerceList = () => {
     const aiSearchQuery = location.state?.aiSearchQuery;
     const immediateAISearch = location.state?.immediateAISearch;
     
-    if (aiSearchQuery && immediateAISearch) {
+    // 컴포넌트 마운트 시가 아닌 location.state 변경 시에만 실행
+    if (aiSearchQuery && immediateAISearch && location.state) {
       console.log('페이지 이동으로 인한 즉시 AI 검색:', aiSearchQuery);
       
       // 즉시 상태 초기화 및 AI 검색 모드 전환
@@ -356,33 +374,34 @@ const CommerceList = () => {
 
           if (Array.isArray(response)) {
             const transformedProducts = response.map(product => ({
-              id: product.productId,
-              title: product.productName,
-              description: product.productDescription,
-              thumbnail: product.thumbnailImageUrl,
-              price: product.price,
-              discountPrice: product.discountPrice,
-              rating: product.averageReviewStar,
-              like: product.isLiked,
+              id: product.productId || product.id,
+              title: product.productName || product.title || '제목 없음',
+              description: product.productDescription || product.description || '설명 없음',
+              thumbnail: product.thumbnailImageUrl || product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png',
+              price: product.price || 0,
+              discountPrice: product.discountPrice || null,
+              rating: product.averageReviewStar || product.rating || 0,
+              like: product.isLiked || product.like || false,
               reviews: []
             }));
             setProducts(transformedProducts);
             setTotalItems(transformedProducts.length);
-          } else if (response.content) {
+          } else if (response.content && Array.isArray(response.content)) {
             const transformedProducts = response.content.map(product => ({
-              id: product.productId,
-              title: product.productName,
-              description: product.productDescription,
-              thumbnail: product.thumbnailImageUrl,
-              price: product.price,
-              discountPrice: product.discountPrice,
-              rating: product.averageReviewStar,
-              like: product.isLiked,
+              id: product.productId || product.id,
+              title: product.productName || product.title || '제목 없음',
+              description: product.productDescription || product.description || '설명 없음',
+              thumbnail: product.thumbnailImageUrl || product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png',
+              price: product.price || 0,
+              discountPrice: product.discountPrice || null,
+              rating: product.averageReviewStar || product.rating || 0,
+              like: product.isLiked || product.like || false,
               reviews: []
             }));
             setProducts(transformedProducts);
             setTotalItems(response.totalElements || transformedProducts.length);
           } else {
+            console.warn('location.state AI 검색: 예상하지 못한 응답 구조:', response);
             setProducts([]);
             setTotalItems(0);
           }
@@ -403,56 +422,15 @@ const CommerceList = () => {
     }
   }, [location.state]);
 
-  // 검색 필터링 및 정렬 (간단히 제목/설명에 검색어 포함 여부)
+  // 응답 데이터를 그대로 표시 (필터링 없음)
   const filteredProducts = useMemo(() => {
-    let filtered = products;
+    console.log('=== 응답 데이터 그대로 표시 ===');
+    console.log('원본 products:', products);
+    console.log('개수:', products.length);
     
-    // AI 검색 결과인 경우 필터링 건너뛰기
-    if (isAISearch) {
-      filtered = products.filter(product =>
-        (!date || product.dates?.includes(date)) &&
-        (!showOnlyLiked || product.like)
-      );
-    } else {
-      filtered = products.filter(product =>
-        (!search || product.title?.includes(search) || product.description?.includes(search)) &&
-        (!date || product.dates?.includes(date)) &&
-        (!showOnlyLiked || product.like)
-      );
-    }
-
-    // 클라이언트 사이드 정렬 (백엔드 정렬이 지원되지 않는 경우를 위한 fallback)
-    if (filtered.length > 0) {
-      filtered = [...filtered].sort((a, b) => {
-        let aValue, bValue;
-        
-        switch (sort) {
-          case 'updatedAt':
-            aValue = new Date(a.updatedAt || a.createdAt || 0);
-            bValue = new Date(b.updatedAt || b.createdAt || 0);
-            break;
-          case 'discountPrice':
-            aValue = a.discountPrice || a.price || 0;
-            bValue = b.discountPrice || b.price || 0;
-            break;
-          case 'averageStar':
-            aValue = a.rating || 0;
-            bValue = b.rating || 0;
-            break;
-          default:
-            return 0;
-        }
-        
-        if (sortOrder === 'asc') {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
-    }
-    
-    return filtered;
-  }, [products, search, date, showOnlyLiked, isAISearch, sort, sortOrder]);
+    // 응답 데이터를 그대로 반환 (필터링 없음)
+    return products;
+  }, [products]);
 
   // 좋아요 토글 함수
   const handleToggleLike = async (productId) => {
@@ -580,26 +558,28 @@ const CommerceList = () => {
           </h3>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* 검색 입력 필드 */}
-          <div className="lg:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">상품명 검색</label>
-            <div className="flex">
-              <input
-                type="text"
-                placeholder="검색할 상품명을 입력하세요"
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-l-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-              />
-              <button
-                onClick={handleSearch}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-r-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold"
-              >
-                검색
-              </button>
-            </div>
-          </div>
+                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+           {/* 검색 입력 필드 */}
+           <div className="lg:col-span-2">
+             <label className="block text-sm font-medium text-gray-700 mb-2">상품명 검색</label>
+             <div className="flex">
+               <input
+                 type="text"
+                 placeholder="검색할 상품명을 입력하세요"
+                 value={inputValue}
+                 onChange={e => setInputValue(e.target.value)}
+                 className="flex-1 border border-gray-300 rounded-l-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+               />
+               <button
+                 onClick={handleSearch}
+                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-r-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold"
+               >
+                 검색
+               </button>
+             </div>
+           </div>
+
+           
 
           {/* 정렬 및 필터 드롭다운 */}
           <div>
@@ -607,9 +587,14 @@ const CommerceList = () => {
             <select
               value={sort}
               onChange={(e) => {
-                setSort(e.target.value);
+                const newSort = e.target.value;
+                // 이미 같은 정렬 옵션이 선택된 경우 중복 호출 방지
+                if (sort === newSort) {
+                  return;
+                }
+                setSort(newSort);
                 setPage(1);
-                loadProducts(0, search, e.target.value, sortOrder, selectedCountry);
+                loadProducts(0, search, newSort, sortOrder, selectedCountry);
               }}
               className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             >
@@ -624,9 +609,14 @@ const CommerceList = () => {
             <select
               value={sortOrder}
               onChange={(e) => {
-                setSortOrder(e.target.value);
+                const newSortOrder = e.target.value;
+                // 이미 같은 정렬 순서가 선택된 경우 중복 호출 방지
+                if (sortOrder === newSortOrder) {
+                  return;
+                }
+                setSortOrder(newSortOrder);
                 setPage(1);
-                loadProducts(0, search, sort, e.target.value, selectedCountry);
+                loadProducts(0, search, sort, newSortOrder, selectedCountry);
               }}
               className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             >
@@ -659,6 +649,11 @@ const CommerceList = () => {
               <button
                 key={index}
                 onClick={() => {
+                  // 이미 선택된 나라를 클릭한 경우 중복 호출 방지
+                  if (selectedCountry === country.name) {
+                    return;
+                  }
+                  
                   setSelectedCountry(country.name);
                   setPage(1);
                   if (country.name === '전체') {
@@ -682,6 +677,11 @@ const CommerceList = () => {
               <button
                 key={index + 6}
                 onClick={() => {
+                  // 이미 선택된 나라를 클릭한 경우 중복 호출 방지
+                  if (selectedCountry === country.name) {
+                    return;
+                  }
+                  
                   setSelectedCountry(country.name);
                   setPage(1);
                   if (country.name === '전체') {
@@ -741,7 +741,7 @@ const CommerceList = () => {
       )}
 
       {/* 검색 결과 없음 상태 */}
-      {!loading && !error && filteredProducts.length === 0 && (
+      {!loading && !error && products.length === 0 && (
         <div className="text-center py-12">
           {isAISearch ? (
             // AI 검색 결과 없음
@@ -812,74 +812,98 @@ const CommerceList = () => {
       )}
 
       {/* 카드 리스트 */}
-      {!loading && !error && filteredProducts.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {filteredProducts.map(product => (
-            <div
-              key={product.id}
-              className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col relative border border-white/20 hover:scale-105 group"
-            >
-              <img 
-                src={product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png'} 
-                alt="썸네일" 
-                className="w-full aspect-square object-cover rounded-t-2xl bg-gray-100 cursor-pointer" 
-                onClick={() => navigate(`${product.id}`)}
-                onError={(e) => {
-                  e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
-                }}
-              />
-              
-              {/* 좋아요 버튼 */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggleLike(product.id);
-                }}
-                className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-300 hover:scale-110 ${
-                  product.like 
-                    ? 'bg-red-500 text-white shadow-lg' 
-                    : 'bg-white/90 text-gray-600 hover:bg-red-50 shadow-md'
-                }`}
-              >
-                {product.like ? (
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                )}
-              </button>
-              
-              <div className="p-6 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="text-lg font-bold mb-2 cursor-pointer text-gray-900 hover:text-blue-600 transition-all duration-300" onClick={() => navigate(`${product.id}`)}>
-                    {product.title.length > 20 ? `${product.title.substring(0, 20)}...` : product.title}
-                  </div>
-                  <div className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</div>
-                </div>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-yellow-500 font-bold flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    {product.rating > 0 ? product.rating.toFixed(1) : '-'}
-                  </span>
-                  <div className="text-right">
-                    {product.discountPrice && product.discountPrice !== product.price ? (
+      {!loading && !error && (
+        <div>
+          {console.log('=== 카드 리스트 렌더링 조건 확인 ===')}
+                     {console.log('조건들:', { 
+             loading, 
+             error, 
+             productsLength: products.length, 
+             filteredProductsLength: filteredProducts.length,
+             isAISearch,
+             search
+           })}
+          {console.log('filteredProducts 존재 여부:', !!filteredProducts)}
+          {console.log('filteredProducts 길이:', filteredProducts?.length)}
+          {console.log('조건 평가:', !loading && !error && filteredProducts && filteredProducts.length > 0)}
+          {filteredProducts && filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {console.log('=== 카드 맵핑 시작 ===')}
+              {console.log('맵핑할 상품들:', filteredProducts)}
+                            {filteredProducts.map((product, index) => {
+                console.log(`상품 ${index}:`, product);
+                return (
+                  <div
+                    key={product.id}
+                    className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col relative border border-white/20 hover:scale-105 group"
+                  >
+                    <img 
+                      src={product.thumbnail || 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png'} 
+                      alt="썸네일" 
+                      className="w-full aspect-square object-cover rounded-t-2xl bg-gray-100 cursor-pointer" 
+                      onClick={() => navigate(`${product.id}`)}
+                      onError={(e) => {
+                        e.target.src = 'https://cdn-icons-png.flaticon.com/512/11573/11573069.png';
+                      }}
+                    />
+                    
+                    {/* 좋아요 버튼 */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleLike(product.id);
+                      }}
+                      className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-300 hover:scale-110 ${
+                        product.like 
+                          ? 'bg-red-500 text-white shadow-lg' 
+                          : 'bg-white/90 text-gray-600 hover:bg-red-50 shadow-md'
+                      }`}
+                    >
+                      {product.like ? (
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                      )}
+                    </button>
+                    
+                    <div className="p-6 flex-1 flex flex-col justify-between">
                       <div>
-                        <span className="text-gray-400 line-through text-sm">{product.price?.toLocaleString()}원</span>
-                        <div className="text-red-600 font-bold text-lg">{product.discountPrice?.toLocaleString()}원</div>
+                        <div className="text-lg font-bold mb-2 cursor-pointer text-gray-900 hover:text-blue-600 transition-all duration-300" onClick={() => navigate(`${product.id}`)}>
+                          {product.title.length > 20 ? `${product.title.substring(0, 20)}...` : product.title}
+                        </div>
+                        <div className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</div>
                       </div>
-                    ) : (
-                      <span className="text-blue-700 font-bold text-lg">{product.price?.toLocaleString()}원</span>
-                    )}
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-yellow-500 font-bold flex items-center">
+                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          {product.rating > 0 ? product.rating.toFixed(1) : '-'}
+                        </span>
+                        <div className="text-right">
+                          {product.discountPrice && product.discountPrice !== product.price ? (
+                            <div>
+                              <span className="text-gray-400 line-through text-sm">{product.price?.toLocaleString()}원</span>
+                              <div className="text-red-600 font-bold text-lg">{product.discountPrice?.toLocaleString()}원</div>
+                            </div>
+                          ) : (
+                            <span className="text-blue-700 font-bold text-lg">{product.price?.toLocaleString()}원</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          ))}
+                );
+              })}
+           </div>
+         ) : (
+           <div className="text-center py-8">
+           </div>
+         )}
         </div>
       )}
 
