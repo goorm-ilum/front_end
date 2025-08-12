@@ -1,6 +1,6 @@
 // src/common/chat/ChatPage.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, useParams, useLocation, useMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axiosInstance, { API_SERVER_HOST } from '../api/mainApi';  // mainApi의 axiosInstance 사용
 import ChatRoom from './ChatRoom';
@@ -17,6 +17,10 @@ const ChatPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { roomId } = useParams();
+  const adminMatch = useMatch('/admin/chat/:roomId');
+  const userMatch = useMatch('/chat/:roomId');
+  const nestedRoomId = adminMatch?.params?.roomId || userMatch?.params?.roomId || null;
+  const effectiveRoomId = nestedRoomId || roomId || null;
   const loginState = useSelector((state) => state.loginSlice);
   const { accessToken, role } = loginState;
   const currentUserEmail = loginState?.email || getCookie('member')?.email || '';
@@ -164,11 +168,11 @@ const ChatPage = () => {
           console.log('✅ isWebSocketConnected 상태 업데이트됨: true');
           
           // 테스트용 하드코딩 구독 (현재 채팅방이 있는 경우)
-          if (roomId) {
-            console.log(`🔧 테스트용 직접 구독 시작: /topic/chat/room/${roomId}`);
+          if (effectiveRoomId) {
+            console.log(`🔧 테스트용 직접 구독 시작: /topic/chat/room/${effectiveRoomId}`);
             try {
-              const testSubscription = client.subscribe(`/topic/chat/room/${roomId}`, (message) => {
-                console.log(`🔧 테스트 구독으로 메시지 수신 (/topic/chat/room/${roomId}):`, message.body);
+              const testSubscription = client.subscribe(`/topic/chat/room/${effectiveRoomId}`, (message) => {
+                console.log(`🔧 테스트 구독으로 메시지 수신 (/topic/chat/room/${effectiveRoomId}):`, message.body);
                 try {
                   const testMessage = JSON.parse(message.body);
                   console.log(`🔧 테스트 파싱된 메시지:`, testMessage);
@@ -176,7 +180,7 @@ const ChatPage = () => {
                   console.error(`🔧 테스트 파싱 실패:`, error);
                 }
               });
-              console.log(`🔧 테스트 구독 성공: /topic/chat/room/${roomId}`);
+              console.log(`🔧 테스트 구독 성공: /topic/chat/room/${effectiveRoomId}`);
             } catch (error) {
               console.error(`🔧 테스트 구독 실패:`, error);
             }
@@ -544,8 +548,9 @@ const ChatPage = () => {
 
   // 방 제목은 렌더 시점에 rooms와 roomId로 계산
   const getSelectedRoom = useCallback(() => {
-    if (!roomId) return null;
-    const rid = String(roomId);
+    const target = effectiveRoomId;
+    if (!target) return null;
+    const rid = String(target);
     const ridNoPrefix = rid.replace(/^ROOM_/, '');
     const byExactId = rooms.find(r => String(r.id) === rid);
     if (byExactId) return byExactId;
@@ -822,16 +827,18 @@ const ChatPage = () => {
   // 현재 선택된 방과 제목 계산
   const selectedRoom = getSelectedRoom();
   const selectedRoomTitle = selectedRoom?.title || '';
-  if (selectedRoom) {
-    try {
-      console.log('🧭 선택된 방 식별:', {
-        paramRoomId: roomId,
-        foundId: selectedRoom.id,
-        foundRoomId: selectedRoom.roomId,
-        title: selectedRoom.title,
-      });
-    } catch (_) {}
-  }
+  try {
+    console.log('🧭 선택 로깅:', {
+      paramRoomId: roomId,
+      effectiveRoomId,
+      roomsCount: rooms.length,
+      roomsTitles: rooms.map(r => r.title),
+      roomsIds: rooms.map(r => ({ id: r.id, roomId: r.roomId })),
+      selectedExists: !!selectedRoom,
+      selected: selectedRoom ? { id: selectedRoom.id, roomId: selectedRoom.roomId, title: selectedRoom.title } : null,
+      selectedRoomTitle,
+    });
+  } catch (_) {}
   return (
     <div className={`flex h-screen ${isAdminChat ? 'theme-purple' : 'theme-blue'}`}>
       {/* 사이드바 - 스크롤 가능하도록 수정 */}
@@ -839,6 +846,7 @@ const ChatPage = () => {
         <div className="px-4 py-1 font-bold border-t border-b bg-gray-50 text-gray-900">
           채팅 목록 ({rooms.length})
           {console.log('🚨 현재 rooms 상태:', rooms)}
+          {console.log('🚨 현재 rooms title:', rooms.map(r => r.title))}
           {console.log('🚨 unreadCount:', unreadCount)}
           {rooms.map((r, i) => console.log(`🚨 방 ${i+1} notReadMessageCount:`, r.notReadMessageCount))}
           {unreadCount > 0 && (
