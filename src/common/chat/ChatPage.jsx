@@ -542,6 +542,22 @@ const ChatPage = () => {
     }
   }, [isWebSocketConnected, rooms.length, setupWebSocketSubscriptions]);
 
+  // 방 제목은 렌더 시점에 rooms와 roomId로 계산
+  const getSelectedRoom = useCallback(() => {
+    if (!roomId) return null;
+    const rid = String(roomId);
+    const ridNoPrefix = rid.replace(/^ROOM_/, '');
+    const byExactId = rooms.find(r => String(r.id) === rid);
+    if (byExactId) return byExactId;
+    const byRoomId = rooms.find(r => String(r.roomId) === rid);
+    if (byRoomId) return byRoomId;
+    const byIdNoPrefix = rooms.find(r => String(r.id).replace(/^ROOM_/, '') === ridNoPrefix);
+    if (byIdNoPrefix) return byIdNoPrefix;
+    const byRoomIdNoPrefix = rooms.find(r => String(r.roomId || '').replace(/^ROOM_/, '') === ridNoPrefix);
+    if (byRoomIdNoPrefix) return byRoomIdNoPrefix;
+    return null;
+  }, [roomId, rooms]);
+
   // API에서 채팅방 목록 가져오기
   useEffect(() => {
     const fetchChatRooms = async () => {
@@ -803,6 +819,19 @@ const ChatPage = () => {
   };
 
   const isAdminChat = location.pathname.startsWith('/admin/chat');
+  // 현재 선택된 방과 제목 계산
+  const selectedRoom = getSelectedRoom();
+  const selectedRoomTitle = selectedRoom?.title || '';
+  if (selectedRoom) {
+    try {
+      console.log('🧭 선택된 방 식별:', {
+        paramRoomId: roomId,
+        foundId: selectedRoom.id,
+        foundRoomId: selectedRoom.roomId,
+        title: selectedRoom.title,
+      });
+    } catch (_) {}
+  }
   return (
     <div className={`flex h-screen ${isAdminChat ? 'theme-purple' : 'theme-blue'}`}>
       {/* 사이드바 - 스크롤 가능하도록 수정 */}
@@ -898,6 +927,7 @@ const ChatPage = () => {
                 onMessageUpdate={(callback) => {
                   chatRoomUpdateCallbackRef.current = callback;
                 }}
+                roomTitle={selectedRoomTitle}
               />
             } 
           />
