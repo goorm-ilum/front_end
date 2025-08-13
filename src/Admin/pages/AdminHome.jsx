@@ -31,7 +31,7 @@ const Home = () => {
             <div className="mb-16">
               {isLogin && isAdminRole ? (
                 <p className="text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
-                  환영합니다, <span className="font-semibold text-blue-700">{name}</span> 관리자님.
+                  환영합니다, <span className="font-semibold text-blue-700">{name}</span> 관리자님.<br></br>
                   시스템 현황을 확인하고 필요한 관리를 계속 진행해주세요.
                 </p>
               ) : (
