@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getProductDetail, toggleLike } from '../../../common/api/productApi';
 import SellerInfo from '../../../common/components/SellerInfo';
+import ReviewSummary from './ReviewSummary';
 
 // 한국 시간 기준으로 날짜 문자열 생성 (공통 함수)
 const getKoreaDateString = (date) => {
@@ -196,6 +197,7 @@ const CommerceDetail = () => {
         stocks: response.stocks || [],
         rating: response.averageReviewStar,
         reviews: response.reviews || [],
+        reviewStats: response.reviewStats,
         like: response.isLiked,
         sellerId: response.sellerId || response.memberId || response.userId,
         sellerName: response.sellerName,
@@ -623,6 +625,9 @@ const CommerceDetail = () => {
           phoneNum={product?.phoneNum}
           productId={product?.id}
         />
+
+        {/* AI 리뷰 요약 */}
+        <ReviewSummary reviewStats={product?.reviewStats} />
 
         {/* 리뷰 목록 */}
         <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/30 p-6">
