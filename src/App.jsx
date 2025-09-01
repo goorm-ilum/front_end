@@ -20,6 +20,7 @@ import MyOrderDetail from './User/pages/Mypage/MyOrderDetail';
 import MyPage from './User/pages/Mypage';
 import ReviewForm from './User/pages/Mypage/ReviewForm';
 import ChatPage from './common/chat/ChatPage';
+import OpenChatPage from './common/chat/OpenChatPage';
 
 import AdminHome from './Admin/pages/AdminHome';
 import AdminProductList from './Admin/pages/AdminProduct/AdminProductListPage';
@@ -50,6 +51,7 @@ function App() {
             <Route path="/mypage/review/create/:productId" element={<ReviewForm />} />
             <Route path="/mypage/review/edit/:reviewId" element={<ReviewForm />} />
             <Route path="/chat/*" element={<ChatPage />} />
+            <Route path="/openchat/*" element={<OpenChatPage />} />
             <Route path="/commerce/checkout" element={<Checkout />} />
             <Route path="/commerce/order/success" element={<OrderSuccess />} /> 
             <Route path="/commerce/order/fail" element={<OrderFailure />} />
@@ -90,6 +92,11 @@ function App() {
             <Route path="/admin/chat/*" element={
               <AdminProtectedRoute>
                 <ChatPage />
+              </AdminProtectedRoute>
+            } />
+            <Route path="/admin/openchat/*" element={
+              <AdminProtectedRoute>
+                <OpenChatPage />
               </AdminProtectedRoute>
             } />
             <Route path="/admin/profile" element={
