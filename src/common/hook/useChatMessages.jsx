@@ -2,13 +2,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axiosInstance from '../api/mainApi';
 
-const useChatMessages = (roomId) => {
+const useChatMessages = (roomId, onRoomInfoUpdate) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [error, setError] = useState(null);
   const [hasNext, setHasNext] = useState(false);
   const [nextCursor, setNextCursor] = useState(null);
+  const [roomInfo, setRoomInfo] = useState(null); // 채팅방 정보 상태 추가
   const initialLoadRef = useRef(false);
 
   // 날짜를 yyyy-mm-dd hh:mm:ss 형식으로 변환하는 함수
@@ -82,11 +83,31 @@ const useChatMessages = (roomId) => {
       const response = await axiosInstance.get(`/api/chat/me/chatRooms/${roomId}?includeMessages=true&limit=50`);
       
       console.log('📨 통합 초기 응답:', response.data);
+      console.log('📨 응답 구조 분석:', {
+        hasRoom: !!response.data.room,
+        roomKeys: response.data.room ? Object.keys(response.data.room) : [],
+        roomTitle: response.data.room?.title,
+        roomId: response.data.room?.roomId,
+        hasMessages: !!response.data.messages,
+        messageKeys: response.data.messages ? Object.keys(response.data.messages) : []
+      });
       
       if (response.data) {
-        // 응답 구조: { roomInfo: {...}, messages: { items: [...], nextCursor: ..., hasNext: ... } }
-        const { messages: messageData = {}, ...roomInfo } = response.data;
-        const { items = [], nextCursor = null, hasNext = false } = messageData;
+        // 응답 구조: { room: {...}, messages: { items: [...], hasNext: ... } }
+        const { room = {}, messages: messageData = {} } = response.data;
+        const { items = [], hasNext = false } = messageData;
+        
+        // room 객체에서 필요한 정보를 추출하여 roomInfo 구성
+        const roomInfo = {
+          id: room.roomId,
+          roomId: room.roomId,
+          title: room.title,
+          productId: room.productId,
+          ownerEmail: room.ownerEmail,
+          memberCount: room.memberCount,
+          participants: room.participants,
+          myLastReadAt: room.myLastReadAt
+        };
         
         // 서버에서 DESC로 정렬되어 온 메시지를 ASC로 뒤집어서 표시 (오래된 것부터)
         const sortedMessages = items
@@ -100,8 +121,16 @@ const useChatMessages = (roomId) => {
         console.log('📊 정렬된 메시지:', sortedMessages);
         
         setMessages(sortedMessages);
-        setNextCursor(nextCursor);
+        setNextCursor(null); // nextCursor가 없으므로 null로 설정
         setHasNext(hasNext);
+        setRoomInfo(roomInfo); // 로컬 상태에도 저장
+        console.log('📤 useChatMessages에서 roomInfo 설정:', roomInfo);
+        
+        // 채팅방 정보를 부모 컴포넌트로 전달
+        if (onRoomInfoUpdate && roomInfo) {
+          console.log('📤 채팅방 정보를 부모로 전달:', roomInfo);
+          onRoomInfoUpdate(roomInfo);
+        }
       }
     } catch (error) {
       console.error('❌ 통합 초기 로드 실패:', error);
@@ -238,11 +267,12 @@ const useChatMessages = (roomId) => {
     setError(null);
     setHasNext(false);
     setNextCursor(null);
+    setRoomInfo(null); // 채팅방 정보도 초기화
     initialLoadRef.current = false;
     
     // 초기 메시지 로드
     loadInitialMessages();
-  }, [roomId, loadInitialMessages]);
+  }, [roomId]); // loadInitialMessages 제거하여 무한 루프 방지
 
   return {
     messages,
@@ -252,6 +282,7 @@ const useChatMessages = (roomId) => {
     hasNext,
     loadOlderMessages,
     appendNewMessage,
+    roomInfo, // 채팅방 정보도 반환
     // 디버깅용
     nextCursor,
     initialLoaded: initialLoadRef.current

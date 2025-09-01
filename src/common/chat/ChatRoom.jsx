@@ -1,29 +1,48 @@
 // src/common/chat/ChatRoom.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import axiosInstance, { API_SERVER_HOST } from '../api/mainApi';  // mainApi의 axiosInstance 사용
-import { getCookie } from '../util/cookieUtil';  // 쿠키 유틸 추가
-// import SockJS from 'sockjs-client/dist/sockjs.min.js';
-import { Client } from '@stomp/stompjs';
-// import { Client } from '@stomp/stompjs';
+import { getCookie } from '../util/cookieUtil';
+import useChatMessages from '../hook/useChatMessages';
+import { removeFailedMessage } from '../util/failedMessageUtil';
 
-const dummyMessages = {
-  'ROOM001': [
-    { messageId: 'msg001', accountEmail: 'user1', message: '안녕하세요.', createdAt: '2025-01-15 10:00:00' },
-    { messageId: 'msg002', accountEmail: 'admin', message: '무엇이 궁금하신가요?', createdAt: '2025-01-15 10:01:00' },
-  ]
-};
+// 더미 데이터는 훅에서 처리하므로 제거
 
-const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate, roomTitle }) => {
+const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate, roomTitle, failedMessages = [], onRetryMessage, onAbandonMessage, onRoomInfoUpdate }) => {
   const { roomId } = useParams();
   // URL에서 가져온 roomId 사용
   const actualRoomId = roomId || 'ROOM001';
   const scrollRef = useRef();
-  const [messages, setMessages] = useState([]);
+  const topSentinelRef = useRef();
+  const messagesContainerRef = useRef();
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const previousMessagesLength = useRef(0);
+  
+  // useChatMessages 훅 사용
+  const {
+    messages,
+    loading,
+    loadingOlder,
+    error,
+    hasNext,
+    loadOlderMessages,
+    appendNewMessage,
+    roomInfo
+  } = useChatMessages(actualRoomId, onRoomInfoUpdate);
+
+  // 현재 방의 실패한 메시지만 필터링
+  const roomFailedMessages = failedMessages.filter(f => f.roomId === actualRoomId);
+
+  // roomInfo 변경 감지 로깅
+  useEffect(() => {
+    console.log('🔍 ChatRoom roomInfo 변경:', roomInfo);
+  }, [roomInfo]);
+
+  // actualRoomId 변경 감지 로깅
+  useEffect(() => {
+    console.log('🔍 ChatRoom actualRoomId 변경:', actualRoomId);
+  }, [actualRoomId]);
 
   // 현재 로그인한 사용자 이메일
   const loginState = useSelector((state) => state.loginSlice);
@@ -32,60 +51,12 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate, roomTi
   const normalizeEmail = (v) => String(v || '').trim().toLowerCase();
   const emailsEqual = (a, b) => normalizeEmail(a) === normalizeEmail(b);
 
-  // 날짜를 yyyy-mm-dd hh:mm:ss 형식으로 변환하는 함수
+  // 날짜 포맷팅 함수 (간단 버전 - 훅에서 처리하므로)
   const formatDateTime = (dateInput) => {
     if (!dateInput) return '';
-    
-
-    
     try {
-      let date;
-      
-      // Date 객체인 경우
-      if (dateInput instanceof Date) {
-
-        date = dateInput;
-      }
-      // 배열 형태인 경우 (예: [2025, 7, 7, 16, 59, 9] - 월은 0부터 시작)
-      else if (Array.isArray(dateInput)) {
-
-        const [year, month, day, hours = 0, minutes = 0, seconds = 0] = dateInput;
-        date = new Date(year, month - 1, day, hours, minutes, seconds); // 반드시 month - 1
-      }
-      // 콤마로 구분된 문자열인 경우 (예: "2025,8,7,16,59,9")
-      else if (typeof dateInput === 'string' && dateInput.includes(',')) {
-
-        const parts = dateInput.split(',').map(part => parseInt(part.trim()));
-        const [year, month, day, hours = 0, minutes = 0, seconds = 0] = parts;
-        // 월은 0부터 시작하므로 1을 빼줌
-        date = new Date(year, month - 1, day, hours, minutes, seconds);
-      }
-      // 타임스탬프 숫자인 경우 (13자리 밀리초 또는 10자리 초)
-      else if (typeof dateInput === 'number') {
-
-        // 10자리면 초 단위이므로 1000을 곱해서 밀리초로 변환
-        const timestamp = dateInput.toString().length === 10 ? dateInput * 1000 : dateInput;
-        date = new Date(timestamp);
-      }
-      // 문자열 숫자인 경우 (예: "1736939200000")
-      else if (typeof dateInput === 'string' && /^\d+$/.test(dateInput)) {
-
-        const timestamp = parseInt(dateInput);
-        // 10자리면 초 단위이므로 1000을 곱해서 밀리초로 변환
-        const finalTimestamp = dateInput.length === 10 ? timestamp * 1000 : timestamp;
-        date = new Date(finalTimestamp);
-      }
-      // 일반 문자열 날짜인 경우
-      else {
-
-        date = new Date(dateInput);
-      }
-      
-      // 유효한 날짜인지 확인
-      if (isNaN(date.getTime())) {
-
-        return String(dateInput); // 파싱 실패 시 문자열로 반환
-      }
+      const date = new Date(dateInput);
+      if (isNaN(date.getTime())) return String(dateInput);
       
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -94,329 +65,199 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate, roomTi
       const minutes = String(date.getMinutes()).padStart(2, '0');
       const seconds = String(date.getSeconds()).padStart(2, '0');
       
-      const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-
-      return formatted;
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     } catch (error) {
-
-      return String(dateInput); // 에러 시 문자열로 반환
-    }
-  };
-
-
-
-
-  // 로그인 상태 확인
-  const checkAuthStatus = () => {
-    const member = getCookie("member");
-
-
-    
-    if (member) {
-
-
-      return true;
-    } else {
-
-      return false;
+      return String(dateInput);
     }
   };
 
   // ChatPage.jsx에서 WebSocket 메시지를 받아 처리하는 콜백 등록
   useEffect(() => {
     if (onMessageUpdate) {
-      const handleNewMessage = (chatMessage) => {
-
-        
-        // createdAt 필드가 없으면 현재 시간 추가
-        if (!chatMessage.createdAt) {
-          const now = new Date();
-          chatMessage.createdAt = formatDateTime(now); // formatDateTime 함수 사용
-
+      console.log('🔗 ChatRoom WebSocket 콜백 등록');
+      
+      // appendNewMessage를 래핑하여 성공한 메시지의 실패 메시지를 제거
+      const wrappedAppendNewMessage = (message) => {
+        // 메시지가 성공적으로 수신되면 해당 실패 메시지를 제거
+        if (message.messageId) {
+          // 실패 메시지 중에서 같은 messageId를 가진 것을 찾아 제거
+          const failedMessage = roomFailedMessages.find(f => 
+            f.message === message.message && 
+            f.roomId === message.roomId
+          );
+          if (failedMessage) {
+            console.log('✅ 성공한 메시지로 실패 메시지 제거:', failedMessage.id);
+            removeFailedMessage(failedMessage.id);
+          }
         }
         
-        // 중복 메시지 방지
-        setMessages((prev) => {
-          let isDuplicate = false;
-          
-          if (chatMessage.messageId) {
-            // messageId가 있는 경우
-            isDuplicate = prev.some(msg => msg.messageId === chatMessage.messageId);
-            if (isDuplicate) {
-  
-              return prev;
-            }
-          } else {
-            // messageId가 없는 경우 - 메시지 내용, 발신자로 중복 체크 (시간은 5초 이내면 같은 메시지로 인식)
-            const currentTime = new Date(chatMessage.createdAt).getTime();
-            isDuplicate = prev.some(msg => {
-              if (msg.message === chatMessage.message && msg.accountEmail === chatMessage.accountEmail) {
-                // 시간이 5초 이내인지 확인
-                if (msg.createdAt) {
-                  const msgTime = new Date(msg.createdAt).getTime();
-                  const timeDiff = Math.abs(currentTime - msgTime);
-                  if (timeDiff < 5000) { // 5초 이내
-                    return true;
-                  }
-                }
-              }
-              return false;
-            });
-            
-            if (isDuplicate) {
-
-              return prev;
-            }
-          }
-          
-
-
-          return [...prev, chatMessage];
-        });
+        // 원래 appendNewMessage 호출
+        appendNewMessage(message);
       };
       
-      // 콜백 등록
-      onMessageUpdate(handleNewMessage);
+      onMessageUpdate(wrappedAppendNewMessage);
     }
-  }, [onMessageUpdate]);
-  
+  }, [onMessageUpdate, appendNewMessage, roomFailedMessages]);
 
-
-  // /topic/chat/room/{roomId}/update 구독 (실시간 업데이트 수신)
+  // Intersection Observer를 사용한 무한 스크롤 (상단 sentinel)
   useEffect(() => {
-    let isMounted = true;
-    const stompRef = { current: null };
-    const subscriptionRef = { current: null };
-
-    const connectAndSubscribe = async () => {
-      try {
-        const wsBase = API_SERVER_HOST.replace(/\/$/, '').replace(/^http/, 'ws');
-        const brokerWsUrl = `${wsBase}/ws/websocket`;
-
-        const getAccessToken = () => {
-          try {
-            const localToken = window.localStorage?.getItem('accessToken');
-            if (localToken) return localToken;
-          } catch (_) {}
-          if (loginState?.accessToken) return loginState.accessToken;
-          const member = getCookie('member');
-          if (member && member.accessToken) return member.accessToken;
-          return null;
-        };
-
-        const makeConnectHeaders = () => {
-          const token = getAccessToken();
-          return token ? { Authorization: `Bearer ${token}` } : {};
-        };
-
-        const client = new Client({
-          webSocketFactory: () => new WebSocket(brokerWsUrl),
-          reconnectDelay: 5000,
-          heartbeatIncoming: 4000,
-          heartbeatOutgoing: 4000,
-          connectHeaders: makeConnectHeaders(),
-          beforeConnect: () => {
-            client.connectHeaders = makeConnectHeaders();
-          },
-          debug: (msg) => console.log('STOMP ROOM DEBUG:', msg),
-        });
-
-        client.onConnect = () => {
-          if (!isMounted) return;
-          // 방 업데이트 토픽 구독
-          const dest = `/topic/chat/room/${actualRoomId}/update`;
-          const sub = client.subscribe(dest, (message) => {
-            try {
-              console.log('📨 ROOM UPDATE RAW:', message);
-              console.log('📨 ROOM UPDATE BODY:', message.body);
-              const payload = JSON.parse(message.body || '{}');
-              console.log('📨 ROOM UPDATE PARSED:', payload);
-              // payload 구조: roomId, memberId/accountEmail, message(또는 content/msg/lastMessage), updatedAt 등
-              const createdAt = payload.createdAt || payload.updatedAt || Date.now();
-              const text = payload.message ?? payload.content ?? payload.lastMessage ?? payload.msg ?? payload.text ?? '';
-              const incoming = {
-                messageId: payload.messageId || `msg_${Date.now()}`,
-                accountEmail: payload.accountEmail || payload.memberId || payload.senderAccountEmail || payload.sender || payload.email || payload.emailAccount || '',
-                message: String(text),
-                createdAt,
-              };
-
-              // 현재 방 체크는 토픽 자체가 방별이라 완화하되, 혹시 몰라 접두사 제거 비교 추가
-              const payloadRoomId = String(payload.roomId || '');
-              const currentRoomId = String(actualRoomId || '');
-              const sameRoom = (
-                payloadRoomId === currentRoomId ||
-                payloadRoomId.replace(/^ROOM_/, '') === currentRoomId.replace(/^ROOM_/, '')
-              );
-              if (!sameRoom) return;
-
-              // 화면에 추가 (중복 필터 강화: 내용/보낸사람/시간 3중 체크)
-              setMessages((prev) => {
-                if (!incoming.message || incoming.message.trim().length === 0) {
-                  // 내용이 비어있으면 표시하지 않음
-                  return prev;
-                }
-                const isDup = prev.some(m =>
-                  (incoming.messageId && m.messageId === incoming.messageId) ||
-                  (
-                    m.message === incoming.message &&
-                    emailsEqual(m.accountEmail, incoming.accountEmail) &&
-                    Math.abs(new Date(m.createdAt).getTime() - new Date(incoming.createdAt).getTime()) < 3000
-                  )
-                );
-                if (isDup) return prev;
-                return [...prev, incoming];
-              });
-            } catch (e) {
-              console.error('룸 업데이트 파싱 실패:', e);
-            }
-          });
-          subscriptionRef.current = sub;
-        };
-
-        client.onStompError = (frame) => {
-          console.error('ChatRoom STOMP 에러:', frame?.body || frame);
-        };
-
-        client.activate();
-        stompRef.current = client;
-      } catch (e) {
-        console.error('ChatRoom 업데이트 구독 초기화 실패:', e);
-      }
-    };
-
-    connectAndSubscribe();
-
-    return () => {
-      isMounted = false;
-      try { subscriptionRef.current?.unsubscribe(); } catch (_) {}
-      try { stompRef.current?.deactivate(); } catch (_) {}
-    };
-  }, [actualRoomId, loginState?.accessToken]);
-
-  useEffect(() => {
-
-
-
+    if (!topSentinelRef.current || !hasNext) return;
     
-    const fetchChatMessages = async () => {
-
-
-
-      
-      if (!actualRoomId) {
-
-        const roomMessages = dummyMessages[actualRoomId] || [];
-        setMessages(roomMessages);
-        setLoading(false);
-        return;
-      }
-
-      // 개발 단계에서는 인증 체크를 건너뛰고 API 호출
-
-
-      try {
-        setLoading(true);
-        setError(null);
-        
-
-        const apiUrl = `/api/chat/me/chatRooms/${roomId}`;
-
-
-
-
-        
-        // API 호출 전 로그
-
-        const response = await axiosInstance.get(apiUrl);
-
-
-
-        
-        if (response.data && Array.isArray(response.data)) {
-          setMessages(response.data);
-        } else {
-
-          const roomMessages = dummyMessages[roomId] || [];
-          setMessages(roomMessages);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && !loadingOlder) {
+          console.log('🔄 상단 sentinel 감지 - 이전 메시지 로드');
+          setIsLoadingOlder(true);
+          
+          // 현재 스크롤 위치 저장
+          const container = messagesContainerRef.current;
+          if (container) {
+            const scrollHeight = container.scrollHeight;
+            const scrollTop = container.scrollTop;
+            
+            loadOlderMessages().then(() => {
+              // 이전 메시지 로드 후 스크롤 위치 조정
+              setTimeout(() => {
+                if (container) {
+                  const newScrollHeight = container.scrollHeight;
+                  const heightDiff = newScrollHeight - scrollHeight;
+                  container.scrollTop = scrollTop + heightDiff;
+                }
+                setIsLoadingOlder(false);
+              }, 50);
+            });
+          } else {
+            loadOlderMessages().finally(() => setIsLoadingOlder(false));
+          }
         }
-      } catch (error) {
-
-        
-        setError('메시지를 불러오는데 실패했습니다.');
-        
-        // 에러 발생 시 더미 데이터 사용
-        const roomMessages = dummyMessages[roomId] || [];
-        setMessages(roomMessages);
-      } finally {
-        setLoading(false);
-
-      }
-    };
-
-
-    fetchChatMessages();
-  }, [roomId]);
+      },
+      { threshold: 0.1 }
+    );
+    
+    observer.observe(topSentinelRef.current);
+    
+    return () => observer.disconnect();
+  }, [hasNext, loadingOlder, loadOlderMessages]);
 
   useEffect(() => {
-    // 새 메시지 생기면 스크롤 최하단으로
-    if (scrollRef.current) {
+    // 새 메시지가 추가되었을 때만 스크롤을 맨 아래로 이동
+    // 이전 메시지 로드 중이거나 메시지 길이가 줄어든 경우는 제외
+    if (!isLoadingOlder && messages.length > previousMessagesLength.current && scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+    previousMessagesLength.current = messages.length;
+  }, [messages, isLoadingOlder]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const messageDto = {
-      roomId: actualRoomId,
+    // ChatMessageRequestDto 형태에 맞게 구성 (Member 객체 포함)
+    const memberInfo = loginState || getCookie('member') || {};
+    const senderMember = {
+      id: memberInfo.id || null,
       accountEmail: currentUserEmail,
-      receiverAccountEmail: 'JTRweb',
-      message: input
+      name: memberInfo.name || '',
+      role: memberInfo.role || 'U'
     };
 
-    // 즉시 로컬 상태에 메시지 추가 (즉시 화면에 표시)
-    const now = new Date();
-    const createdAt = formatDateTime(now); // formatDateTime 함수 사용
-    const newMessage = {
-      messageId: `msg${Date.now()}`,
-      accountEmail: currentUserEmail,
+    const messageDto = {
+      roomId: actualRoomId,
       message: input,
-      createdAt,
+      //sender: senderMember // Member 객체 직접 포함
     };
+    
+    console.log('📨 ChatMessageRequestDto 형태로 전송:', messageDto);
+
+    // 즉시 로컬 상태에 메시지 추가 (옵티미스틱 업데이트)
+    // const now = new Date();
+    // const createdAt = formatDateTime(now);
+    // const newMessage = {
+    //   messageId: `msg${Date.now()}`,
+    //   accountEmail: currentUserEmail,
+    //   message: input,
+    //   createdAt,
+    // };
+    
+    // // 훅의 appendNewMessage 사용
+    // appendNewMessage(newMessage);
     
     setInput('');
 
     // ChatPage.jsx의 WebSocket을 통한 메시지 전송
-
-
-    
     if (onSendMessage) {
       try {
         const result = onSendMessage(messageDto);
         
         if (result.success) {
-
+          console.log('✅ 메시지 전송 성공');
         } else {
-
-          console.warn('메시지는 화면에 추가되었지만 서버 전송에 실패했습니다.');
+          console.warn('⚠️ 메시지는 화면에 추가되었지만 서버 전송에 실패했습니다.');
         }
         
       } catch (error) {
         console.error('❌ 메시지 전송 콜백 실행 실패:', error);
-        console.warn('메시지는 화면에 추가되었지만 서버 전송에 실패했습니다.');
+        console.warn('⚠️ 메시지는 화면에 추가되었지만 서버 전송에 실패했습니다.');
       }
     } else {
       console.warn('⚠️ onSendMessage 콜백이 없어서 서버 전송을 건너뜀');
-      console.warn('⚠️ 로컬 메시지만 추가됨');
     }
   };
-  
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault();
       handleSend();
     }
+  };
+
+  // 실패한 메시지 UI 렌더링 함수
+  const renderFailedMessage = (failedMsg) => {
+    const isRetrying = failedMsg.status === 'retrying';
+    const isAbandoned = failedMsg.status === 'abandoned';
+    const retryCount = failedMsg.retryCount || 0;
+    
+    // 포기된 메시지는 렌더링하지 않음
+    if (isAbandoned) {
+      return null;
+    }
+    
+    return (
+      <div key={failedMsg.id} className="flex flex-col items-end mb-4">
+        {/* 실패한 메시지 */}
+        <div className="max-w-xs">
+          <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-2 rounded-lg shadow-sm">
+            <p className="text-sm">{failedMsg.message}</p>
+          </div>
+          
+          {/* 재전송/포기 버튼 */}
+          <div className="flex space-x-2 mt-2 justify-end">
+            <button
+              onClick={() => onRetryMessage && onRetryMessage(failedMsg.id, failedMsg.roomId, failedMsg.message)}
+              disabled={isRetrying || retryCount >= 3}
+              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                isRetrying || retryCount >= 3
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-500 text-white hover:bg-blue-600'
+              }`}
+            >
+              {isRetrying ? '재전송 중...' : retryCount >= 3 ? '재시도 초과' : '재전송'}
+            </button>
+            <button
+              onClick={() => onAbandonMessage && onAbandonMessage(failedMsg.id)}
+              disabled={isRetrying}
+              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                isRetrying
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-500 text-white hover:bg-gray-600'
+              }`}
+            >
+              포기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -425,17 +266,45 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate, roomTi
       <div className="px-4 py-3 border-b bg-gray-50 rounded-t-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-gray-900">{roomTitle || `채팅방 ${actualRoomId}`}</h3>
-            <p className="text-sm text-gray-500">총 {messages.length}개의 메시지</p>
+            <h3 className="font-semibold text-gray-900">
+              {roomInfo?.title || roomTitle || `채팅방 ${actualRoomId}`}
+            </h3>
+            {/* 디버깅 정보 */}
+            <div className="text-xs text-gray-500 mt-1">
+              {/* roomInfo: {roomInfo ? JSON.stringify({ id: roomInfo.id, title: roomInfo.title }) : 'null'} | 
+              roomTitle: {roomTitle || 'null'} | 
+              actualRoomId: {actualRoomId} */}
+            </div>
+            {roomFailedMessages.length > 0 && (
+              <p className="text-sm text-red-600">실패한 메시지 {roomFailedMessages.length}개</p>
+            )}
           </div>
-
         </div>
       </div>
 
       {/* 메시지 리스트 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* 상단 Sentinel - 이전 메시지 로드용 */}
+        {hasNext && (
+          <div ref={topSentinelRef} className="h-1 w-full">
+            {(loadingOlder || isLoadingOlder) && (
+              <div className="text-center text-gray-400 py-2">
+                <div className="text-sm">이전 메시지를 불러오는 중...</div>
+              </div>
+            )}
+          </div>
+        )}
+        
         {loading && <div className="text-center text-gray-500 py-8">메시지를 불러오는 중입니다...</div>}
         {error && <div className="text-center text-red-500 py-8">{error}</div>}
+        
+        {/* 실패한 메시지들 먼저 표시 */}
+        {roomFailedMessages.length > 0 && (
+          <div className="border-b border-red-200 pb-4 mb-4">
+            {roomFailedMessages.map(renderFailedMessage)}
+          </div>
+        )}
+        
         {messages.length === 0 && !loading && !error ? (
           <div className="text-center text-gray-500 py-8">
             <div className="text-2xl mb-2">💬</div>
@@ -443,46 +312,74 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate, roomTi
             <p className="text-sm">첫 번째 메시지를 보내보세요!</p>
           </div>
         ) : (
-          messages.map((m, i) => (
-            <div
-              key={i}
-              className={`flex ${emailsEqual(m.accountEmail, currentUserEmail) ? 'justify-end' : 'justify-start'}`}
-            >
+          <>
+            {messages.map((m, i) => (
               <div
-                className={`max-w-xs px-4 py-2 rounded-lg shadow-sm ${
-                  emailsEqual(m.accountEmail, currentUserEmail) 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-100 text-gray-900'
-                }`}
+                key={m.messageId || `msg_${m.accountEmail}_${m.createdAt}_${i}`}
+                className={`flex flex-col ${emailsEqual(m.accountEmail, currentUserEmail) ? 'items-end' : 'items-start'}`}
               >
-                <p className="text-sm">{m.message}</p>
-                <p className={`text-xs mt-1 ${
-                  emailsEqual(m.accountEmail, currentUserEmail) ? 'text-blue-100' : 'text-gray-500'
-                }`}>
-                  {formatDateTime(m.createdAt)}
-                </p>
+                {/* 발신자 이름 표시 */}
+                {!emailsEqual(m.accountEmail, currentUserEmail) && (
+                  <div className="text-xs text-gray-500 mb-1 px-2">
+                    {m.senderName || m.accountEmail?.split('@')[0] || '알 수 없음'} ({m.accountEmail || '이메일 없음'})
+                  </div>
+                )}
+                <div
+                  className={`max-w-xs px-4 py-2 rounded-lg shadow-sm ${
+                    emailsEqual(m.accountEmail, currentUserEmail) 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 text-gray-900'
+                  }`}
+                >
+                  <p className="text-sm">{m.message}</p>
+                  <p className={`text-xs mt-1 ${
+                    emailsEqual(m.accountEmail, currentUserEmail) ? 'text-blue-100' : 'text-gray-500'
+                  }`}>
+                    {formatDateTime(m.createdAt)}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </>
         )}
         <div ref={scrollRef} />
       </div>
 
       {/* 입력창 */}
       <div className="border-t p-4 bg-gray-50 rounded-b-lg">
+        {/* WebSocket 연결 상태 표시 */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-2">
+            <div className={`w-2 h-2 rounded-full ${isWebSocketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="text-xs text-gray-500">
+              {isWebSocketConnected ? '연결됨' : '연결 끊김'}
+            </span>
+          </div>
+          {roomFailedMessages.length > 0 && (
+            <div className="text-xs text-red-600">
+              실패한 메시지 {roomFailedMessages.length}개
+            </div>
+          )}
+        </div>
+        
         <div className="flex items-center space-x-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-main focus:border-transparent"
             placeholder="메시지를 입력하세요..."
           />
           <div className={`transition-all duration-500 ease-in-out ${input.trim() ? 'opacity-100 scale-100 w-auto' : 'opacity-0 scale-95 w-0 overflow-hidden'}`}>
             <button
               onClick={handleSend}
-              className="btn-main px-4 py-2 rounded-lg hover:opacity-90 transition-colors whitespace-nowrap"
+              disabled={!isWebSocketConnected}
+              className={`px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
+                isWebSocketConnected 
+                  ? 'btn-main hover:opacity-90' 
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
             >
               전송
             </button>
@@ -493,4 +390,4 @@ const ChatRoom = ({ isWebSocketConnected, onSendMessage, onMessageUpdate, roomTi
   );
 };
 
-export default ChatRoom; 
+export default ChatRoom;

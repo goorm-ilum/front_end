@@ -135,6 +135,12 @@ const Header = () => {
               >
                 정보수정
               </AdminMenuLink>
+              <AdminMenuLink
+                to="/admin/openchat"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-300"
+              >
+                오픈채팅
+              </AdminMenuLink>
             </>
           ) : (
             <>
@@ -144,6 +150,13 @@ const Header = () => {
                 onClick={(e) => handleMenuClick('/commerce', e)}
               >
                 투어/액티비티
+              </MenuLink>
+              <MenuLink
+                to="/openchat"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-300"
+                onClick={(e) => handleMenuClick('/openchat', e)}
+              >
+                오픈채팅
               </MenuLink>
               <MenuLink
                 to="/mypage"
